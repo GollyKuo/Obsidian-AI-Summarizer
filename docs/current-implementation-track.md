@@ -1,6 +1,6 @@
 # Current Implementation Track
 
-最後更新：2026-04-22 00:26
+最後更新：2026-04-22 00:54
 
 ## 目前階段
 
@@ -15,8 +15,8 @@
 
 ## 最近 5 個動作
 
-1. 定案 `RuntimeProvider` 的 media v1 策略為 `local_bridge`
-2. 新增 runtime strategy 邊界：`local-bridge-runtime` 與 `runtime-factory`
-3. settings 新增 `mediaCacheRoot`、`mediaCompressionProfile`，並落地到 Obsidian 設定頁
-4. 更新 backlog，完成 TRACK-007 的 runtime strategy 與 settings 欄位任務
-5. 下一步主線改為 cache root resolution 與 media URL acquisition pipeline
+1. 強化 TRACK-007 backlog，補上外部依賴 readiness 任務（`yt-dlp`、`ffmpeg`、`ffprobe`）
+2. 將 TRACK-007 完成條件改為可量測門檻（整合測試案例數、壓縮率、回退條件、取消時效）
+3. 更新 `docs/media-acquisition-spec.md`，加入品質守門量化門檻與依賴錯誤映射
+4. 更新 `docs/architecture-boundary.md`，同步 `RuntimeProvider.strategy` 邊界與新版優先序
+5. 下一步主線：實作 dependency readiness checker 與 cache root resolution

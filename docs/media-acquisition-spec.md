@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-04-22 00:11
+最後更新：2026-04-22 00:54
 
 ## 目的
 
@@ -22,6 +22,21 @@
   - Windows：`%LOCALAPPDATA%/ObsidianAI-Summarizer/media-cache`
   - macOS：`~/Library/Caches/obsidian-ai-summarizer/media-cache`
   - Linux：`~/.cache/obsidian-ai-summarizer/media-cache`
+
+## 外部依賴 Readiness（v1 必要）
+
+`local_bridge` 策略在任務開始前必須先做外部依賴檢查：
+
+1. `yt-dlp` 可執行，且 `--version` 有回傳內容。
+2. `ffmpeg` 可執行，且 `-version` 有回傳內容。
+3. `ffprobe` 可執行，且 `-version` 有回傳內容。
+4. 檢查結果需寫入 runtime diagnostics（供 UI 與 log 顯示）。
+
+錯誤映射：
+
+1. 缺依賴或不可執行：`runtime_unavailable`
+2. 權限不足或程序啟動失敗：`runtime_unavailable`
+3. 下載或轉檔流程內部失敗：`download_failure`
 
 ## Session 目錄規格
 
@@ -122,10 +137,18 @@
 2. `AAC 64 kbps mono 16kHz`
 3. `FLAC mono 16kHz`（精度優先，體積較大）
 
+### 品質守門量化門檻（v1）
+
+1. 單一 chunk 若音訊時長大於 30 秒且 transcript 為空，必須觸發回退。
+2. 全任務 transcript 內容密度低於 40 字/分鐘，必須觸發回退。
+3. 若觸發回退，最多允許連續升級重跑 2 次（最終到 `FLAC`）。
+4. 回退後仍不達門檻，回報 `download_failure` 並附 diagnostics。
+
 ### 成本對齊
 
 1. 壓縮策略主要降低「上傳頻寬與音訊處理成本」。
 2. 摘要 token 成本另由「chunk summary -> final summary」策略控制，不與音訊壓縮耦合。
+3. `balanced` profile 的目標是相較 `normalized.wav` 降低至少 70% 上傳量（以樣本驗證）。
 
 ## Retention 模式對應
 

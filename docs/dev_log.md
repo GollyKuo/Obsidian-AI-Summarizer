@@ -1,8 +1,26 @@
 # 開發日誌
 
-最後更新：2026-04-22 00:26
+最後更新：2026-04-22 00:54
 
 ## 版本紀錄
+
+### 0.1.16-track-007-planning-hardening - 2026-04-22 00:54
+
+範圍：
+
+- 強化 TRACK-007 的架構一致性與可驗收性（依賴 readiness、量化門檻、文件同步）
+
+主要變更：
+
+- 更新 `docs/backlog.md`，新增外部依賴 readiness 任務與錯誤映射任務
+- 更新 `docs/backlog.md`，將 TRACK-007 完成條件改為可量測門檻
+- 更新 `docs/media-acquisition-spec.md`，新增 dependency readiness 規格與品質守門量化門檻
+- 更新 `docs/architecture-boundary.md`，同步 `RuntimeProvider.strategy` 邊界與新版優先序
+- 更新 `docs/current-implementation-track.md`
+
+驗證：
+
+- 文件一致性人工檢查完成
 
 ### 0.1.15-track-007-settings-fields - 2026-04-22 00:26
 

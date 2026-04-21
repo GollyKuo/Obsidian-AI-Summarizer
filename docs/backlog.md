@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-22 00:26
+最後更新：2026-04-22 00:54
 
 ## 使用規則
 
@@ -133,6 +133,8 @@
 - [x] 新增 settings 欄位 `mediaCompressionProfile`（`balanced` / `quality`，基本儲存與說明文案）（完成：2026-04-22 00:26）
 - [ ] 建立 `mediaCacheRoot` 絕對路徑驗證與可寫性檢查
 - [ ] 建立 cache root resolution（自訂路徑優先，否則使用 OS 預設 cache）
+- [ ] 建立外部依賴 readiness 檢查（`yt-dlp`、`ffmpeg`、`ffprobe` 可執行性與版本資訊）
+- [ ] 建立外部依賴錯誤映射與提示（缺依賴、權限不足、執行失敗 -> `runtime_unavailable`）
 - [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）
 - [ ] 建立 `services/media/downloader-adapter.ts`
 - [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
@@ -148,11 +150,11 @@
 
 完成條件：
 
-- [ ] media URL 可進入 pipeline，且不破壞既有 webpage flow
-- [ ] YouTube/podcast 下載流程可用
-- [ ] 下載階段 cancellation 可生效
-- [ ] integration tests 通過
-- [ ] Obsidian 手動 smoke 通過
+- [ ] media URL pipeline 整合測試通過（至少 8 案：成功 3、失敗 3、取消 2）
+- [ ] `balanced` 壓縮 profile 可將上傳檔總量降低至少 70%（對照 `normalized.wav`，採 3 組樣本）
+- [ ] 壓縮品質守門可觸發回退（至少覆蓋 2 案：解碼失敗、低內容密度）
+- [ ] 下載階段 cancellation 在 2 秒內停止子程序，且不殘留孤兒程序
+- [ ] Obsidian 手動 smoke 通過（YouTube/podcast 各至少一條，且不破壞既有 webpage flow）
 
 ## Upcoming
 

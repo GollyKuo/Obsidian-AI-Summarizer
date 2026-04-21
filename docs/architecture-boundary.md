@@ -101,6 +101,7 @@ src/
 
 ```ts
 interface RuntimeProvider {
+  strategy: RuntimeStrategy;
   processMediaUrl(input: MediaUrlRequest, signal: AbortSignal): Promise<MediaProcessResult>;
   processLocalMedia(input: LocalMediaRequest, signal: AbortSignal): Promise<MediaProcessResult>;
   processWebpage(input: WebpageRequest, signal: AbortSignal): Promise<WebpageProcessResult>;
@@ -168,8 +169,8 @@ interface NoteWriter {
 
 ## 第一版實作優先序
 
-1. `webpage flow`
-2. `settings + note writer + prompt assets`
-3. `runtime placeholder`
-4. `media URL flow`
-5. `local media flow`
+1. `webpage flow`（已完成）
+2. `settings + note writer + prompt assets`（已完成）
+3. `runtime strategy boundary`（`local_bridge` + `placeholder_only` fallback，已完成）
+4. `media URL flow`（進行中：先完成 dependency readiness + cache resolution）
+5. `local media flow`（待開始）
