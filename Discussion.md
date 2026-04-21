@@ -13,15 +13,15 @@
 ## Active Topics
 
 1. 這個 repo 作為本專案起始骨架，是否還缺少必要的初始化檔案或規則。
-2. `RuntimeProvider` 的 v1 策略要先採 placeholder-only，還是同時定義 local bridge 草案。
-3. `local media` 的 v1 輸入範圍要先限制為 vault file，還是保留外部檔案橋接能力。
-4. template 整合在 v1 要先支援 `template note path`，還是同時支援資料夾與選擇器。
-5. `webpage flow` 的 native 實作範圍要到哪裡，哪些能力應標記為 `runtime-dependent`。
+2. `local media` 的 v1 輸入範圍要先限制為 vault file，還是保留外部檔案橋接能力。
+3. template 整合在 v1 要先支援 `template note path`，還是同時支援資料夾與選擇器。
+4. `webpage flow` 的 native 實作範圍要到哪裡，哪些能力應標記為 `runtime-dependent`。
 
 ## Recent Decisions
 
 1. `media URL` 下載產物不放在 vault 內，改採「外部路徑」策略，並提供使用者在 settings 中指定存放根目錄。
 2. `media URL` 流程在送 AI 前必須先做音訊壓縮與分段，預設採 `balanced`（mono 16kHz + Opus 24~32 kbps + chunk + VAD），並保留品質回退機制。
+3. `RuntimeProvider` 的 media v1 策略定案為 `local_bridge`，`placeholder_only` 保留為 fallback 測試/隔離用途。
 
 ## Parking Lot
 

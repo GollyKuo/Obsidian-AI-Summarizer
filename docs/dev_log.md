@@ -1,8 +1,43 @@
 # 開發日誌
 
-最後更新：2026-04-22 00:17
+最後更新：2026-04-22 00:26
 
 ## 版本紀錄
+
+### 0.1.15-track-007-settings-fields - 2026-04-22 00:26
+
+範圍：
+
+- 落地 TRACK-007 所需 settings 欄位（`mediaCacheRoot`、`mediaCompressionProfile`）的基礎儲存與 UI
+
+主要變更：
+
+- 更新 `src/domain/settings.ts`，新增 `MediaCompressionProfile` 與對應預設值
+- 更新 `src/ui/settings-tab.ts`，新增 `mediaCacheRoot` 文字欄位與 `mediaCompressionProfile` 下拉選單
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+
+### 0.1.14-runtime-strategy-local-bridge - 2026-04-22 00:24
+
+範圍：
+
+- 將 `RuntimeProvider` 的 media v1 策略正式定案為 `local_bridge`，並落地策略邊界
+
+主要變更：
+
+- 更新 `src/domain/settings.ts`，新增 `RuntimeStrategy` 與 `runtimeStrategy` 設定欄位（預設 `local_bridge`）
+- 更新 `src/runtime/runtime-provider.ts`，在介面加入 `strategy` 邊界
+- 更新 `src/runtime/placeholder-runtime.ts`，補齊 `strategy = placeholder_only`
+- 新增 `src/runtime/local-bridge-runtime.ts` 作為 media v1 strategy 入口
+- 新增 `src/runtime/runtime-factory.ts`，以策略建立對應 RuntimeProvider
+- 更新 `Discussion.md`、`docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
 
 ### 0.1.13-api-instructions-prompt-alignment - 2026-04-22 00:17
 

@@ -1,9 +1,11 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
+import type { MediaCompressionProfile } from "@domain/settings";
 import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
 import type { RetentionMode, SourceType } from "@domain/types";
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
 const RETENTION_OPTIONS: RetentionMode[] = ["none", "source", "all"];
+const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁 URL",
   media_url: "媒體 URL（YouTube/Podcast）",
@@ -13,6 +15,10 @@ const RETENTION_LABELS: Record<RetentionMode, string> = {
   none: "不保留中間檔案",
   source: "保留來源檔案",
   all: "保留全部可用中間檔案"
+};
+const MEDIA_COMPRESSION_LABELS: Record<MediaCompressionProfile, string> = {
+  balanced: "平衡（預設）",
+  quality: "品質優先"
 };
 
 export class MediaSummarizerSettingTab extends PluginSettingTab {
@@ -62,6 +68,16 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("媒體快取根目錄")
+      .setDesc("下載與中間產物存放路徑。留空時使用作業系統預設快取目錄。")
+      .addText((text) =>
+        text.setValue(this.plugin.settings.mediaCacheRoot).onChange(async (value) => {
+          this.plugin.settings.mediaCacheRoot = value.trim();
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
       .setName("模板參照")
       .setDesc("可填模板筆記路徑或模板識別值。")
       .addText((text) =>
@@ -82,6 +98,21 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
           this.plugin.settings.retentionMode = value as RetentionMode;
           await this.plugin.saveSettings();
         });
+      });
+
+    new Setting(containerEl)
+      .setName("媒體壓縮設定")
+      .setDesc("控制送 AI 前的音訊壓縮策略。")
+      .addDropdown((dropdown) => {
+        for (const profile of MEDIA_COMPRESSION_OPTIONS) {
+          dropdown.addOption(profile, MEDIA_COMPRESSION_LABELS[profile]);
+        }
+        dropdown
+          .setValue(this.plugin.settings.mediaCompressionProfile)
+          .onChange(async (value) => {
+            this.plugin.settings.mediaCompressionProfile = value as MediaCompressionProfile;
+            await this.plugin.saveSettings();
+          });
       });
 
     new Setting(containerEl)

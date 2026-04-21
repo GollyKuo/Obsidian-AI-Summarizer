@@ -41,7 +41,8 @@ src/
   runtime/
     runtime-provider.ts
     runtime-payloads.ts
-    local-bridge.ts
+    runtime-factory.ts
+    local-bridge-runtime.ts
     placeholder-runtime.ts
   utils/
     filenames.ts
@@ -87,7 +88,8 @@ src/
   - media/subtitle adapter
 - `runtime/`
   - 處理 runtime-dependent 能力
-  - 目前不得先綁死單一執行方案
+  - v1 media strategy 採 `local_bridge`，但保留 `placeholder_only` fallback
+  - 仍不得讓 runtime 細節滲入 domain / note writer
 - `utils/`
   - 純工具函式，不承載產品流程
 

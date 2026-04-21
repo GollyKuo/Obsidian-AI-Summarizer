@@ -1,6 +1,6 @@
 # Current Implementation Track
 
-最後更新：2026-04-22 00:17
+最後更新：2026-04-22 00:26
 
 ## 目前階段
 
@@ -15,8 +15,8 @@
 
 ## 最近 5 個動作
 
-1. 將 `docs/API_Instructions.md` 完整整合到 `src/domain/prompts.ts`
-2. 更新 `src/services/ai/prompt-builder.ts`，改為組裝可直接執行的摘要與逐字稿 prompt
-3. 修正 `docs/API_Instructions.md` 技術實作位置，對齊目前 TypeScript 架構
-4. 更新 backlog，記錄 prompt contract 整合完成時間
-5. 下一步主線維持 `TRACK-007 Media URL Acquisition`
+1. 定案 `RuntimeProvider` 的 media v1 策略為 `local_bridge`
+2. 新增 runtime strategy 邊界：`local-bridge-runtime` 與 `runtime-factory`
+3. settings 新增 `mediaCacheRoot`、`mediaCompressionProfile`，並落地到 Obsidian 設定頁
+4. 更新 backlog，完成 TRACK-007 的 runtime strategy 與 settings 欄位任務
+5. 下一步主線改為 cache root resolution 與 media URL acquisition pipeline
