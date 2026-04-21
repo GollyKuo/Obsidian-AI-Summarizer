@@ -1,6 +1,6 @@
 # Discussion
 
-最後更新：2026-04-21
+最後更新：2026-04-22
 
 本文件集中管理尚未定案、需要進一步討論，或需要在正式文件回寫前先收斂的問題。
 
@@ -17,6 +17,11 @@
 3. `local media` 的 v1 輸入範圍要先限制為 vault file，還是保留外部檔案橋接能力。
 4. template 整合在 v1 要先支援 `template note path`，還是同時支援資料夾與選擇器。
 5. `webpage flow` 的 native 實作範圍要到哪裡，哪些能力應標記為 `runtime-dependent`。
+
+## Recent Decisions
+
+1. `media URL` 下載產物不放在 vault 內，改採「外部路徑」策略，並提供使用者在 settings 中指定存放根目錄。
+2. `media URL` 流程在送 AI 前必須先做音訊壓縮與分段，預設採 `balanced`（mono 16kHz + Opus 24~32 kbps + chunk + VAD），並保留品質回退機制。
 
 ## Parking Lot
 

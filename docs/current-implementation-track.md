@@ -1,6 +1,6 @@
 # Current Implementation Track
 
-最後更新：2026-04-21 23:32
+最後更新：2026-04-22 00:17
 
 ## 目前階段
 
@@ -15,8 +15,8 @@
 
 ## 最近 5 個動作
 
-1. 定義 `TRACK-007` 下載格式與存放路徑規格（`docs/media-acquisition-spec.md`）
-2. backlog 已新增 TRACK-007 規格任務並標記完成時間
-3. Obsidian 手動 smoke 測試完成（TRACK-002 / TRACK-005 / TRACK-006）
-4. plugin 可見、command 可見、settings 儲存讀回通過
+1. 將 `docs/API_Instructions.md` 完整整合到 `src/domain/prompts.ts`
+2. 更新 `src/services/ai/prompt-builder.ts`，改為組裝可直接執行的摘要與逐字稿 prompt
+3. 修正 `docs/API_Instructions.md` 技術實作位置，對齊目前 TypeScript 架構
+4. 更新 backlog，記錄 prompt contract 整合完成時間
 5. 下一步主線維持 `TRACK-007 Media URL Acquisition`

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-21 23:32
+最後更新：2026-04-22 00:17
 
 ## 使用規則
 
@@ -80,6 +80,7 @@
 - [x] 建立 `services/obsidian/template-resolver.ts`（完成：2026-04-21 15:45）
 - [x] 建立 `services/web/webpage-extractor.ts`（完成：2026-04-21 15:45）
 - [x] 建立 `services/web/metadata-extractor.ts`（完成：2026-04-21 15:45）
+- [x] 將 `docs/API_Instructions.md` 整合為可執行 prompt contract（完成：2026-04-22 00:17）
 
 完成條件：
 
@@ -124,16 +125,23 @@
 完成 `media URL -> 下載/取得媒體 -> 回傳標準化輸入`，支援 YouTube/podcast，並保留可取消與可測試流程。
 
 - [x] 定義下載格式與存放路徑規格（`docs/media-acquisition-spec.md`）（完成：2026-04-21 23:32）
+- [x] 定案外部可選擇 media cache root（預設不寫入 vault）（完成：2026-04-22 00:01）
+- [x] 定案 AI 上傳前壓縮策略（音訊抽取、分段、VAD、品質回退）（完成：2026-04-22 00:11）
 - [ ] 定案 `RuntimeProvider` v1 media acquisition 策略（placeholder-only 或 local bridge）
+- [ ] 新增 settings 欄位 `mediaCacheRoot`（含絕對路徑驗證、可寫性檢查與預設說明）
+- [ ] 新增 settings 欄位 `mediaCompressionProfile`（`balanced` / `quality`）與說明文案
+- [ ] 建立 cache root resolution（自訂路徑優先，否則使用 OS 預設 cache）
 - [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）
 - [ ] 建立 `services/media/downloader-adapter.ts`
+- [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
 - [ ] 建立 `orchestration/process-media-url.ts`
 - [ ] 建立 session isolation 與安全恢復（不得掃整個 downloads 目錄挑最大檔）
 - [ ] 建立下載階段 cancellation 串接（AbortSignal）
+- [ ] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）
 - [ ] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）
 - [ ] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）
-- [ ] 建立 unit tests（URL 驗證、session isolation、錯誤分類）
-- [ ] 建立 integration tests（成功、失敗、取消）
+- [ ] 建立 unit tests（URL 驗證、session isolation、壓縮 profile、錯誤分類）
+- [ ] 建立 integration tests（成功、失敗、取消、品質回退）
 - [ ] 完成 Obsidian 手動 smoke（YouTube/podcast 各至少一條）
 
 完成條件：

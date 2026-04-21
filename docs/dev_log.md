@@ -1,8 +1,63 @@
 # 開發日誌
 
-最後更新：2026-04-21 23:32
+最後更新：2026-04-22 00:17
 
 ## 版本紀錄
+
+### 0.1.13-api-instructions-prompt-alignment - 2026-04-22 00:17
+
+範圍：
+
+- 將 `docs/API_Instructions.md` 的所有摘要與逐字稿規範整合為目前專案可直接執行的 prompt contract
+
+主要變更：
+
+- 更新 `src/domain/prompts.ts`，將摘要、網頁摘要與逐字稿規則改為完整提示詞常數
+- 更新 `src/services/ai/prompt-builder.ts`，加入明確輸入區塊與中文 metadata 標籤
+- 更新 `docs/API_Instructions.md`，修正技術實作位置為目前 TypeScript 架構
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+- 文件與程式碼語意已人工對齊
+
+### 0.1.12-pre-upload-compression-policy - 2026-04-22 00:11
+
+範圍：
+
+- 定案 `media URL` 在送 AI 前的壓縮與分段策略，以降低上傳傳輸與成本
+
+主要變更：
+
+- 更新 `docs/media-acquisition-spec.md`，新增 `ai-upload` 產物規格
+- 更新 `docs/media-acquisition-spec.md`，新增預設 `balanced` 壓縮 profile（mono 16kHz + Opus 24~32 kbps）
+- 更新 `docs/media-acquisition-spec.md`，新增 chunk、VAD 與品質回退（Opus -> AAC -> FLAC）規則
+- 更新 `docs/backlog.md`，加入 `pre-upload-compressor`、壓縮 profile 與回退測試任務
+- 更新 `docs/current-implementation-track.md`、`Discussion.md` 同步決策
+
+驗證：
+
+- 文件一致性人工檢查完成
+- TRACK-007 任務拆分已可直接進入實作
+
+### 0.1.11-external-media-cache-root-decision - 2026-04-22 00:01
+
+範圍：
+
+- 定案 `media URL` 下載產物改為預設不寫入 vault，並提供使用者自選外部存放路徑
+
+主要變更：
+
+- 更新 `Discussion.md`，新增已定案項目（外部可選擇 media cache root）
+- 更新 `docs/media-acquisition-spec.md`，加入 `mediaCacheRoot` 設定與 OS 預設 cache 路徑策略
+- 更新 `docs/backlog.md`，加入 `mediaCacheRoot` 設定與 cache root resolution 任務
+- 更新 `docs/current-implementation-track.md`，同步主線最新決策
+
+驗證：
+
+- 文件一致性人工檢查完成
+- TRACK-007 規格與待辦項已對齊
 
 ### 0.1.10-media-acquisition-format-spec - 2026-04-21 23:32
 
