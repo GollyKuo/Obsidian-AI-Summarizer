@@ -1,8 +1,29 @@
 # 開發日誌
 
-最後更新：2026-04-21 16:10
+最後更新：2026-04-21 16:20
 
 ## 版本紀錄
+
+### 0.1.8-smoke-test-passed - 2026-04-21 16:20
+
+範圍：
+
+- 完成 Obsidian 手動 smoke 驗證並收斂目前主線驗收狀態
+
+主要變更：
+
+- 更新 `docs/backlog.md`，勾選 TRACK-002 完成條件
+- 更新 `docs/backlog.md`，勾選 TRACK-005 手動 smoke 完成條件
+- 更新 `docs/backlog.md`，勾選 TRACK-006 完成條件
+- 更新 `docs/current-implementation-track.md`，主線切換到 TRACK-007
+
+驗證：
+
+- Obsidian 手動 smoke 全部通過
+- plugin 可見
+- commands 可見
+- settings 可儲存與讀回
+- UI 可啟動 webpage flow，成功/失敗/取消可區分
 
 ### 0.1.7-track-006-minimal-ui-flow - 2026-04-21 16:10
 

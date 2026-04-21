@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-21 16:10
+最後更新：2026-04-21 16:20
 
 ## 使用規則
 
@@ -45,9 +45,9 @@
 
 完成條件：
 
-- [ ] Obsidian 中可看到 plugin
-- [ ] command 可見
-- [ ] settings 可儲存與讀回
+- [x] Obsidian 中可看到 plugin（完成：2026-04-21 16:20）
+- [x] command 可見（完成：2026-04-21 16:20）
+- [x] settings 可儲存與讀回（完成：2026-04-21 16:20）
 
 ### TRACK-003 Domain Contracts
 
@@ -100,7 +100,7 @@
 完成條件：
 
 - [x] mocked integration test 通過（完成：2026-04-21 15:58）
-- [ ] 手動 smoke 可完成從輸入到寫筆記
+- [x] 手動 smoke 可完成從輸入到寫筆記（完成：2026-04-21 16:20）
 
 ### TRACK-006 Minimal UI Flow
 
@@ -115,13 +115,38 @@
 
 完成條件：
 
-- [ ] 使用者可透過 UI 啟動 webpage flow
-- [ ] 成功、失敗、取消三種狀態可區分
+- [x] 使用者可透過 UI 啟動 webpage flow（完成：2026-04-21 16:20）
+- [x] 成功、失敗、取消三種狀態可區分（完成：2026-04-21 16:20）
+
+### TRACK-007 Media URL Acquisition
+
+目標：
+完成 `media URL -> 下載/取得媒體 -> 回傳標準化輸入`，支援 YouTube/podcast，並保留可取消與可測試流程。
+
+- [ ] 定案 `RuntimeProvider` v1 media acquisition 策略（placeholder-only 或 local bridge）
+- [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）
+- [ ] 建立 `services/media/downloader-adapter.ts`
+- [ ] 建立 `orchestration/process-media-url.ts`
+- [ ] 建立 session isolation 與安全恢復（不得掃整個 downloads 目錄挑最大檔）
+- [ ] 建立下載階段 cancellation 串接（AbortSignal）
+- [ ] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）
+- [ ] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）
+- [ ] 建立 unit tests（URL 驗證、session isolation、錯誤分類）
+- [ ] 建立 integration tests（成功、失敗、取消）
+- [ ] 完成 Obsidian 手動 smoke（YouTube/podcast 各至少一條）
+
+完成條件：
+
+- [ ] media URL 可進入 pipeline，且不破壞既有 webpage flow
+- [ ] YouTube/podcast 下載流程可用
+- [ ] 下載階段 cancellation 可生效
+- [ ] integration tests 通過
+- [ ] Obsidian 手動 smoke 通過
 
 ## Upcoming
 
-- [ ] 決定 `RuntimeProvider` v1 策略
 - [ ] 決定 `local media` v1 支援範圍
 - [ ] 決定 template 整合的第一版 UX
 - [ ] 決定 `webpage flow` 哪些能力屬於 `runtime-dependent`
 - [ ] 整理 prompt 資產與 note output 範本
+- [ ] 撰寫使用者手冊（`docs/user-manual.md`）

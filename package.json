@@ -5,7 +5,9 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
+    "dev:vault": "node esbuild.config.mjs --watch --vault \"D:\\程式開發\\Obsidian Test\"",
     "build": "node esbuild.config.mjs --production",
+    "build:vault": "node esbuild.config.mjs --production --vault \"D:\\程式開發\\Obsidian Test\"",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "check:types": "npm run typecheck",
