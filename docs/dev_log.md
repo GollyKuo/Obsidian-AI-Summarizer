@@ -1,8 +1,27 @@
 # 開發日誌
 
-最後更新：2026-04-21 23:23
+最後更新：2026-04-21 23:32
 
 ## 版本紀錄
+
+### 0.1.10-media-acquisition-format-spec - 2026-04-21 23:32
+
+範圍：
+
+- 為 TRACK-007 預先定案下載格式與存放路徑規格
+
+主要變更：
+
+- 新增 `docs/media-acquisition-spec.md`
+- 定義 YouTube/podcast/direct media 的下載產物格式
+- 定義 session 目錄結構與命名規則
+- 定義 retention 模式對應與安全恢復規格
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- 文件一致性人工檢查完成
+- 規格已對齊 TRACK-007 任務範圍
 
 ### 0.1.9-ui-zh-tw-and-vault-command-policy - 2026-04-21 23:23
 

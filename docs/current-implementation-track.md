@@ -1,6 +1,6 @@
 # Current Implementation Track
 
-最後更新：2026-04-21 16:20
+最後更新：2026-04-21 23:32
 
 ## 目前階段
 
@@ -15,8 +15,8 @@
 
 ## 最近 5 個動作
 
-1. Obsidian 手動 smoke 測試完成（TRACK-002 / TRACK-005 / TRACK-006）
-2. plugin 可見、command 可見、settings 儲存讀回通過
-3. UI 可啟動 webpage flow，成功/失敗/取消三種狀態可區分
-4. backlog 已同步勾選完成條件並加分鐘時間
-5. 下一步主線切到 `TRACK-007 Media URL Acquisition`
+1. 定義 `TRACK-007` 下載格式與存放路徑規格（`docs/media-acquisition-spec.md`）
+2. backlog 已新增 TRACK-007 規格任務並標記完成時間
+3. Obsidian 手動 smoke 測試完成（TRACK-002 / TRACK-005 / TRACK-006）
+4. plugin 可見、command 可見、settings 儲存讀回通過
+5. 下一步主線維持 `TRACK-007 Media URL Acquisition`

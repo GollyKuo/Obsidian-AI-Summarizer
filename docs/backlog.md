@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-21 16:20
+最後更新：2026-04-21 23:32
 
 ## 使用規則
 
@@ -123,6 +123,7 @@
 目標：
 完成 `media URL -> 下載/取得媒體 -> 回傳標準化輸入`，支援 YouTube/podcast，並保留可取消與可測試流程。
 
+- [x] 定義下載格式與存放路徑規格（`docs/media-acquisition-spec.md`）（完成：2026-04-21 23:32）
 - [ ] 定案 `RuntimeProvider` v1 media acquisition 策略（placeholder-only 或 local bridge）
 - [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）
 - [ ] 建立 `services/media/downloader-adapter.ts`
@@ -149,4 +150,5 @@
 - [ ] 決定 template 整合的第一版 UX
 - [ ] 決定 `webpage flow` 哪些能力屬於 `runtime-dependent`
 - [ ] 整理 prompt 資產與 note output 範本
+- [ ] 新增 Obsidian 左側 ribbon 按鈕（點擊後開啟 `AI 摘要器`）
 - [ ] 撰寫使用者手冊（`docs/user-manual.md`）
