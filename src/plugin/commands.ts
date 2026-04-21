@@ -4,7 +4,7 @@ import { SummarizerFlowModal } from "@ui/flow-modal/SummarizerFlowModal";
 export function registerCommands(plugin: MediaSummarizerPlugin): void {
   plugin.addCommand({
     id: "open-ai-summarizer",
-    name: "Open AI Summarizer",
+    name: "開啟 AI 摘要器",
     callback: () => {
       new SummarizerFlowModal(plugin).open();
       plugin.log("info", "Open command executed.");
@@ -13,7 +13,7 @@ export function registerCommands(plugin: MediaSummarizerPlugin): void {
 
   plugin.addCommand({
     id: "open-ai-summarizer-settings",
-    name: "Open AI Summarizer Settings",
+    name: "開啟 AI 摘要器設定",
     callback: () => {
       plugin.openSettingsTab();
       plugin.log("info", "Settings command executed.");

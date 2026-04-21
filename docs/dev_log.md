@@ -1,8 +1,31 @@
 # 開發日誌
 
-最後更新：2026-04-21 16:20
+最後更新：2026-04-21 23:23
 
 ## 版本紀錄
+
+### 0.1.9-ui-zh-tw-and-vault-command-policy - 2026-04-21 23:23
+
+範圍：
+
+- 將 plugin 主要 UI 文案改為繁體中文
+- 將「每次同步到 Obsidian Vault」納入正式指令規範
+
+主要變更：
+
+- 更新 `src/plugin/commands.ts`（Command Palette 指令名稱中文化）
+- 更新 `src/ui/settings-tab.ts`（設定頁標題、欄位、描述中文化）
+- 更新 `src/ui/flow-modal/SummarizerFlowModal.ts`（flow modal 文案中文化）
+- 更新 `docs/commands-reference.md`，新增 Vault 同步規範
+- 更新 `package.json`，新增 `check:build:vault`、`gate:local:vault`
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run build` 通過
+- `npm run test` 通過（2 tests passed）
+- `npm run check:build:vault` 通過
+- `npm run gate:local:vault` 通過
 
 ### 0.1.8-smoke-test-passed - 2026-04-21 16:20
 

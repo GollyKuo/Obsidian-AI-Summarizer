@@ -13,7 +13,9 @@
     "check:types": "npm run typecheck",
     "check:test": "npm run test",
     "check:build": "npm run build",
+    "check:build:vault": "npm run build:vault",
     "gate:local": "npm run check:types && npm run check:test && npm run check:build",
+    "gate:local:vault": "npm run check:types && npm run check:test && npm run check:build:vault",
     "smoke:mobile": "node -e \"console.log('Run manual mobile checklist')\"",
     "gate:release": "npm run gate:local && npm run smoke:mobile",
     "validate": "npm run gate:local"

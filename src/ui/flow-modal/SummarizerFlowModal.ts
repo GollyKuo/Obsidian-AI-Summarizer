@@ -21,7 +21,7 @@ async function delay(ms: number, signal: AbortSignal): Promise<void> {
       reject(
         new SummarizerError({
           category: "cancellation",
-          message: "Flow cancelled.",
+          message: "流程已取消。",
           recoverable: true
         })
       );
@@ -34,14 +34,14 @@ export class SummarizerFlowModal extends Modal {
   private readonly plugin: MediaSummarizerPlugin;
   private sourceValue = "";
   private status: UiStatus = "idle";
-  private stageMessage = "Waiting for input";
+  private stageMessage = "等待輸入";
   private resultMessage = "";
   private abortController: AbortController | null = null;
 
   public constructor(plugin: MediaSummarizerPlugin) {
     super(plugin.app);
     this.plugin = plugin;
-    this.setTitle("AI Summarizer");
+    this.setTitle("AI 摘要器");
   }
 
   public onOpen(): void {
@@ -61,8 +61,8 @@ export class SummarizerFlowModal extends Modal {
     contentEl.empty();
 
     new Setting(contentEl)
-      .setName("Webpage URL")
-      .setDesc("Enter a URL to run the mocked webpage flow.")
+      .setName("網頁 URL")
+      .setDesc("輸入網址以執行目前的網頁摘要流程。")
       .addText((text) => {
         text.setPlaceholder("https://example.com/article").setValue(this.sourceValue);
         text.onChange((value) => {
@@ -71,17 +71,17 @@ export class SummarizerFlowModal extends Modal {
       });
 
     const stageEl = contentEl.createDiv({ cls: "ai-summarizer-stage" });
-    stageEl.setText(`Status: ${this.status} | Stage: ${this.stageMessage}`);
+    stageEl.setText(`狀態：${this.status} | 階段：${this.stageMessage}`);
 
     const resultEl = contentEl.createDiv({ cls: "ai-summarizer-result" });
     resultEl.setText(this.resultMessage);
 
     const actionsEl = contentEl.createDiv({ cls: "ai-summarizer-actions" });
     const startButton = new ButtonComponent(actionsEl);
-    startButton.setButtonText("Start").setCta();
+    startButton.setButtonText("開始").setCta();
 
     const cancelButton = new ButtonComponent(actionsEl);
-    cancelButton.setButtonText("Cancel");
+    cancelButton.setButtonText("取消");
 
     if (this.status === "running") {
       startButton.setDisabled(true);
@@ -104,7 +104,7 @@ export class SummarizerFlowModal extends Modal {
       return;
     }
     this.abortController.abort();
-    this.stageMessage = "Cancelling";
+    this.stageMessage = "取消中";
     this.render();
   }
 
@@ -114,7 +114,7 @@ export class SummarizerFlowModal extends Modal {
     }
     this.abortController = new AbortController();
     this.status = "running";
-    this.stageMessage = "Starting";
+    this.stageMessage = "啟動中";
     this.resultMessage = "";
     this.render();
 
@@ -125,7 +125,7 @@ export class SummarizerFlowModal extends Modal {
         if (url.includes("fail")) {
           throw new SummarizerError({
             category: "runtime_unavailable",
-            message: "Mock extractor failure (URL includes 'fail').",
+            message: "模擬擷取失敗（URL 包含 'fail'）。",
             recoverable: true
           });
         }
@@ -135,7 +135,7 @@ export class SummarizerFlowModal extends Modal {
 
     const aiProvider: AiProvider = {
       summarizeMedia: async () => {
-        throw new Error("Not used for webpage flow.");
+        throw new Error("網頁流程不會使用媒體摘要。");
       },
       summarizeWebpage: async (input, signal) => {
         throwIfCancelled(signal);
@@ -149,7 +149,7 @@ export class SummarizerFlowModal extends Modal {
 
     const noteWriter: NoteWriter = {
       writeMediaNote: async () => {
-        throw new Error("Not used for webpage flow.");
+        throw new Error("網頁流程不會使用媒體筆記寫入。");
       },
       writeWebpageNote: async (input) => ({
         notePath: `Mock/${input.metadata.title}.md`,
@@ -184,19 +184,19 @@ export class SummarizerFlowModal extends Modal {
       );
 
       this.status = "completed";
-      this.stageMessage = "Completed";
-      this.resultMessage = `Success: ${result.writeResult.notePath}`;
-      this.plugin.notify("Webpage flow completed.");
+      this.stageMessage = "已完成";
+      this.resultMessage = `成功：${result.writeResult.notePath}`;
+      this.plugin.notify("網頁摘要流程已完成。");
     } catch (error) {
       if (error instanceof SummarizerError && error.category === "cancellation") {
         this.status = "cancelled";
-        this.stageMessage = "Cancelled";
-        this.resultMessage = "Operation cancelled.";
+        this.stageMessage = "已取消";
+        this.resultMessage = "操作已取消。";
       } else {
-        const message = error instanceof Error ? error.message : "Unknown error";
+        const message = error instanceof Error ? error.message : "未知錯誤";
         this.status = "failed";
-        this.stageMessage = "Failed";
-        this.resultMessage = `Failed: ${message}`;
+        this.stageMessage = "失敗";
+        this.resultMessage = `失敗：${message}`;
         this.plugin.log("error", message);
       }
     } finally {

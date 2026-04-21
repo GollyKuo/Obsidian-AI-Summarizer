@@ -4,6 +4,16 @@ import type { RetentionMode, SourceType } from "@domain/types";
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
 const RETENTION_OPTIONS: RetentionMode[] = ["none", "source", "all"];
+const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
+  webpage_url: "網頁 URL",
+  media_url: "媒體 URL（YouTube/Podcast）",
+  local_media: "本機媒體"
+};
+const RETENTION_LABELS: Record<RetentionMode, string> = {
+  none: "不保留中間檔案",
+  source: "保留來源檔案",
+  all: "保留全部可用中間檔案"
+};
 
 export class MediaSummarizerSettingTab extends PluginSettingTab {
   private readonly plugin: MediaSummarizerPlugin;
@@ -16,14 +26,14 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
   public display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "AI Summarizer Settings" });
+    containerEl.createEl("h2", { text: "AI 摘要器設定" });
 
     new Setting(containerEl)
-      .setName("Gemini API key")
-      .setDesc("Stored in plugin data. This value is never written into notes.")
+      .setName("Gemini API 金鑰")
+      .setDesc("儲存在 plugin 設定資料，不會寫入筆記內容。")
       .addText((text) =>
         text
-          .setPlaceholder("Enter Gemini API key")
+          .setPlaceholder("請輸入 Gemini API 金鑰")
           .setValue(this.plugin.settings.apiKey)
           .onChange(async (value) => {
             this.plugin.settings.apiKey = value.trim();
@@ -32,8 +42,8 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Model")
-      .setDesc("Default model for summarization jobs.")
+      .setName("模型")
+      .setDesc("摘要流程預設使用的模型。")
       .addText((text) =>
         text.setValue(this.plugin.settings.model).onChange(async (value) => {
           this.plugin.settings.model = value.trim();
@@ -42,8 +52,8 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Output folder")
-      .setDesc("Vault folder path for generated notes. Empty means vault root.")
+      .setName("輸出資料夾")
+      .setDesc("生成筆記的 Vault 路徑。留空代表放在 Vault 根目錄。")
       .addText((text) =>
         text.setValue(this.plugin.settings.outputFolder).onChange(async (value) => {
           this.plugin.settings.outputFolder = value.trim();
@@ -52,8 +62,8 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Template reference")
-      .setDesc("Template note path or template identifier.")
+      .setName("模板參照")
+      .setDesc("可填模板筆記路徑或模板識別值。")
       .addText((text) =>
         text.setValue(this.plugin.settings.templateReference).onChange(async (value) => {
           this.plugin.settings.templateReference = value.trim();
@@ -62,11 +72,11 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Retention mode")
-      .setDesc("none: remove source artifacts, source: keep source, all: keep all available artifacts.")
+      .setName("保留模式")
+      .setDesc("控制來源檔與中間產物是否保留。")
       .addDropdown((dropdown) => {
         for (const mode of RETENTION_OPTIONS) {
-          dropdown.addOption(mode, mode);
+          dropdown.addOption(mode, RETENTION_LABELS[mode]);
         }
         dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
           this.plugin.settings.retentionMode = value as RetentionMode;
@@ -75,11 +85,11 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Default source type")
-      .setDesc("Used as default source type for the next run.")
+      .setName("預設來源類型")
+      .setDesc("下次開啟流程時預設選用的來源類型。")
       .addDropdown((dropdown) => {
         for (const sourceType of SOURCE_TYPE_OPTIONS) {
-          dropdown.addOption(sourceType, sourceType);
+          dropdown.addOption(sourceType, SOURCE_TYPE_LABELS[sourceType]);
         }
         dropdown.setValue(this.plugin.settings.lastSourceType).onChange(async (value) => {
           this.plugin.settings.lastSourceType = value as SourceType;
@@ -88,8 +98,8 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Debug mode")
-      .setDesc("Enable verbose plugin logs in developer console.")
+      .setName("除錯模式")
+      .setDesc("在開發者主控台輸出更完整的 plugin log。")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.debugMode).onChange(async (value) => {
           this.plugin.settings.debugMode = value;
