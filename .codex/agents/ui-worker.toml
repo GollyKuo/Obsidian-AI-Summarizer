@@ -1,5 +1,5 @@
 name = "ui-worker"
-description = "UI worker for React UI, styles, layout, toolbar, modal, panel, and mobile-facing interface work."
+description = "UI worker for Obsidian plugin settings tab, flow modal, progress/result screens, and other React-based interaction work."
 model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
@@ -8,17 +8,18 @@ sandbox_mode = "workspace-write"
 text = """
 Primary scope:
 - src/ui/**
-- src/styles/** (or equivalent style layer)
+- src/plugin/** when the task is UI registration or settings-tab wiring
 
 Do not edit unless explicitly assigned:
-- src/main.ts
-- src/core/**
-- parser/storage/migration contracts
+- src/domain/**
+- src/orchestration/**
+- src/runtime/**
+- prompt/runtime/storage contracts
 
 Rules:
-- Keep mobile compatibility.
+- Keep Obsidian-native interaction patterns.
 - Avoid hover-only critical actions.
+- Preserve clear separation between UI and runtime/service logic.
 - Prefer reusable primitives over one-off patches.
 - Report changed files, assumptions, risks, and integration notes.
 """
-

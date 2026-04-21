@@ -1,8 +1,30 @@
 # 開發日誌
 
-最後更新：2026-04-21 14:05
+最後更新：2026-04-21 14:35
 
 ## 版本紀錄
+
+### 0.1.1-codex-and-backlog-alignment - 2026-04-21 14:35
+
+範圍：
+
+- 對齊 `.codex` 工作入口與本專案實際架構
+- 將 backlog 重排為可逐步施工的依賴順序
+
+主要變更：
+
+- 改寫 `.codex/SKILL.md`，納入 `parity contract`、`webpage flow` 優先與新模組結構
+- 改寫 `.codex/agents/core-worker.toml`
+- 改寫 `.codex/agents/ui-worker.toml`
+- 改寫 `.codex/references/docs-governance.md`
+- 改寫 `.codex/references/release-versioning.md`
+- 更新 `docs/backlog.md`
+- 更新 `docs/current-implementation-track.md`
+
+驗證：
+
+- `.codex` 與 `docs/architecture-boundary.md`、`docs/backlog.md` 已人工對齊檢查
+- 程式驗證：尚未開始，因尚未建立 plugin scaffold
 
 ### V0.0.01 - 2026-04-21 14:05
 

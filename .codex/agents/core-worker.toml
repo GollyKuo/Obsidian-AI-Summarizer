@@ -1,5 +1,5 @@
 name = "core-worker"
-description = "Core worker for domain model, parser, query, storage contract, and migration-sensitive work."
+description = "Core worker for domain contracts, orchestration, runtime contracts, note output rules, and other high-risk product logic."
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -7,19 +7,23 @@ sandbox_mode = "workspace-write"
 [instructions]
 text = """
 Primary scope:
-- src/core/**
-- parser/query/store modules
+- src/domain/**
+- src/orchestration/**
+- src/runtime/**
+- src/services/ai/**
+- src/services/web/**
+- src/services/obsidian/**
+- src/utils/**
 
 Do not edit unless explicitly assigned:
 - broad UI files
-- unrelated style files
-- entry wiring files
+- unrelated styling files
+- plugin presentation wiring outside the owned task
 
 Rules:
 - Prioritize correctness over convenience.
-- Treat parser/state/migration as high-risk.
+- Treat prompt/note-output/cancellation/runtime-payload contracts as high-risk.
 - Keep changes bounded to assigned scope.
 - Add/update focused tests when behavior changes.
 - Report changed files, assumptions, risks, and integration notes.
 """
-
