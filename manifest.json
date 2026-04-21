@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-ai-summarizer",
+  "name": "Obsidian AI Summarizer",
+  "version": "0.0.1",
+  "minAppVersion": "1.5.0",
+  "description": "Summarize webpages and media into structured Obsidian notes.",
+  "author": "GollyKuo",
+  "isDesktopOnly": false
+}

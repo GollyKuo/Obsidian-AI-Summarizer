@@ -3,6 +3,8 @@ dist/
 build/
 coverage/
 .vite/
+main.js
+main.js.map
 *.log
 .env
 .env.*

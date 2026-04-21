@@ -12,5 +12,6 @@
   - 目前主線與最近動作
 - `docs/backlog.md`
   - active / upcoming 待辦
+  - `[x]` 項目需標示完成時間，格式：`（完成：YYYY-MM-DD HH:mm）`
 - `docs/dev_log.md`
   - 版本摘要

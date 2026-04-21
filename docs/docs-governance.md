@@ -26,6 +26,7 @@
 3. 新的討論或待決策問題，更新 `Discussion.md`
 4. 產品契約改變時，更新 `docs/parity-contract.md`
 5. 版本節點或里程碑完成時，更新 `docs/dev_log.md`
+6. `docs/backlog.md` 中任何 `[x]` 項目都要標示完成時間，格式為 `（完成：YYYY-MM-DD HH:mm）`
 
 ## 反模式
 

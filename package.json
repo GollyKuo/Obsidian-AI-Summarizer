@@ -1,0 +1,39 @@
+{
+  "name": "obsidian-ai-summarizer",
+  "version": "0.0.1",
+  "description": "Obsidian plugin scaffold for Media Summarizer",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs --watch",
+    "build": "node esbuild.config.mjs --production",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "check:types": "npm run typecheck",
+    "check:test": "npm run test",
+    "check:build": "npm run build",
+    "gate:local": "npm run check:types && npm run check:test && npm run check:build",
+    "smoke:mobile": "node -e \"console.log('Run manual mobile checklist')\"",
+    "gate:release": "npm run gate:local && npm run smoke:mobile",
+    "validate": "npm run gate:local"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "summarizer"
+  ],
+  "author": "GollyKuo <gollykuo@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.19",
+    "@types/react": "^18.3.21",
+    "@types/react-dom": "^18.3.7",
+    "esbuild": "^0.25.3",
+    "obsidian": "^1.8.10",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.2"
+  }
+}
