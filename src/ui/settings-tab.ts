@@ -69,7 +69,7 @@ export class MediaSummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("媒體快取根目錄")
-      .setDesc("下載與中間產物存放路徑。留空時使用作業系統預設快取目錄。")
+      .setDesc("下載與中間產物存放路徑。留空時使用作業系統預設快取目錄。自訂值需為絕對路徑。")
       .addText((text) =>
         text.setValue(this.plugin.settings.mediaCacheRoot).onChange(async (value) => {
           this.plugin.settings.mediaCacheRoot = value.trim();

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-22 00:54
+最後更新：2026-04-22 01:00
 
 ## 使用規則
 
@@ -131,8 +131,8 @@
 - [x] 建立 runtime strategy 邊界（`runtime-factory`、`local-bridge-runtime`）（完成：2026-04-22 00:24）
 - [x] 新增 settings 欄位 `mediaCacheRoot`（基本儲存與說明文案）（完成：2026-04-22 00:26）
 - [x] 新增 settings 欄位 `mediaCompressionProfile`（`balanced` / `quality`，基本儲存與說明文案）（完成：2026-04-22 00:26）
-- [ ] 建立 `mediaCacheRoot` 絕對路徑驗證與可寫性檢查
-- [ ] 建立 cache root resolution（自訂路徑優先，否則使用 OS 預設 cache）
+- [x] 建立 `mediaCacheRoot` 絕對路徑驗證與可寫性檢查（完成：2026-04-22 01:00）
+- [x] 建立 cache root resolution（自訂路徑優先，否則使用 OS 預設 cache）（完成：2026-04-22 01:00）
 - [ ] 建立外部依賴 readiness 檢查（`yt-dlp`、`ffmpeg`、`ffprobe` 可執行性與版本資訊）
 - [ ] 建立外部依賴錯誤映射與提示（缺依賴、權限不足、執行失敗 -> `runtime_unavailable`）
 - [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）

@@ -1,8 +1,29 @@
 # 開發日誌
 
-最後更新：2026-04-22 00:54
+最後更新：2026-04-22 01:00
 
 ## 版本紀錄
+
+### 0.1.17-media-cache-root-validation-and-resolution - 2026-04-22 01:00
+
+範圍：
+
+- 完成 TRACK-007 的 `mediaCacheRoot` 絕對路徑驗證、可寫性檢查與 cache root resolution
+
+主要變更：
+
+- 新增 `src/services/media/media-cache-root.ts`
+- 新增 `validateMediaCacheRootPath`、`resolveDefaultMediaCacheRoot`、`resolveMediaCacheRoot`
+- 新增 writable probe（建立目錄、寫入暫存檔、清理）
+- 更新 `src/plugin/MediaSummarizerPlugin.ts`，提供 `resolveMediaCacheRootOrThrow`
+- 更新 `src/ui/settings-tab.ts` 路徑欄位說明文案（自訂值需為絕對路徑）
+- 新增 `tests/unit/media-cache-root.test.ts`
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run test` 通過
 
 ### 0.1.16-track-007-planning-hardening - 2026-04-22 00:54
 

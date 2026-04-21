@@ -1,6 +1,10 @@
 import { Notice, Plugin } from "obsidian";
 import { registerCommands } from "@plugin/commands";
 import { registerLifecycleHooks, type PluginLifecycleContext } from "@plugin/lifecycle";
+import {
+  resolveMediaCacheRoot,
+  type MediaCacheRootResolution
+} from "@services/media/media-cache-root";
 import { MediaSummarizerSettingTab } from "@ui/settings-tab";
 import {
   DEFAULT_SETTINGS,
@@ -38,6 +42,10 @@ export default class MediaSummarizerPlugin extends Plugin {
 
   public async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  public async resolveMediaCacheRootOrThrow(): Promise<MediaCacheRootResolution> {
+    return resolveMediaCacheRoot(this.settings.mediaCacheRoot);
   }
 
   public openSettingsTab(): void {
