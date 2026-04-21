@@ -1,6 +1,6 @@
 # Current Implementation Track
 
-最後更新：2026-04-22 01:00
+最後更新：2026-04-22 07:40
 
 ## 目前階段
 
@@ -15,8 +15,8 @@
 
 ## 最近 5 個動作
 
-1. 新增 `src/services/media/media-cache-root.ts`，落地 `mediaCacheRoot` 驗證與可寫性檢查
-2. 完成 cache root resolution（自訂路徑優先，否則依 OS 預設快取目錄）
-3. 新增 `tests/unit/media-cache-root.test.ts` 覆蓋路徑驗證與預設路徑解析
-4. 更新 `src/plugin/MediaSummarizerPlugin.ts` 與設定頁文案，對齊新路徑規範
-5. 下一步主線：實作 dependency readiness checker（`yt-dlp`、`ffmpeg`、`ffprobe`）
+1. 新增 `src/services/media/dependency-readiness.ts` 與 `src/services/media/url-classifier.ts`
+2. 完成外部依賴錯誤映射與 media URL 來源分類（youtube/podcast/direct media）
+3. 新增 `src/services/media/downloader-adapter.ts`，落地 session 規劃與 artifact path 產生
+4. 新增單元測試：`dependency-readiness`、`url-classifier`、`downloader-adapter`
+5. 下一步主線：接入 `yt-dlp` 實際下載執行並串接 `process-media-url`

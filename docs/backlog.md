@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-22 01:00
+最後更新：2026-04-22 07:40
 
 ## 使用規則
 
@@ -133,10 +133,11 @@
 - [x] 新增 settings 欄位 `mediaCompressionProfile`（`balanced` / `quality`，基本儲存與說明文案）（完成：2026-04-22 00:26）
 - [x] 建立 `mediaCacheRoot` 絕對路徑驗證與可寫性檢查（完成：2026-04-22 01:00）
 - [x] 建立 cache root resolution（自訂路徑優先，否則使用 OS 預設 cache）（完成：2026-04-22 01:00）
-- [ ] 建立外部依賴 readiness 檢查（`yt-dlp`、`ffmpeg`、`ffprobe` 可執行性與版本資訊）
-- [ ] 建立外部依賴錯誤映射與提示（缺依賴、權限不足、執行失敗 -> `runtime_unavailable`）
-- [ ] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）
-- [ ] 建立 `services/media/downloader-adapter.ts`
+- [x] 建立外部依賴 readiness 檢查（`yt-dlp`、`ffmpeg`、`ffprobe` 可執行性與版本資訊）（完成：2026-04-22 07:14）
+- [x] 建立外部依賴錯誤映射與提示（缺依賴、權限不足、執行失敗 -> `runtime_unavailable`）（完成：2026-04-22 07:14）
+- [x] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）（完成：2026-04-22 07:16）
+- [x] 建立 `services/media/downloader-adapter.ts`（session 規劃、artifact path 規格、依賴檢查整合）（完成：2026-04-22 07:40）
+- [ ] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤
 - [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
 - [ ] 建立 `orchestration/process-media-url.ts`
 - [ ] 建立 session isolation 與安全恢復（不得掃整個 downloads 目錄挑最大檔）
@@ -161,6 +162,18 @@
 - [ ] 決定 `local media` v1 支援範圍
 - [ ] 決定 template 整合的第一版 UX
 - [ ] 決定 `webpage flow` 哪些能力屬於 `runtime-dependent`
+- [ ] 啟動 `TRACK-008 Mobile Runtime Strategy`（`mobile_runtime` 與桌面 `local_bridge` 並存）
+- [ ] 定義 `mobile_runtime` 契約（remote API payload、錯誤映射、取消機制）
+- [ ] 新增 runtime strategy selector（`auto` / `local_bridge` / `mobile_runtime` / `placeholder_only`）
+- [ ] 建立平台預設策略（mobile -> `mobile_runtime`，desktop -> `local_bridge`）
+- [ ] 建立桌面回歸驗證（新增 mobile runtime 後，桌面既有流程不退化）
+- [ ] 建立 mobile smoke checklist（webpage/media 基本流程）
+- [ ] 啟動 `TRACK-009 Internationalization`（UI 字串資源化、語系切換、fallback 策略）
+- [ ] 定義多國語言輸出契約（輸入語言偵測、輸出語言指定、翻譯/原文保留規則）
+- [ ] 建立 i18n 測試與驗證清單（至少 `zh-TW` / `en-US` 兩語系）
+- [ ] 啟動 `TRACK-010 Commercialization`（授權/訂閱狀態抽象與功能分級）
+- [ ] 定義計費與方案邊界（free/pro/team、feature gating 位置與審計點）
+- [ ] 建立支付/授權 provider 介面（web checkout 與行動平台 billing 可替換）
 - [ ] 整理 prompt 資產與 note output 範本
 - [ ] 新增 Obsidian 左側 ribbon 按鈕（點擊後開啟 `AI 摘要器`）
 - [ ] 撰寫使用者手冊（`docs/user-manual.md`）

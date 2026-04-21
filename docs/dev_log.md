@@ -1,8 +1,64 @@
 # 開發日誌
 
-最後更新：2026-04-22 01:00
+最後更新：2026-04-22 07:40
 
 ## 版本紀錄
+
+### 0.1.20-downloader-adapter-session-planning - 2026-04-22 07:40
+
+範圍：
+
+- 完成 TRACK-007 的 downloader adapter 第一版（session 規劃與 artifact path 生成）
+
+主要變更：
+
+- 新增 `src/services/media/downloader-adapter.ts`
+- `prepareSession` 整合 dependency readiness、URL 分類、cache root 解析與 session 目錄建立
+- 新增 `tests/unit/downloader-adapter.test.ts`
+- 修正 `tests/unit/url-classifier.test.ts` 斷言寫法，對齊 Vitest 目前可用 matcher
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run test` 通過
+
+### 0.1.19-media-url-validation-and-classification - 2026-04-22 07:16
+
+範圍：
+
+- 完成 TRACK-007 的 media URL 驗證與來源分類（youtube / podcast / direct media）
+
+主要變更：
+
+- 新增 `src/services/media/url-classifier.ts`
+- 新增 `classifyMediaUrl`，支援 YouTube、podcast 平台、direct media 副檔名辨識
+- 新增 `tests/unit/url-classifier.test.ts`
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run test` 通過
+
+### 0.1.18-dependency-readiness-checker - 2026-04-22 07:14
+
+範圍：
+
+- 完成 TRACK-007 的外部依賴 readiness 檢查與錯誤映射
+
+主要變更：
+
+- 新增 `src/services/media/dependency-readiness.ts`
+- 新增 `runMediaDependencyReadinessCheck` 與 `assertMediaDependenciesReady`
+- 更新 `src/runtime/local-bridge-runtime.ts`，media 入口先檢查 `yt-dlp`、`ffmpeg`、`ffprobe`
+- 新增 `tests/unit/dependency-readiness.test.ts`
+- 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run test` 通過
 
 ### 0.1.17-media-cache-root-validation-and-resolution - 2026-04-22 01:00
 
