@@ -1,0 +1,67 @@
+# Media Summarizer Obsidian Plugin
+
+本 repo 目前作為 `Media Summarizer` 重構為 Obsidian plugin 的專案起始骨架。
+
+它不再只是通用規範包，而是已經收斂成這個專案自己的開發基線：
+
+1. 有明確的目標產品架構。
+2. 有可直接開工的文件與目錄骨架。
+3. 有待討論議題的集中入口。
+
+## 專案目標
+
+把既有的 `Media Summarizer` Python app 重構為 Obsidian plugin，保留以下核心產品能力：
+
+1. 支援 `media URL`、`webpage URL`、`local media` 三種來源。
+2. 產出結構化 Obsidian 筆記。
+3. 保留目前的 prompt 行為、metadata 語意、template 支援、retention 意圖與取消流程。
+4. 將 runtime-dependent 能力抽象化，不在第一版先綁死執行方式。
+
+## 目前專案入口
+
+- [Discussion.md](d:\程式開發\AI Summarizer\Discussion.md)
+  - 所有待討論問題集中於此
+- [docs/architecture-boundary.md](d:\程式開發\AI Summarizer\docs\architecture-boundary.md)
+  - 專案分層、依賴方向與高風險區
+- [docs/parity-contract.md](d:\程式開發\AI Summarizer\docs\parity-contract.md)
+  - 與既有 Python app 需要對等保留的產品契約
+- [docs/current-implementation-track.md](d:\程式開發\AI Summarizer\docs\current-implementation-track.md)
+  - 目前主線
+- [docs/backlog.md](d:\程式開發\AI Summarizer\docs\backlog.md)
+  - active / upcoming 待辦
+- [docs/dev_log.md](d:\程式開發\AI Summarizer\docs\dev_log.md)
+  - 版本與里程碑紀錄
+
+## 目標目錄骨架
+
+```text
+src/
+  plugin/
+  ui/
+  domain/
+  orchestration/
+  services/
+  runtime/
+  utils/
+tests/
+  unit/
+  integration/
+docs/
+```
+
+## 建議閱讀順序
+
+1. `docs/parity-contract.md`
+2. `docs/architecture-boundary.md`
+3. `docs/current-implementation-track.md`
+4. `docs/backlog.md`
+5. `Discussion.md`
+
+## 第一階段目標
+
+先完成可持續開發的 plugin 骨架，而不是直接衝進完整功能：
+
+1. 建立 Obsidian plugin scaffold
+2. 定義 domain types / settings / runtime contracts
+3. 先打通 `webpage -> note` 流程
+4. 再接入 media URL 與 local media

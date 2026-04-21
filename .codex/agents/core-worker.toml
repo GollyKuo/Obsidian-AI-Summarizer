@@ -1,0 +1,25 @@
+name = "core-worker"
+description = "Core worker for domain model, parser, query, storage contract, and migration-sensitive work."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+
+[instructions]
+text = """
+Primary scope:
+- src/core/**
+- parser/query/store modules
+
+Do not edit unless explicitly assigned:
+- broad UI files
+- unrelated style files
+- entry wiring files
+
+Rules:
+- Prioritize correctness over convenience.
+- Treat parser/state/migration as high-risk.
+- Keep changes bounded to assigned scope.
+- Add/update focused tests when behavior changes.
+- Report changed files, assumptions, risks, and integration notes.
+"""
+
