@@ -37,11 +37,11 @@
 狀態：`active`
 
 - [x] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤（完成：2026-04-22 08:54）
-- [ ] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔
+- [x] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔（完成：2026-04-23 00:15）
 - [x] 建立 `yt-dlp` 假失敗恢復機制，若子程序報錯但 session 內已有完整媒體檔，需能判定為可恢復成功（完成：2026-04-22 08:54）
-- [ ] 建立下載階段 cancellation 串接（AbortSignal）
-- [ ] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）
-- [ ] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）
+- [x] 建立下載階段 cancellation 串接（AbortSignal）（完成：2026-04-23 00:15）
+- [x] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）（完成：2026-04-23 00:15）
+- [x] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）（完成：2026-04-23 00:15）
 
 #### CAP-203 AI-Ready Media Processing AI 可用媒體處理
 
@@ -49,8 +49,8 @@
 
 - [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
 - [ ] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）
-- [ ] 建立 `orchestration/process-media-url.ts`
-- [ ] 定義 transcript-ready payload 與後續 AI processing handoff
+- [x] 建立 `orchestration/process-media-url.ts`（完成：2026-04-23 00:41）
+- [x] 定義 transcript-ready payload 與後續 AI processing handoff（完成：2026-04-23 00:41）
 - [ ] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）
 - [ ] 建立 integration tests（成功、失敗、取消、品質回退）
 

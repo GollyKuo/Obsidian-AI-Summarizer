@@ -4,6 +4,41 @@
 
 ## 版本紀錄
 
+### 0.1.25-process-media-url-orchestration - 2026-04-23 00:41
+
+蝭?嚗?
+- 續推 `CAP-203`，新增 `process-media-url` orchestration 主線與 transcript-ready payload。
+
+銝餉?霈嚗?
+- 新增 `src/orchestration/process-media-url.ts`
+- 以 `runJobStep` 串接 `validating -> acquiring` 階段，整合 `prepareSession` 與 `downloadMedia`
+- 新增 `ProcessMediaUrlInput`、`TranscriptReadyPayload`、`ProcessMediaUrlResult`
+- 將下載結果 metadata 與 artifact path 收斂為 transcript-ready payload，供後續 AI pipeline handoff
+- 新增 `tests/integration/process-media-url.integration.test.ts`
+- 驗證成功流程、`validation_error`、`cancellation` 三種路徑
+
+撽?嚗?
+- `npm run typecheck` ??
+- `npm run test -- tests/integration/process-media-url.integration.test.ts` ??
+
+### 0.1.24-cap-202-boundary-hardening - 2026-04-23 00:15
+
+蝭?嚗?
+- 完成 `CAP-202` 尚未落地的 session isolation、安全恢復邊界、下載 cancellation 串接與 metadata normalization。
+
+銝餉?霈嚗?
+- 更新 `src/services/media/downloader-adapter.ts`
+- `yt-dlp` 下載改為結構化輸出解析，只允許當前 session 內路徑做 artifact 恢復
+- 下載成功與恢復後，正規化 `Title`、`Creator/Author`、`Platform`、`Source`、`Created` 並落盤 `metadata.json`
+- 預設命令執行器改為可中止子程序樹（Windows `taskkill /T`、POSIX process group kill）
+- metadata 寫檔失敗映射為 `download_failure`
+- 更新 `tests/unit/downloader-adapter.test.ts`，補 metadata、session isolation、cancellation、錯誤分類測試
+- 更新 `docs/backlog.md`、`docs/backlog-active.md` 的 CAP-202 勾選狀態
+
+撽?嚗?
+- `npm run typecheck` ??
+- `npm run test` ??嚗?26 tests嚗?
+
 ### 0.1.23-yt-dlp-download-execution - 2026-04-22 08:54
 
 範圍：

@@ -52,7 +52,7 @@ const context = await esbuild.context({
   sourcemap: isProduction ? false : "inline",
   minify: isProduction,
   logLevel: "info",
-  external: ["obsidian", "electron", "@codemirror/*"],
+  external: ["obsidian", "electron", "@codemirror/*", "node:*"],
   plugins: shouldSyncToVault
     ? [
         {

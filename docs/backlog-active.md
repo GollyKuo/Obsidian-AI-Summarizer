@@ -21,7 +21,7 @@
 
 ## 當前阻塞與前置依賴
 
-- 下載階段 cancellation 尚未接入子程序中斷控制。
+- YouTube / podcast 手動 smoke 尚未補齊，CAP-202 還缺實機下載驗證。
 - AI-ready artifact contract 尚未正式落地，會卡住 transcript / summary handoff。
 - retention matrix 尚未定義完成，會影響 media/local media/output cleanup 的決策邊界。
 
@@ -79,16 +79,16 @@ Dependencies：
 Open Work：
 
 - [x] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤（完成：2026-04-22 08:54）
-- [ ] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔
+- [x] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔（完成：2026-04-23 00:15）
 - [x] 建立 `yt-dlp` 假失敗恢復機制，若子程序報錯但 session 內已有完整媒體檔，需能判定為可恢復成功（完成：2026-04-22 08:54）
-- [ ] 建立下載階段 cancellation 串接（AbortSignal）
-- [ ] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）
-- [ ] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）
+- [x] 建立下載階段 cancellation 串接（AbortSignal）（完成：2026-04-23 00:15）
+- [x] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）（完成：2026-04-23 00:15）
+- [x] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）（完成：2026-04-23 00:15）
 
 Done When：
 
-- [ ] 可穩定產出 session 隔離的 `downloaded.*`，且不污染 vault
-- [ ] 下載取消在 2 秒內停止子程序，且不殘留孤兒程序
+- [x] 可穩定產出 session 隔離的 `downloaded.*`，且不污染 vault（完成：2026-04-23 00:15）
+- [x] 下載取消在 2 秒內停止子程序，且不殘留孤兒程序（完成：2026-04-23 00:41）
 - [ ] YouTube / podcast 各至少一條手動 smoke 可完成下載
 
 ### CAP-203 AI-Ready Media Processing AI 可用媒體處理
@@ -106,8 +106,8 @@ Open Work：
 
 - [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
 - [ ] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）
-- [ ] 建立 `orchestration/process-media-url.ts`
-- [ ] 定義 transcript-ready payload 與後續 AI processing handoff
+- [x] 建立 `orchestration/process-media-url.ts`（完成：2026-04-23 00:41）
+- [x] 定義 transcript-ready payload 與後續 AI processing handoff（完成：2026-04-23 00:41）
 - [ ] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）
 - [ ] 建立 integration tests（成功、失敗、取消、品質回退）
 

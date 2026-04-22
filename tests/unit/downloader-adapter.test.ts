@@ -161,13 +161,61 @@ describe("downloader adapter", () => {
             stdout: `${downloadedPath}\n`,
             stderr: ""
           };
-        }
+        },
+        now: () => new Date("2026-04-22T08:00:00.000Z")
       });
 
       const result = await adapter.downloadMedia(session, new AbortController().signal);
       expect(result.downloadedPath).toBe(downloadedPath);
       expect(result.recoveredFromFailure).toBe(false);
+      expect(result.metadata.platform).toBe("YouTube");
       expect(result.warnings).toHaveLength(0);
+
+      const metadataRaw = await fs.readFile(session.artifacts.metadataPath, "utf8");
+      const metadata = JSON.parse(metadataRaw) as { downloadedPath: string };
+      expect(metadata.downloadedPath).toBe(downloadedPath);
+    });
+  });
+
+  it("normalizes metadata from yt-dlp prints", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "downloaded.mp4");
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async () => {
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: [
+              "__META_TITLE__Unit Test Video",
+              "__META_CREATOR__Test Channel",
+              "__META_PLATFORM__youtube",
+              "__META_CREATED__20260421",
+              `__DOWNLOADED_PATH__${downloadedPath}`
+            ].join("\n"),
+            stderr: ""
+          };
+        },
+        now: () => new Date("2026-04-22T08:00:00.000Z")
+      });
+
+      const result = await adapter.downloadMedia(session, new AbortController().signal);
+      expect(result.metadata.title).toBe("Unit Test Video");
+      expect(result.metadata.creatorOrAuthor).toBe("Test Channel");
+      expect(result.metadata.platform).toBe("YouTube");
+      expect(result.metadata.created).toBe("2026-04-21T00:00:00.000Z");
+
+      const metadataRaw = await fs.readFile(session.artifacts.metadataPath, "utf8");
+      const metadata = JSON.parse(metadataRaw) as {
+        title: string;
+        creatorOrAuthor: string;
+        platform: string;
+        sourceUrl: string;
+      };
+      expect(metadata.title).toBe("Unit Test Video");
+      expect(metadata.creatorOrAuthor).toBe("Test Channel");
+      expect(metadata.platform).toBe("YouTube");
+      expect(metadata.sourceUrl).toBe("https://www.youtube.com/watch?v=demo");
     });
   });
 
@@ -189,7 +237,31 @@ describe("downloader adapter", () => {
       const result = await adapter.downloadMedia(session, new AbortController().signal);
       expect(result.downloadedPath).toBe(downloadedPath);
       expect(result.recoveredFromFailure).toBe(true);
+      expect(result.metadata.platform).toBe("YouTube");
       expect(result.warnings[0]).toContain("Recovered download");
+    });
+  });
+
+  it("does not recover from artifact paths outside current session", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const outsideDirectory = path.join(tempDirectory, "outside-session");
+      const outsidePath = path.join(outsideDirectory, "downloaded.mp4");
+      await fs.mkdir(outsideDirectory, { recursive: true });
+      await fs.writeFile(outsidePath, "outside", "utf8");
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async () => {
+          const error = new Error("exit code 1") as Error & { stdout: string; stderr: string };
+          error.stdout = `${outsidePath}\n`;
+          error.stderr = "Network reset";
+          throw error;
+        }
+      });
+
+      await expect(adapter.downloadMedia(session, new AbortController().signal)).rejects.toMatchObject({
+        category: "download_failure"
+      });
     });
   });
 
@@ -226,6 +298,60 @@ describe("downloader adapter", () => {
 
       await expect(adapter.downloadMedia(session, controller.signal)).rejects.toMatchObject({
         category: "cancellation"
+      });
+    });
+  });
+
+  it("throws cancellation when signal aborts during download", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const controller = new AbortController();
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async (_, __, signal) =>
+          new Promise((_resolve, reject) => {
+            signal.addEventListener(
+              "abort",
+              () => {
+                const abortError = new Error("aborted") as Error & { name: string; code: string };
+                abortError.name = "AbortError";
+                abortError.code = "ABORT_ERR";
+                reject(abortError);
+              },
+              { once: true }
+            );
+          })
+      });
+
+      const pending = adapter.downloadMedia(session, controller.signal);
+      controller.abort();
+
+      await expect(pending).rejects.toMatchObject({
+        category: "cancellation"
+      });
+    });
+  });
+
+  it("maps metadata write failure to download_failure", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "downloaded.mp4");
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async () => {
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: `${downloadedPath}\n`,
+            stderr: ""
+          };
+        },
+        writeFile: async () => {
+          throw new Error("disk full");
+        }
+      });
+
+      await expect(adapter.downloadMedia(session, new AbortController().signal)).rejects.toMatchObject({
+        category: "download_failure"
       });
     });
   });
