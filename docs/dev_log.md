@@ -4,6 +4,25 @@
 
 ## 版本紀錄
 
+### 0.1.26-pre-upload-compressor-and-handoff - 2026-04-23 00:49
+
+蝭?嚗?
+- 推進 `CAP-203`，落地 pre-upload 壓縮服務並接入 `process-media-url` handoff。
+
+銝餉?霈嚗?
+- 新增 `src/services/media/pre-upload-compressor.ts`
+- 建立 `normalized.wav` 產生與 AI 上傳壓縮流程（`balanced`: Opus -> AAC -> FLAC；`quality`: FLAC）
+- 建立回退策略與錯誤映射（`cancellation`、`runtime_unavailable`、`download_failure`）
+- 更新 `src/orchestration/process-media-url.ts`，接入 pre-upload 壓縮步驟
+- `TranscriptReadyPayload` 新增 `aiUploadArtifactPaths`，並將壓縮 warnings 併入回傳
+- 新增 `tests/unit/pre-upload-compressor.test.ts`（成功、回退、全失敗、runtime 缺失、取消）
+- 更新 `tests/integration/process-media-url.integration.test.ts`，覆蓋 pre-upload handoff 與 stage/warning 行為
+- 更新 `docs/backlog.md`、`docs/backlog-active.md` 的 CAP-203 完成項目
+
+撽?嚗?
+- `npm run typecheck` ??
+- `npm run test` ??嚗?34 tests嚗?
+
 ### 0.1.25-process-media-url-orchestration - 2026-04-23 00:41
 
 蝭?嚗?

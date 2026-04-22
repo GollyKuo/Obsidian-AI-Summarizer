@@ -1,4 +1,5 @@
 import { SummarizerError } from "@domain/errors";
+import type { MediaCompressionProfile } from "@domain/settings";
 import type { MediaUrlRequest, SourceMetadata } from "@domain/types";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
 import type {
@@ -6,10 +7,15 @@ import type {
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
+import type {
+  PreUploadCompressionResult,
+  PreUploadCompressor
+} from "@services/media/pre-upload-compressor";
 
 export interface ProcessMediaUrlInput extends MediaUrlRequest {
   mediaCacheRoot: string;
   vaultId: string;
+  mediaCompressionProfile: MediaCompressionProfile;
 }
 
 export interface TranscriptReadyPayload {
@@ -19,6 +25,7 @@ export interface TranscriptReadyPayload {
   metadata: SourceMetadata;
   downloadedPath: string;
   normalizedAudioPath: string;
+  aiUploadArtifactPaths: string[];
   transcriptPath: string;
   aiUploadDirectory: string;
   warnings: string[];
@@ -26,11 +33,13 @@ export interface TranscriptReadyPayload {
 
 export interface ProcessMediaUrlDependencies {
   downloaderAdapter: DownloaderAdapter;
+  preUploadCompressor: PreUploadCompressor;
 }
 
 export interface ProcessMediaUrlResult {
   session: MediaDownloadSession;
   downloadResult: MediaDownloadResult;
+  preUploadResult: PreUploadCompressionResult;
   transcriptReadyPayload: TranscriptReadyPayload;
   warnings: string[];
 }
@@ -63,7 +72,9 @@ function validateInput(input: ProcessMediaUrlInput): void {
 
 function toTranscriptReadyPayload(
   session: MediaDownloadSession,
-  downloadResult: MediaDownloadResult
+  downloadResult: MediaDownloadResult,
+  preUploadResult: PreUploadCompressionResult,
+  warnings: string[]
 ): TranscriptReadyPayload {
   return {
     sessionId: session.sessionId,
@@ -71,10 +82,11 @@ function toTranscriptReadyPayload(
     sourceUrl: session.source.normalizedUrl,
     metadata: downloadResult.metadata,
     downloadedPath: downloadResult.downloadedPath,
-    normalizedAudioPath: session.artifacts.normalizedAudioPath,
+    normalizedAudioPath: preUploadResult.normalizedAudioPath,
+    aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths,
     transcriptPath: session.artifacts.transcriptPath,
     aiUploadDirectory: session.artifacts.aiUploadDirectory,
-    warnings: downloadResult.warnings
+    warnings
   };
 }
 
@@ -118,13 +130,37 @@ export async function processMediaUrl(
     hooks
   );
 
+  const preUploadResult = await runJobStep(
+    "transcribing",
+    "Preparing AI-ready media artifacts",
+    signal,
+    async () =>
+      dependencies.preUploadCompressor.prepareForAiUpload(
+        {
+          session,
+          downloadResult,
+          profile: input.mediaCompressionProfile
+        },
+        signal
+      ),
+    hooks
+  );
+
+  const warnings = [...downloadResult.warnings, ...preUploadResult.warnings];
   emitWarnings(downloadResult.warnings, hooks);
-  const transcriptReadyPayload = toTranscriptReadyPayload(session, downloadResult);
+  emitWarnings(preUploadResult.warnings, hooks);
+  const transcriptReadyPayload = toTranscriptReadyPayload(
+    session,
+    downloadResult,
+    preUploadResult,
+    warnings
+  );
 
   return {
     session,
     downloadResult,
+    preUploadResult,
     transcriptReadyPayload,
-    warnings: [...downloadResult.warnings]
+    warnings
   };
 }

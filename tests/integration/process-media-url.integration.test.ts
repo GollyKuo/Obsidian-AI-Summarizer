@@ -8,6 +8,7 @@ import type {
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
+import type { PreUploadCompressor } from "@services/media/pre-upload-compressor";
 
 function makeSession(): MediaDownloadSession {
   return {
@@ -53,6 +54,7 @@ describe("processMediaUrl integration", () => {
   it("prepares session, downloads media, and returns transcript-ready payload", async () => {
     const session = makeSession();
     const downloadResult = makeDownloadResult(session);
+    const preUploadWarnings = ["Compression fallback applied. Selected codec aac after 1 failed attempt(s)."];
     const stages: string[] = [];
     const warnings: string[] = [];
 
@@ -64,6 +66,16 @@ describe("processMediaUrl integration", () => {
         return downloadResult;
       }
     };
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload() {
+        return {
+          normalizedAudioPath: session.artifacts.normalizedAudioPath,
+          aiUploadArtifactPaths: [`${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`],
+          selectedCodec: "aac",
+          warnings: preUploadWarnings
+        };
+      }
+    };
 
     const result = await processMediaUrl(
       {
@@ -72,9 +84,10 @@ describe("processMediaUrl integration", () => {
         model: "gemini-2.5-flash",
         retentionMode: "none",
         mediaCacheRoot: "D:\\media-cache",
-        vaultId: "vault-a"
+        vaultId: "vault-a",
+        mediaCompressionProfile: "balanced"
       },
-      { downloaderAdapter },
+      { downloaderAdapter, preUploadCompressor },
       new AbortController().signal,
       {
         onStageChange: (status, message) => {
@@ -88,14 +101,19 @@ describe("processMediaUrl integration", () => {
 
     expect(result.session.sessionId).toBe(session.sessionId);
     expect(result.downloadResult.downloadedPath).toBe(session.artifacts.downloadedPath);
+    expect(result.preUploadResult.selectedCodec).toBe("aac");
     expect(result.transcriptReadyPayload.metadata.title).toBe("Demo Video");
+    expect(result.transcriptReadyPayload.aiUploadArtifactPaths).toEqual([
+      `${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`
+    ]);
     expect(result.transcriptReadyPayload.aiUploadDirectory).toBe(session.artifacts.aiUploadDirectory);
-    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings).toHaveLength(2);
     expect(warnings).toEqual(result.warnings);
     expect(stages).toEqual([
       "validating:Validating media URL input",
       "acquiring:Preparing media acquisition session",
-      "acquiring:Downloading media artifact"
+      "acquiring:Downloading media artifact",
+      "transcribing:Preparing AI-ready media artifacts"
     ]);
   });
 
@@ -105,6 +123,11 @@ describe("processMediaUrl integration", () => {
         throw new Error("should not execute");
       },
       async downloadMedia() {
+        throw new Error("should not execute");
+      }
+    };
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload() {
         throw new Error("should not execute");
       }
     };
@@ -119,7 +142,7 @@ describe("processMediaUrl integration", () => {
     } as unknown as ProcessMediaUrlInput;
 
     await expect(
-      processMediaUrl(invalidInput, { downloaderAdapter }, new AbortController().signal)
+      processMediaUrl(invalidInput, { downloaderAdapter, preUploadCompressor }, new AbortController().signal)
     ).rejects.toMatchObject({
       category: "validation_error"
     });
@@ -134,6 +157,11 @@ describe("processMediaUrl integration", () => {
         throw new Error("should not execute");
       }
     };
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload() {
+        throw new Error("should not execute");
+      }
+    };
     const controller = new AbortController();
     controller.abort();
 
@@ -145,9 +173,10 @@ describe("processMediaUrl integration", () => {
           model: "gemini-2.5-flash",
           retentionMode: "none",
           mediaCacheRoot: "D:\\media-cache",
-          vaultId: "vault-a"
+          vaultId: "vault-a",
+          mediaCompressionProfile: "balanced"
         },
-        { downloaderAdapter },
+        { downloaderAdapter, preUploadCompressor },
         controller.signal
       )
     ).rejects.toMatchObject({

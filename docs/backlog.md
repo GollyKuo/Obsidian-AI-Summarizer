@@ -47,11 +47,11 @@
 
 狀態：`active`
 
-- [ ] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）
-- [ ] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）
+- [x] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）（完成：2026-04-23 00:49）
+- [x] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）（完成：2026-04-23 00:49）
 - [x] 建立 `orchestration/process-media-url.ts`（完成：2026-04-23 00:41）
 - [x] 定義 transcript-ready payload 與後續 AI processing handoff（完成：2026-04-23 00:41）
-- [ ] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）
+- [x] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）（完成：2026-04-23 00:49）
 - [ ] 建立 integration tests（成功、失敗、取消、品質回退）
 
 #### CAP-204 Local Media Flow 本機媒體流程
