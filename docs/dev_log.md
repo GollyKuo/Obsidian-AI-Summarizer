@@ -1,8 +1,46 @@
 # 開發日誌
 
-最後更新：2026-04-22 07:40
+最後更新：2026-04-22 08:34
 
 ## 版本紀錄
+
+### 0.1.22-remove-current-track-doc - 2026-04-22 08:34
+
+範圍：
+
+- 將 `docs/current-implementation-track.md` 整併進 `docs/backlog-active.md`，並更新所有導航引用
+
+主要變更：
+
+- 在 `docs/backlog-active.md` 新增主線摘要區塊：目前階段、唯一主線、阻塞與切換點
+- 刪除 `docs/current-implementation-track.md`
+- 更新 `README.md`、`docs/docs-governance.md`、`docs/project-setup-sop.md`
+- 更新 `docs/commands-reference.md`、`.codex/SKILL.md`、`.codex/references/docs-governance.md`
+- 更新 `templates/backlog-active.template.md`，使 active backlog 模板內建主線摘要
+
+驗證：
+
+- 以全文搜尋確認導航文件不再引用 `docs/current-implementation-track.md`
+
+### 0.1.21-backlog-navigation-refactor - 2026-04-22 08:28
+
+範圍：
+
+- 將 backlog 重構為 `master / active / archive` 三層，並同步修正所有導航規範文件
+
+主要變更：
+
+- `docs/backlog.md` 改為完整待辦總表
+- 新增 `docs/backlog-active.md`，集中目前正在做與近期要做的 capability
+- 新增 `docs/backlog-archive.md`，只保留已完成能力
+- 更新 `docs/docs-governance.md`、`docs/project-setup-sop.md`、`docs/current-implementation-track.md`
+- 更新 `docs/commands-reference.md`、`docs/workflow-sop.md`、`README.md`
+- 更新 `.codex/SKILL.md` 與 `.codex/references/docs-governance.md`
+- 更新 `templates/backlog.template.md`，並新增 active / archive backlog templates
+
+驗證：
+
+- 以全文搜尋確認舊的 backlog 導航引用已改為三層邏輯
 
 ### 0.1.20-downloader-adapter-session-planning - 2026-04-22 07:40
 

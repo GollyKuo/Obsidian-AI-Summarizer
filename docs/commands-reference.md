@@ -1,5 +1,11 @@
 # Commands Reference（專案版）
 
+## 文件導航
+
+1. 先看 `docs/backlog.md` 了解完整任務總表。
+2. 實際執行前再看 `docs/backlog-active.md`，這份就是目前主線依據。
+3. 查已完成歷史時再看 `docs/backlog-archive.md`。
+
 ## Vault 同步規範
 
 本專案預設 Vault：

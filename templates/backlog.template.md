@@ -1,23 +1,15 @@
-# Active Backlog
+# Master Backlog
 
 最後更新：YYYY-MM-DD HH:mm
 
-## 使用規則
+## 用途
 
-- 只保留 active/upcoming
-- 已完成 checklist 移到 `docs/archive/`
-- 版本節點摘要同步到 `docs/dev_log.md`
+本檔是完整待辦總表，active 請同步到 `docs/backlog-active.md`，已完成請移到 `docs/backlog-archive.md`。
 
-## 當前主線
+## Active 現行任務
 
-1. TRACK-001
-2. TRACK-002
-3. TRACK-003
+- `CAP-XXX`
 
-## Checklist
+## Future 後續與長期任務
 
-### TRACK-001
-
-- [ ] Item A
-- [ ] Item B
-
+- `CAP-YYY`

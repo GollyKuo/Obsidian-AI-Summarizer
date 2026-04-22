@@ -67,9 +67,10 @@ docs/
 
 1. `docs/parity-contract.md`
 2. `docs/architecture-boundary.md`
-3. `docs/current-implementation-track.md`
-4. `docs/backlog.md`
-5. `Discussion.md`
+3. `docs/backlog.md`
+4. `docs/backlog-active.md`
+5. `docs/backlog-archive.md`
+6. `Discussion.md`
 
 ## Step 6：先完成可載入骨架
 

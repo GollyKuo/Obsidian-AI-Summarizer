@@ -8,10 +8,11 @@
   - 分層與依賴邊界
 - `docs/parity-contract.md`
   - 與既有 Python app 的功能對等契約
-- `docs/current-implementation-track.md`
-  - 目前主線與最近動作
 - `docs/backlog.md`
-  - active / upcoming 待辦
-  - `[x]` 項目需標示完成時間，格式：`（完成：YYYY-MM-DD HH:mm）`
+  - 完整待辦總表（active + future）
+- `docs/backlog-active.md`
+  - 目前主線與近期執行內容
+- `docs/backlog-archive.md`
+  - 已完成能力與歷史參考
 - `docs/dev_log.md`
   - 版本摘要
