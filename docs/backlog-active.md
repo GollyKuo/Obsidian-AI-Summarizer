@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-22 08:34
+最後更新：2026-04-22 08:54
 
 ## 使用規則
 
@@ -21,7 +21,7 @@
 
 ## 當前阻塞與前置依賴
 
-- `yt-dlp` 實際下載執行尚未落地，會卡住後續 `process-media-url`。
+- 下載階段 cancellation 尚未接入子程序中斷控制。
 - AI-ready artifact contract 尚未正式落地，會卡住 transcript / summary handoff。
 - retention matrix 尚未定義完成，會影響 media/local media/output cleanup 的決策邊界。
 
@@ -78,9 +78,9 @@ Dependencies：
 
 Open Work：
 
-- [ ] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤
+- [x] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤（完成：2026-04-22 08:54）
 - [ ] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔
-- [ ] 建立 `yt-dlp` 假失敗恢復機制，若子程序報錯但 session 內已有完整媒體檔，需能判定為可恢復成功
+- [x] 建立 `yt-dlp` 假失敗恢復機制，若子程序報錯但 session 內已有完整媒體檔，需能判定為可恢復成功（完成：2026-04-22 08:54）
 - [ ] 建立下載階段 cancellation 串接（AbortSignal）
 - [ ] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）
 - [ ] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）

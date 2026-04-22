@@ -1,8 +1,29 @@
 # 開發日誌
 
-最後更新：2026-04-22 08:34
+最後更新：2026-04-22 08:54
 
 ## 版本紀錄
+
+### 0.1.23-yt-dlp-download-execution - 2026-04-22 08:54
+
+範圍：
+
+- 完成 `CAP-202` 的 `yt-dlp` 實際下載執行與假失敗恢復能力
+
+主要變更：
+
+- 更新 `src/services/media/downloader-adapter.ts`
+- 新增 `downloadMedia`，可執行 `yt-dlp` 下載並回傳 session 內 `downloaded.*` 實際路徑
+- 新增 session 內 artifact 解析邏輯，禁止掃描全域下載目錄
+- 新增 `yt-dlp` 非零退出碼時的恢復邏輯：若 artifact 已存在則標記 recovered 並回傳 warning
+- 加入錯誤分類：`cancellation`、`runtime_unavailable`、`download_failure`
+- 擴充 `tests/unit/downloader-adapter.test.ts`，新增成功、恢復、失敗、取消與缺命令情境
+- 更新 `docs/backlog.md`、`docs/backlog-active.md` 勾選已完成項目
+
+驗證：
+
+- `npm run typecheck` 通過
+- `npm run test` 通過（22 tests）
 
 ### 0.1.22-remove-current-track-doc - 2026-04-22 08:34
 
