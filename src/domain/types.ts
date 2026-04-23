@@ -30,6 +30,9 @@ export interface LocalMediaRequest {
   sourceValue: string;
   model: string;
   retentionMode: RetentionMode;
+  mediaCacheRoot?: string;
+  vaultId?: string;
+  mediaCompressionProfile?: "balanced" | "quality";
 }
 
 export interface WebpageRequest {

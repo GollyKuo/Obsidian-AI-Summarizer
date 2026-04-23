@@ -5,6 +5,10 @@ import type {
   MediaDownloadSession,
   DownloaderAdapter
 } from "@services/media/downloader-adapter";
+import type {
+  LocalMediaIngestionAdapter,
+  LocalMediaIngestionSession
+} from "@services/media/local-media-ingestion-adapter";
 import type { PreUploadCompressor } from "@services/media/pre-upload-compressor";
 
 function makeSession(): MediaDownloadSession {
@@ -44,6 +48,13 @@ function makeDownloadResult(session: MediaDownloadSession): MediaDownloadResult 
       created: "2026-04-20T00:00:00.000Z"
     },
     warnings: []
+  };
+}
+
+function makeLocalSession(): LocalMediaIngestionSession {
+  return {
+    ...makeSession(),
+    localSourcePath: "D:\\source\\demo.mp3"
   };
 }
 
@@ -96,6 +107,73 @@ describe("LocalBridgeRuntimeProvider", () => {
 
     expect(receivedVaultId).toBe("fallback-vault");
     expect(result.metadata.title).toBe("Demo Video");
+    expect(result.normalizedText).toContain("AI-ready artifacts:");
+    expect(result.transcript).toEqual([]);
+    expect(
+      result.warnings.some((warning) => warning.includes("Transcript generation is not implemented yet"))
+    ).toBe(true);
+  });
+
+  it("processes local media and returns ai-ready handoff summary", async () => {
+    const localSession = makeLocalSession();
+    const localIngestionResult: MediaDownloadResult = {
+      downloadedPath: localSession.artifacts.downloadedPath,
+      recoveredFromFailure: false,
+      metadata: {
+        title: "demo",
+        creatorOrAuthor: "Local User",
+        platform: "Local File",
+        source: localSession.localSourcePath,
+        created: "2026-04-20T00:00:00.000Z"
+      },
+      warnings: []
+    };
+    let receivedVaultId = "";
+
+    const localMediaIngestionAdapter: LocalMediaIngestionAdapter = {
+      async prepareSession(input) {
+        receivedVaultId = input.vaultId;
+        return localSession;
+      },
+      async ingestMedia() {
+        return localIngestionResult;
+      }
+    };
+
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload() {
+        return {
+          normalizedAudioPath: localSession.artifacts.normalizedAudioPath,
+          aiUploadArtifactPaths: [`${localSession.artifacts.aiUploadDirectory}\\ai-upload.ogg`],
+          selectedCodec: "opus",
+          chunkCount: 1,
+          chunkDurationsMs: [120000],
+          vadApplied: false,
+          warnings: []
+        };
+      }
+    };
+
+    const runtime = new LocalBridgeRuntimeProvider({
+      dependencyChecker: async () => undefined,
+      localMediaIngestionAdapter,
+      preUploadCompressor,
+      defaultVaultId: "fallback-vault"
+    });
+
+    const result = await runtime.processLocalMedia(
+      {
+        sourceKind: "local_media",
+        sourceValue: localSession.localSourcePath,
+        model: "gemini-2.5-flash",
+        retentionMode: "none"
+      },
+      new AbortController().signal
+    );
+
+    expect(receivedVaultId).toBe("fallback-vault");
+    expect(result.metadata.platform).toBe("Local File");
+    expect(result.normalizedText).toContain(`Source path: ${localSession.localSourcePath}`);
     expect(result.normalizedText).toContain("AI-ready artifacts:");
     expect(result.transcript).toEqual([]);
     expect(
