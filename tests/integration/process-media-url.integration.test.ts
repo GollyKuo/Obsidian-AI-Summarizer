@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SummarizerError } from "@domain/errors";
 import {
   processMediaUrl,
   type ProcessMediaUrlInput
@@ -188,6 +189,46 @@ describe("processMediaUrl integration", () => {
       )
     ).rejects.toMatchObject({
       category: "cancellation"
+    });
+  });
+
+  it("throws download_failure when pre-upload compressor fails", async () => {
+    const session = makeSession();
+    const downloadResult = makeDownloadResult(session);
+    const downloaderAdapter: DownloaderAdapter = {
+      async prepareSession() {
+        return session;
+      },
+      async downloadMedia() {
+        return downloadResult;
+      }
+    };
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload() {
+        throw new SummarizerError({
+          category: "download_failure",
+          message: "Pre-upload conversion failed.",
+          recoverable: true
+        });
+      }
+    };
+
+    await expect(
+      processMediaUrl(
+        {
+          sourceKind: "media_url",
+          sourceValue: "https://www.youtube.com/watch?v=demo",
+          model: "gemini-2.5-flash",
+          retentionMode: "none",
+          mediaCacheRoot: "D:\\media-cache",
+          vaultId: "vault-a",
+          mediaCompressionProfile: "balanced"
+        },
+        { downloaderAdapter, preUploadCompressor },
+        new AbortController().signal
+      )
+    ).rejects.toMatchObject({
+      category: "download_failure"
     });
   });
 });

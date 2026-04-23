@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-23 08:22
+最後更新：2026-04-23 10:12
 
 ## 使用規則
 
@@ -109,12 +109,12 @@ Open Work：
 - [x] 建立 `orchestration/process-media-url.ts`（完成：2026-04-23 00:41）
 - [x] 定義 transcript-ready payload 與後續 AI processing handoff（完成：2026-04-23 00:41）
 - [x] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）（完成：2026-04-23 00:49）
-- [ ] 建立 integration tests（成功、失敗、取消、品質回退）
+- [x] 建立 integration tests（成功、失敗、取消、品質回退）（完成：2026-04-23 10:12）
 
 Done When：
 
 - [ ] `balanced` profile 對照 `normalized.wav` 可降低至少 70% 上傳量（3 組樣本）
-- [ ] 至少 2 個案例可驗證品質守門會觸發回退
+- [x] 至少 2 個案例可驗證品質守門會觸發回退（完成：2026-04-23 10:12）
 - [x] media URL flow 可把 AI-ready payload 穩定交給後續 runtime / AI pipeline（完成：2026-04-23 08:22）
 
 ### CAP-204 Local Media Flow 本機媒體流程

@@ -1,8 +1,25 @@
 # 開發日誌
 
-最後更新：2026-04-23 08:22
+最後更新：2026-04-23 10:12
 
 ## 版本紀錄
+
+### 0.1.28-cap-203-integration-coverage - 2026-04-23 10:12
+
+範圍：
+- 補齊 `CAP-203` 尚未勾選的整合測試與品質回退驗收覆蓋。
+
+主要變更：
+- 更新 `tests/integration/process-media-url.integration.test.ts`
+- 新增 pre-upload 壓縮失敗路徑（`download_failure`）整合測試。
+- 更新 `tests/unit/pre-upload-compressor.test.ts`
+- 新增第二個品質回退案例（Opus/AAC 失敗後回退到 FLAC）。
+- 更新 `docs/backlog-active.md`
+- 將 `CAP-203` 的 integration tests 與「至少 2 個回退案例」驗收項勾選完成。
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
 
 ### 0.1.27-chunk-payload-and-runtime-bridge - 2026-04-23 08:22
 

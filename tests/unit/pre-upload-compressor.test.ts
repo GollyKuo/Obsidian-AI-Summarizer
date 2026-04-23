@@ -130,6 +130,45 @@ describe("pre-upload compressor", () => {
     });
   });
 
+  it("falls back to flac when opus and aac artifacts are missing", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = makeSession(tempDirectory);
+      await fs.mkdir(session.sessionDirectory, { recursive: true });
+      await fs.writeFile(session.artifacts.downloadedPath, "downloaded", "utf8");
+
+      const compressor = createPreUploadCompressor({
+        commandExecutor: async (_, args) => {
+          const outputPath = args[args.length - 1];
+
+          if (outputPath.endsWith("normalized.wav")) {
+            await fs.writeFile(outputPath, "ok", "utf8");
+            return { stdout: "", stderr: "" };
+          }
+
+          if (outputPath.endsWith("ai-upload.flac")) {
+            await fs.mkdir(path.dirname(outputPath), { recursive: true });
+            await fs.writeFile(outputPath, "ok", "utf8");
+          }
+
+          return { stdout: "", stderr: "" };
+        }
+      });
+
+      const result = await compressor.prepareForAiUpload(
+        {
+          session,
+          downloadResult: makeDownloadResult(session),
+          profile: "balanced"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.selectedCodec).toBe("flac");
+      expect(result.aiUploadArtifactPaths[0].endsWith("ai-upload.flac")).toBe(true);
+      expect(result.warnings[0]).toContain("Selected codec flac after 2 failed attempt(s)");
+    });
+  });
+
   it("splits long artifact into chunks and returns chunk metadata", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const session = makeSession(tempDirectory);
