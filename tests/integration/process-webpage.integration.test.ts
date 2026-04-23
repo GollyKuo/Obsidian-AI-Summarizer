@@ -18,8 +18,8 @@ describe("processWebpage integration", () => {
         return {
           title: "Mock Title",
           creatorOrAuthor: "Mock Author",
-          platform: "Web",
-          source: url,
+          platform: "Medium",
+          source: "https://wrong.example.com/article",
           created: "2026-04-21T00:00:00.000Z"
         };
       }
@@ -70,6 +70,9 @@ describe("processWebpage integration", () => {
     expect(result.summary.summaryMarkdown.startsWith("## Summary")).toBe(true);
     expect(result.writeResult.notePath).toBe("Summaries/Mock Title.md");
     expect(result.warnings).toContain("paywall-suspected");
+    expect(
+      result.warnings.some((warning) => warning.includes("Webpage metadata policy: platform has been normalized to Web"))
+    ).toBe(true);
   });
 
   it("throws validation_error for invalid URL", async () => {

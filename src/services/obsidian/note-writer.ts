@@ -4,7 +4,8 @@ import {
   buildDefaultFrontmatter,
   type TemplateData
 } from "@services/obsidian/template-resolver";
-import { resolveUniqueNotePath } from "@services/obsidian/path-resolver";
+import { normalizeNoteMetadata } from "@services/obsidian/note-output-contract";
+import { resolveUniqueNotePathWithDiagnostics } from "@services/obsidian/path-resolver";
 
 export interface NoteStorage {
   exists(path: string): Promise<boolean>;
@@ -32,35 +33,69 @@ export class ObsidianNoteWriter implements NoteWriter {
   }
 
   public async writeMediaNote(input: MediaNoteInput): Promise<WriteResult> {
-    const path = await resolveUniqueNotePath(this.storage, this.options.outputFolder, input.metadata.title);
+    const metadataResult = normalizeNoteMetadata(input.metadata);
+    const pathResult = await resolveUniqueNotePathWithDiagnostics(
+      this.storage,
+      this.options.outputFolder,
+      metadataResult.metadata.title
+    );
     const content = await this.buildContent(
       {
-        title: input.metadata.title,
-        creatorOrAuthor: input.metadata.creatorOrAuthor,
-        platform: input.metadata.platform,
-        source: input.metadata.source,
-        created: input.metadata.created
+        title: metadataResult.metadata.title,
+        creatorOrAuthor: metadataResult.metadata.creatorOrAuthor,
+        platform: metadataResult.metadata.platform,
+        source: metadataResult.metadata.source,
+        created: metadataResult.metadata.created
       },
       [input.summaryMarkdown, "", "## Transcript", "", input.transcriptMarkdown].join("\n")
     );
-    await this.storage.write(path, content);
-    return { notePath: path, createdAt: new Date().toISOString(), warnings: [] };
+    await this.storage.write(pathResult.notePath, content);
+
+    const warnings = [...metadataResult.warnings];
+    if (pathResult.collisionCount > 0) {
+      warnings.push(
+        `Path collision policy: resolved ${pathResult.collisionCount} collision(s) for note title "${pathResult.normalizedTitle}".`
+      );
+    }
+
+    return {
+      notePath: pathResult.notePath,
+      createdAt: new Date().toISOString(),
+      warnings
+    };
   }
 
   public async writeWebpageNote(input: WebpageNoteInput): Promise<WriteResult> {
-    const path = await resolveUniqueNotePath(this.storage, this.options.outputFolder, input.metadata.title);
+    const metadataResult = normalizeNoteMetadata(input.metadata);
+    const pathResult = await resolveUniqueNotePathWithDiagnostics(
+      this.storage,
+      this.options.outputFolder,
+      metadataResult.metadata.title
+    );
     const content = await this.buildContent(
       {
-        title: input.metadata.title,
-        creatorOrAuthor: input.metadata.creatorOrAuthor,
-        platform: input.metadata.platform,
-        source: input.metadata.source,
-        created: input.metadata.created
+        title: metadataResult.metadata.title,
+        creatorOrAuthor: metadataResult.metadata.creatorOrAuthor,
+        platform: metadataResult.metadata.platform,
+        source: metadataResult.metadata.source,
+        created: metadataResult.metadata.created
       },
       input.summaryMarkdown
     );
-    await this.storage.write(path, content);
-    return { notePath: path, createdAt: new Date().toISOString(), warnings: [] };
+    await this.storage.write(pathResult.notePath, content);
+
+    const warnings = [...metadataResult.warnings];
+    if (pathResult.collisionCount > 0) {
+      warnings.push(
+        `Path collision policy: resolved ${pathResult.collisionCount} collision(s) for note title "${pathResult.normalizedTitle}".`
+      );
+    }
+
+    return {
+      notePath: pathResult.notePath,
+      createdAt: new Date().toISOString(),
+      warnings
+    };
   }
 
   private async buildContent(data: TemplateData, bodyMarkdown: string): Promise<string> {

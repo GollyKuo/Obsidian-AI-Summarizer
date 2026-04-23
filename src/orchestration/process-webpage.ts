@@ -3,6 +3,7 @@ import type { WriteResult, WebpageRequest, WebpageSummaryResult } from "@domain/
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeWebpageSummaryResult } from "@services/ai/ai-output-normalizer";
+import { applyWebpageMetadataPolicy } from "@services/web/webpage-metadata-policy";
 import type { MetadataExtractor } from "@services/web/metadata-extractor";
 import type { WebpageExtractor } from "@services/web/webpage-extractor";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
@@ -61,7 +62,11 @@ export async function processWebpage(
     hooks
   );
 
-  const metadata = dependencies.metadataExtractor.fromWebpage(input.sourceValue, webpageText);
+  const extractedMetadata = dependencies.metadataExtractor.fromWebpage(input.sourceValue, webpageText);
+  const metadataPolicyResult = applyWebpageMetadataPolicy(input.sourceValue, extractedMetadata);
+  const metadata = metadataPolicyResult.metadata;
+  warnings.push(...metadataPolicyResult.warnings);
+  emitWarnings(metadataPolicyResult.warnings, hooks);
 
   const summaryRaw = await runJobStep(
     "summarizing",

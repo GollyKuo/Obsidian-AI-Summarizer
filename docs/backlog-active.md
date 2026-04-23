@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-23 20:38
+最後更新：2026-04-24 00:00
 
 ## 使用規則
 
@@ -158,8 +158,8 @@ Scope：
 Open Work：
 
 - [x] 定義 retention modes 對各 artifact 的保留矩陣（`artifact-retention`）（完成：2026-04-23 20:38）
-- [ ] 定義 note output metadata contract 與 path collision policy 的進一步規格
-- [ ] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`
+- [x] 定義 note output metadata contract 與 path collision policy 的進一步規格（完成：2026-04-24 00:00）
+- [x] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`（完成：2026-04-24 00:00）
 - [x] 定義 cleanup/recovery 在成功、失敗、取消三種狀態的責任分界（完成：2026-04-23 20:38）
 - [ ] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle
 - [ ] 定義字幕產線是否納入 v1/vNext，包含 `.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略

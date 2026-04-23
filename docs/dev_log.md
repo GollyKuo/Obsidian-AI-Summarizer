@@ -1,8 +1,41 @@
 # 開發日誌
 
-最後更新：2026-04-23 20:38
+最後更新：2026-04-24 00:00
 
 ## 版本紀錄
+
+### 0.1.34-note-output-and-webpage-metadata-policy - 2026-04-24 00:00
+
+範圍：
+- 推進 `CAP-206`，落地 note output metadata contract / path collision policy，並完成 webpage metadata policy。
+
+主要變更：
+- 新增 `src/services/web/webpage-metadata-policy.ts`
+- 定義網頁 metadata policy：`Platform` 強制 `Web`、`Source` 強制 input URL、`Created` 無效時重建
+- 更新 `src/orchestration/process-webpage.ts`
+- 在 metadata extractor 後導入 policy，並把 policy warning 併入 job warnings
+- 新增 `src/services/obsidian/note-output-contract.ts`
+- 定義 note metadata 正規化（title/creator/platform/source/created）與 warning 回傳
+- 更新 `src/services/obsidian/path-resolver.ts`
+- 新增 `resolveUniqueNotePathWithDiagnostics`，回傳 `collisionCount` 與 `normalizedTitle`
+- 更新 `src/services/obsidian/note-writer.ts`
+- 導入 metadata contract + path collision diagnostics，將 warning 回傳到 `WriteResult`
+- 更新 `src/services/obsidian/template-resolver.ts`
+- default frontmatter 改為安全引號輸出（避免未轉義字元破壞格式）
+- 新增單元測試：
+  - `tests/unit/webpage-metadata-policy.test.ts`
+  - `tests/unit/note-output-contract.test.ts`
+  - `tests/unit/path-resolver.test.ts`
+  - `tests/unit/note-writer.test.ts`
+- 更新 `tests/integration/process-webpage.integration.test.ts`
+- 驗證 metadata policy warning 可在整合流程中觀測
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-206` 的 note metadata/path collision 與 webpage metadata policy 兩項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.33-artifact-retention-lifecycle - 2026-04-23 20:38
 

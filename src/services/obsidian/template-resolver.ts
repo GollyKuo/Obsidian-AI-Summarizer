@@ -6,6 +6,10 @@ export interface TemplateData {
   created: string;
 }
 
+function quoteFrontmatterValue(value: string): string {
+  return JSON.stringify(value);
+}
+
 export function applyTemplate(templateBody: string, data: TemplateData): string {
   return templateBody
     .replace(/\{\{title\}\}/g, data.title)
@@ -18,11 +22,11 @@ export function applyTemplate(templateBody: string, data: TemplateData): string 
 export function buildDefaultFrontmatter(data: TemplateData): string {
   return [
     "---",
-    `Title: "${data.title}"`,
-    `Creator: "${data.creatorOrAuthor}"`,
-    `Platform: "${data.platform}"`,
-    `Source: "${data.source}"`,
-    `Created: "${data.created}"`,
+    `Title: ${quoteFrontmatterValue(data.title)}`,
+    `Creator: ${quoteFrontmatterValue(data.creatorOrAuthor)}`,
+    `Platform: ${quoteFrontmatterValue(data.platform)}`,
+    `Source: ${quoteFrontmatterValue(data.source)}`,
+    `Created: ${quoteFrontmatterValue(data.created)}`,
     "---",
     ""
   ].join("\n");
