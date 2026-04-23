@@ -3,7 +3,7 @@ import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 export function registerCommands(plugin: AISummarizerPlugin): void {
   plugin.addRibbonIcon("sparkles", "開啟 AI 摘要器", () => {
     plugin.openFlowModal();
-    plugin.log("info", "Ribbon icon clicked.");
+    plugin.reportInfo("commands", "Ribbon icon clicked.");
   });
 
   plugin.addCommand({
@@ -11,7 +11,7 @@ export function registerCommands(plugin: AISummarizerPlugin): void {
     name: "開啟 AI 摘要器",
     callback: () => {
       plugin.openFlowModal();
-      plugin.log("info", "Open command executed.");
+      plugin.reportInfo("commands", "Open command executed.");
     }
   });
 
@@ -20,7 +20,7 @@ export function registerCommands(plugin: AISummarizerPlugin): void {
     name: "開啟 AI 摘要器設定",
     callback: () => {
       plugin.openSettingsTab();
-      plugin.log("info", "Settings command executed.");
+      plugin.reportInfo("commands", "Settings command executed.");
     }
   });
 }

@@ -1,7 +1,7 @@
 import { ButtonComponent, Modal, Setting } from "obsidian";
 import { SummarizerError } from "@domain/errors";
-import { processWebpage } from "@orchestration/process-webpage";
 import { throwIfCancelled } from "@orchestration/cancellation";
+import { processWebpage } from "@orchestration/process-webpage";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
@@ -16,16 +16,18 @@ async function delay(ms: number, signal: AbortSignal): Promise<void> {
       signal.removeEventListener("abort", onAbort);
       resolve();
     }, ms);
+
     const onAbort = (): void => {
       clearTimeout(timer);
       reject(
         new SummarizerError({
           category: "cancellation",
-          message: "流程已取消。",
+          message: "網頁流程已取消。",
           recoverable: true
         })
       );
     };
+
     signal.addEventListener("abort", onAbort, { once: true });
   });
 }
@@ -62,7 +64,7 @@ export class SummarizerFlowModal extends Modal {
 
     new Setting(contentEl)
       .setName("網頁 URL")
-      .setDesc("輸入網址以執行目前的網頁摘要流程。")
+      .setDesc("輸入要摘要的網頁連結。")
       .addText((text) => {
         text.setPlaceholder("https://example.com/article").setValue(this.sourceValue);
         text.onChange((value) => {
@@ -94,6 +96,7 @@ export class SummarizerFlowModal extends Modal {
     startButton.onClick(() => {
       void this.startFlow();
     });
+
     cancelButton.onClick(() => {
       this.cancelFlow();
     });
@@ -103,6 +106,7 @@ export class SummarizerFlowModal extends Modal {
     if (!this.abortController) {
       return;
     }
+
     this.abortController.abort();
     this.stageMessage = "取消中";
     this.render();
@@ -112,6 +116,7 @@ export class SummarizerFlowModal extends Modal {
     if (this.status === "running") {
       return;
     }
+
     this.abortController = new AbortController();
     this.status = "running";
     this.stageMessage = "啟動中";
@@ -125,7 +130,7 @@ export class SummarizerFlowModal extends Modal {
         if (url.includes("fail")) {
           throw new SummarizerError({
             category: "runtime_unavailable",
-            message: "模擬擷取失敗（URL 包含 'fail'）。",
+            message: "模擬擷取器拒絕包含 'fail' 的 URL。",
             recoverable: true
           });
         }
@@ -135,7 +140,7 @@ export class SummarizerFlowModal extends Modal {
 
     const aiProvider: AiProvider = {
       summarizeMedia: async () => {
-        throw new Error("網頁流程不會使用媒體摘要。");
+        throw new Error("Webpage flow does not use summarizeMedia.");
       },
       summarizeWebpage: async (input, signal) => {
         throwIfCancelled(signal);
@@ -149,7 +154,7 @@ export class SummarizerFlowModal extends Modal {
 
     const noteWriter: NoteWriter = {
       writeMediaNote: async () => {
-        throw new Error("網頁流程不會使用媒體筆記寫入。");
+        throw new Error("Webpage flow does not use writeMediaNote.");
       },
       writeWebpageNote: async (input) => ({
         notePath: `Mock/${input.metadata.title}.md`,
@@ -178,7 +183,7 @@ export class SummarizerFlowModal extends Modal {
             this.render();
           },
           onWarning: (warning) => {
-            this.plugin.log("warn", warning);
+            this.plugin.reportWarning("webpage_flow", warning);
           }
         }
       );
@@ -187,18 +192,19 @@ export class SummarizerFlowModal extends Modal {
       this.stageMessage = "已完成";
       this.resultMessage = `成功：${result.writeResult.notePath}`;
       this.plugin.notify("網頁摘要流程已完成。");
+      this.plugin.reportInfo("webpage_flow", `Created note: ${result.writeResult.notePath}`);
     } catch (error) {
-      if (error instanceof SummarizerError && error.category === "cancellation") {
+      const report = this.plugin.reportError("webpage_flow", error);
+
+      if (report.category === "cancellation") {
         this.status = "cancelled";
         this.stageMessage = "已取消";
-        this.resultMessage = "操作已取消。";
       } else {
-        const message = error instanceof Error ? error.message : "未知錯誤";
         this.status = "failed";
         this.stageMessage = "失敗";
-        this.resultMessage = `失敗：${message}`;
-        this.plugin.log("error", message);
       }
+
+      this.resultMessage = report.modalMessage;
     } finally {
       this.abortController = null;
       this.render();

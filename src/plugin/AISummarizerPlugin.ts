@@ -1,4 +1,10 @@
 import { Notice, Plugin } from "obsidian";
+import {
+  createIssueReport,
+  formatInfoReport,
+  formatWarningReport,
+  type IssueReport
+} from "@services/diagnostics/issue-reporting";
 import { registerCommands } from "@plugin/commands";
 import { registerLifecycleHooks, type PluginLifecycleContext } from "@plugin/lifecycle";
 import {
@@ -22,13 +28,13 @@ export default class AISummarizerPlugin extends Plugin {
     registerCommands(this);
     this.lifecycleContext = registerLifecycleHooks(this);
     this.notify("AI Summarizer plugin loaded.");
-    this.log("info", "Plugin loaded.");
+    this.reportInfo("plugin", "Plugin loaded.");
   }
 
   public onunload(): void {
-    this.log("info", "Plugin unloaded.");
+    this.reportInfo("plugin", "Plugin unloaded.");
     if (this.lifecycleContext) {
-      this.log("info", `Lifecycle hooks registered: ${this.lifecycleContext.hookCount}`);
+      this.reportInfo("plugin", `Lifecycle hooks registered: ${this.lifecycleContext.hookCount}`);
       this.lifecycleContext = null;
     }
   }
@@ -63,7 +69,7 @@ export default class AISummarizerPlugin extends Plugin {
 
     if (!appWithSettings.setting) {
       this.notify("Settings UI is not available in this context.");
-      this.log("warn", "Attempted to open settings, but app.setting is unavailable.");
+      this.reportWarning("settings", "Attempted to open settings, but app.setting is unavailable.");
       return;
     }
 
@@ -73,6 +79,27 @@ export default class AISummarizerPlugin extends Plugin {
 
   public notify(message: string): void {
     new Notice(message);
+  }
+
+  public reportInfo(context: string, message: string): void {
+    this.log("info", formatInfoReport(context, message));
+  }
+
+  public reportWarning(context: string, warning: string): void {
+    this.log("warn", formatWarningReport(context, warning));
+  }
+
+  public reportError(
+    context: string,
+    error: unknown,
+    options: { notify?: boolean } = {}
+  ): IssueReport {
+    const report = createIssueReport(context, error);
+    this.log(report.level === "warn" ? "warn" : "error", report.logMessage);
+    if (options.notify ?? false) {
+      this.notify(report.noticeMessage);
+    }
+    return report;
   }
 
   public log(level: "info" | "warn" | "error", message: string): void {

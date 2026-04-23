@@ -106,9 +106,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         appSurface: this.detectAppSurface()
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.runtimeDiagnosticsError = message;
-      this.plugin.log("error", `Failed to collect runtime diagnostics: ${message}`);
+      const report = this.plugin.reportError("runtime_diagnostics", error);
+      this.runtimeDiagnosticsError = report.modalMessage;
     } finally {
       this.diagnosticsLoading = false;
       this.display();

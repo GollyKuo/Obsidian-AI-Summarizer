@@ -1,8 +1,36 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 01:00
+最後更新：2026-04-24 01:18
 
 ## 版本紀錄
+
+### 0.1.38-error-reporting-and-logging-policy - 2026-04-24 01:18
+
+範圍：
+- 完成 `CAP-402` 剩餘兩項：debug logging policy 與錯誤訊息層級統一。
+
+主要變更：
+- 新增 `src/services/diagnostics/issue-reporting.ts`
+- 建立統一的 info / warning / error formatting 與 `SummarizerError` category 映射
+- 更新 `src/plugin/AISummarizerPlugin.ts`
+- 新增 `reportInfo`、`reportWarning`、`reportError`
+- 更新 `src/plugin/commands.ts`、`src/plugin/lifecycle.ts`
+- plugin command / lifecycle log 改走統一 reporting API
+- 更新 `src/ui/flow-modal/SummarizerFlowModal.ts`
+- 流程 warning / error 顯示改走統一 notice / modal / log 分層
+- 更新 `src/ui/settings-tab.ts`
+- runtime diagnostics 失敗訊息改走同一套 error reporting
+- 新增 `tests/unit/issue-reporting.test.ts`
+- 覆蓋 deterministic report formatting 與 unknown error fallback
+- 新增 `docs/diagnostics-policy.md`
+- 文件化 logging policy 與 notice / modal / log / test assertion 分層
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-402` 的兩個剩餘完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.37-runtime-diagnostics-summary - 2026-04-24 01:00
 
