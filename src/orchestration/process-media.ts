@@ -9,6 +9,7 @@ import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-r
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 
 type MediaRequest = MediaUrlRequest | LocalMediaRequest;
 
@@ -73,12 +74,13 @@ export async function processMedia(
     "Generating media summary",
     signal,
     async () =>
-      dependencies.aiProvider.summarizeMedia(
+      summarizeMediaWithChunking(
         {
           metadata: mediaInput.metadata,
           normalizedText: mediaInput.normalizedText,
           transcript: mediaInput.transcript
         },
+        dependencies.aiProvider,
         signal
       ),
     hooks

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-23 16:24
+最後更新：2026-04-23 17:49
 
 ## 使用規則
 
@@ -143,7 +143,7 @@ AI provider 呼叫策略、長內容 chunking、summary merge、transcript / web
 Open Work：
 
 - [x] 定義 transcript generation 與 summary generation 的 orchestration 邊界（`process-media`）（完成：2026-04-23 16:24）
-- [ ] 定義長內容 chunking / merge 策略與 token control
+- [x] 定義長內容 chunking / merge 策略與 token control（`media-summary-chunking`）（完成：2026-04-23 17:49）
 - [ ] 定義網頁、媒體、未來多模型共用的 AI output contract
 - [ ] 把 `API_Instructions.md` 的規則映射到 media/webpage 兩種輸入路徑
 

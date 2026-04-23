@@ -179,6 +179,85 @@ describe("processMedia integration", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("applies chunking strategy when transcript is large", async () => {
+    let summarizeMediaCalls = 0;
+    let capturedSummaryMarkdown = "";
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        return {
+          metadata: {
+            title: "Chunk Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=chunk",
+            created: "2026-04-23T00:00:00.000Z"
+          },
+          normalizedText: "normalized-context",
+          transcript: [
+            { startMs: 0, endMs: 1000, text: "1234567890".repeat(700) },
+            { startMs: 1000, endMs: 2000, text: "abcdefghij".repeat(700) }
+          ],
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const aiProvider: AiProvider = {
+      async summarizeMedia() {
+        summarizeMediaCalls += 1;
+        return {
+          summaryMarkdown: `Chunk summary ${summarizeMediaCalls}`,
+          transcriptMarkdown: `Chunk transcript ${summarizeMediaCalls}`,
+          warnings: []
+        };
+      },
+      async summarizeWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const noteWriter: NoteWriter = {
+      async writeMediaNote(input) {
+        capturedSummaryMarkdown = input.summaryMarkdown;
+        return {
+          notePath: "Summaries/Chunk Demo.md",
+          createdAt: "2026-04-23T00:00:00.000Z",
+          warnings: []
+        };
+      },
+      async writeWebpageNote() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await processMedia(
+      {
+        sourceKind: "media_url",
+        sourceValue: "https://www.youtube.com/watch?v=chunk",
+        model: "gemini-2.5-flash",
+        retentionMode: "none"
+      },
+      {
+        runtimeProvider,
+        aiProvider,
+        noteWriter
+      },
+      new AbortController().signal
+    );
+
+    expect(summarizeMediaCalls).toBeGreaterThan(1);
+    expect(capturedSummaryMarkdown).toContain("## Chunk 1");
+    expect(result.warnings.some((warning) => warning.includes("Chunked media summary into"))).toBe(true);
+  });
+
   it("throws validation_error when media source value is empty", async () => {
     const runtimeProvider: RuntimeProvider = {
       strategy: "local_bridge",

@@ -1,8 +1,30 @@
 # 開發日誌
 
-最後更新：2026-04-23 16:24
+最後更新：2026-04-23 17:49
 
 ## 版本紀錄
+
+### 0.1.31-media-chunking-and-token-control - 2026-04-23 17:49
+
+範圍：
+- 推進 `CAP-205`，補齊長內容 chunking / merge 與 token control 能力層。
+
+主要變更：
+- 新增 `src/services/ai/media-summary-chunking.ts`
+- 建立 transcript chunk 切分策略（依字元上限切塊）與 chunk 摘要合併輸出
+- 建立 normalized text 截斷策略（single-call 與 chunk-mode）
+- 更新 `src/orchestration/process-media.ts`
+- media summarizing 階段改由 `summarizeMediaWithChunking` 執行
+- 新增 `tests/unit/media-summary-chunking.test.ts`
+- 覆蓋單段流程、chunk 流程、token control 截斷流程
+- 更新 `tests/integration/process-media.integration.test.ts`
+- 新增大 transcript 情境，驗證 chunking 會觸發多次 summarize 與合併 warning
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-205` 的 chunking / merge / token control 完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
 
 ### 0.1.30-media-orchestration-boundary - 2026-04-23 16:24
 
