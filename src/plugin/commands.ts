@@ -1,12 +1,16 @@
 import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
-import { SummarizerFlowModal } from "@ui/flow-modal/SummarizerFlowModal";
 
 export function registerCommands(plugin: MediaSummarizerPlugin): void {
+  plugin.addRibbonIcon("sparkles", "開啟 AI 摘要器", () => {
+    plugin.openFlowModal();
+    plugin.log("info", "Ribbon icon clicked.");
+  });
+
   plugin.addCommand({
     id: "open-ai-summarizer",
     name: "開啟 AI 摘要器",
     callback: () => {
-      new SummarizerFlowModal(plugin).open();
+      plugin.openFlowModal();
       plugin.log("info", "Open command executed.");
     }
   });

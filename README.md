@@ -26,9 +26,9 @@
 - [docs/parity-contract.md](d:\程式開發\AI Summarizer\docs\parity-contract.md)
   - 與既有 Python app 需要對等保留的產品契約
 - [docs/backlog.md](d:\程式開發\AI Summarizer\docs\backlog.md)
-  - 完整待辦總表
+  - capability 級總表與排程入口
 - [docs/backlog-active.md](d:\程式開發\AI Summarizer\docs\backlog-active.md)
-  - 目前主線、正在做與近期要做
+  - 日常工作主入口
 - [docs/backlog-archive.md](d:\程式開發\AI Summarizer\docs\backlog-archive.md)
   - 已完成能力與歷史參考
 - [docs/dev_log.md](d:\程式開發\AI Summarizer\docs\dev_log.md)
@@ -55,15 +55,15 @@ docs/
 
 1. `docs/parity-contract.md`
 2. `docs/architecture-boundary.md`
-3. `docs/backlog.md`
-4. `docs/backlog-active.md`
+3. `docs/backlog-active.md`
+4. `docs/backlog.md`
 5. `Discussion.md`
 
 ## Backlog 導航規則
 
-1. 先讀 `docs/backlog.md` 了解完整能力清單與優先順序。
-2. 要開始實作時，再讀 `docs/backlog-active.md` 取得目前主線與近期細節。
-3. 需要查完成歷史或舊能力邊界時，才讀 `docs/backlog-archive.md`。
+1. 每日工作先讀 `docs/backlog-active.md`，以目前主線與近期細節為準。
+2. 要排程、重排優先序或看全局時，再讀 `docs/backlog.md`。
+3. 需要查完成歷史或舊能力邊界時，再讀 `docs/backlog-archive.md`。
 
 ## 第一階段目標
 

@@ -10,6 +10,7 @@ import {
   DEFAULT_SETTINGS,
   type MediaSummarizerPluginSettings
 } from "@domain/settings";
+import { SummarizerFlowModal } from "@ui/flow-modal/SummarizerFlowModal";
 
 export default class MediaSummarizerPlugin extends Plugin {
   public settings: MediaSummarizerPluginSettings = { ...DEFAULT_SETTINGS };
@@ -46,6 +47,10 @@ export default class MediaSummarizerPlugin extends Plugin {
 
   public async resolveMediaCacheRootOrThrow(): Promise<MediaCacheRootResolution> {
     return resolveMediaCacheRoot(this.settings.mediaCacheRoot);
+  }
+
+  public openFlowModal(): void {
+    new SummarizerFlowModal(this).open();
   }
 
   public openSettingsTab(): void {

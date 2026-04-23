@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-24 00:00
+最後更新：2026-04-24 00:08
 
 ## 使用規則
 
@@ -173,7 +173,7 @@ Why：
 
 Open Work：
 
-- [ ] 新增 Obsidian 左側 ribbon 按鈕，點擊後開啟 `AI 摘要器`
+- [x] 新增 Obsidian 左側 ribbon 按鈕，點擊後開啟 `AI 摘要器`（完成：2026-04-24 00:08）
 - [ ] 決定 template 整合的第一版 UX
 - [ ] 整理 prompt 資產與 note output 範本
 - [ ] 建立 media / webpage / local media 的輸入引導與錯誤提示文案

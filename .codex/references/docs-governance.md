@@ -9,9 +9,9 @@
 - `docs/parity-contract.md`
   - 與既有 Python app 的功能對等契約
 - `docs/backlog.md`
-  - 完整待辦總表（active + future）
+  - capability 級總表，用來排程與看全局
 - `docs/backlog-active.md`
-  - 目前主線與近期執行內容
+  - 日常工作主入口與近期執行內容
 - `docs/backlog-archive.md`
   - 已完成能力與歷史參考
 - `docs/dev_log.md`

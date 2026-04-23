@@ -1,8 +1,27 @@
 # 開發日誌
 
-最後更新：2026-04-24 00:00
+最後更新：2026-04-24 00:08
 
 ## 版本紀錄
+
+### 0.1.35-ribbon-entrypoint - 2026-04-24 00:08
+
+範圍：
+- 推進 `CAP-302`，新增 Obsidian 左側 ribbon 入口以開啟 `AI 摘要器`。
+
+主要變更：
+- 更新 `src/plugin/MediaSummarizerPlugin.ts`
+- 新增 `openFlowModal()`，讓 command/ribbon 共用同一入口行為
+- 更新 `src/plugin/commands.ts`
+- 新增 `addRibbonIcon("sparkles", "開啟 AI 摘要器", ...)`
+- 原有開啟命令改為呼叫 `plugin.openFlowModal()`，消除重複 modal 開啟邏輯
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-302` 的 ribbon 入口完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.34-note-output-and-webpage-metadata-policy - 2026-04-24 00:00
 

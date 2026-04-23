@@ -3,7 +3,7 @@
 ## 預設流程
 
 1. 確認目標與範圍
-2. 先讀 `docs/backlog.md`，必要時再讀 `docs/backlog-active.md`
+2. 先讀 `docs/backlog-active.md`，需要排程視角時再讀 `docs/backlog.md`
 3. 只讀最小必要上下文
 4. 判斷 single-agent 或多 agent
 5. 明確改動 ownership
@@ -32,3 +32,4 @@
 - 把探索、規格、實作、驗證混成一步
 - 把已完成內容留在 `backlog-active.md`
 - 把 future 項目塞進 `backlog-archive.md`
+- 把 checklist 同時寫進 `backlog.md` 與 `backlog-active.md`

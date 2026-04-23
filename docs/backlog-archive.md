@@ -1,12 +1,12 @@
 # Backlog Archive
 
-最後更新：2026-04-22 08:18
+最後更新：2026-04-23 00:44
 
 ## 用途
 
 本檔只保存已完成且仍有架構參考價值的能力層。
 
-日常執行請優先讀 [backlog.md](D:\程式開發\AI Summarizer\docs\backlog.md) 與 [backlog-active.md](D:\程式開發\AI Summarizer\docs\backlog-active.md)。
+每日工作請先讀 [backlog-active.md](D:\程式開發\AI Summarizer\docs\backlog-active.md)，排程與全局優先序請讀 [backlog.md](D:\程式開發\AI Summarizer\docs\backlog.md)。
 
 ## Completed Foundations 已完成基礎層
 
