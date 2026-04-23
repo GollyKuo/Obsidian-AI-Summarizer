@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-04-22 00:54
+最後更新：2026-04-23 16:24
 
 ## 目的
 
@@ -11,6 +11,24 @@
 1. YouTube URL
 2. podcast URL / feed episode URL
 3. direct media URL
+
+## Local Media v1 支援範圍
+
+本機媒體流程在 v1 採「先安全匯入到 session，再共用 AI-ready 壓縮主線」。
+
+1. 支援容器/副檔名：
+   - audio：`.mp3`、`.wav`、`.m4a`、`.aac`、`.flac`、`.ogg`、`.opus`
+   - video：`.mp4`、`.mov`、`.mkv`、`.webm`、`.m4v`
+2. 檔案大小上限：`2 GiB`（`2147483648` bytes）
+3. source path 必須是「可存取的絕對檔案路徑」，不接受資料夾或相對路徑。
+4. ingest 成功後，會在當前 session 複製為 `downloaded.<ext>`，後續流程與 media URL 共用 `normalized.wav -> ai-upload.*`。
+
+### Local Media v1 錯誤分類
+
+1. 路徑為空、非絕對路徑、格式不支援、檔案不存在/不可存取/超過大小上限：`validation_error`
+2. 複製檔案或 metadata 落盤失敗：`download_failure`
+3. 取消流程：`cancellation`
+4. 缺少 `yt-dlp` / `ffmpeg` / `ffprobe`：`runtime_unavailable`
 
 ## 存放根目錄策略
 

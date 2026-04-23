@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-23 10:12
+最後更新：2026-04-23 16:24
 
 ## 使用規則
 
@@ -127,10 +127,10 @@ Scope：
 
 Open Work：
 
-- [ ] 定義 `local media` v1 支援範圍（audio/video、大小限制、容器格式）
-- [ ] 定義 local file ingestion adapter 與錯誤分類
-- [ ] 讓 local media flow 共用 `CAP-203` 的壓縮與 AI-ready handoff
-- [ ] 補 local media 的 unit / smoke 測試
+- [x] 定義 `local media` v1 支援範圍（audio/video、大小限制、容器格式）（完成：2026-04-23 16:24）
+- [x] 定義 local file ingestion adapter 與錯誤分類（完成：2026-04-23 16:24）
+- [x] 讓 local media flow 共用 `CAP-203` 的壓縮與 AI-ready handoff（完成：2026-04-23 16:24）
+- [x] 補 local media 的 unit / integration 測試（完成：2026-04-23 16:24）
 
 ### CAP-205 AI Processing Pipeline AI 處理管線
 
@@ -142,7 +142,7 @@ AI provider 呼叫策略、長內容 chunking、summary merge、transcript / web
 
 Open Work：
 
-- [ ] 定義 transcript generation 與 summary generation 的 orchestration 邊界
+- [x] 定義 transcript generation 與 summary generation 的 orchestration 邊界（`process-media`）（完成：2026-04-23 16:24）
 - [ ] 定義長內容 chunking / merge 策略與 token control
 - [ ] 定義網頁、媒體、未來多模型共用的 AI output contract
 - [ ] 把 `API_Instructions.md` 的規則映射到 media/webpage 兩種輸入路徑

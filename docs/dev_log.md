@@ -1,8 +1,28 @@
 # 開發日誌
 
-最後更新：2026-04-23 10:12
+最後更新：2026-04-23 16:24
 
 ## 版本紀錄
+
+### 0.1.30-media-orchestration-boundary - 2026-04-23 16:24
+
+範圍：
+- 推進 `CAP-205`，建立 media 主流程 orchestration 邊界，串接 runtime/AI/note writer。
+
+主要變更：
+- 新增 `src/orchestration/process-media.ts`
+- 建立 media 主線：`validating -> acquiring(runtime) -> summarizing(ai) -> writing(note)`
+- 支援 `media_url` 與 `local_media` 兩種輸入，共用同一條 summary/note 輸出能力層
+- 新增 `tests/integration/process-media.integration.test.ts`
+- 覆蓋 media URL 成功流程、local media 成功流程與 validation error
+- 更新 `docs/backlog-active.md`
+- 將 `CAP-204` 四個 Open Work 項目勾選完成，並勾選 `CAP-205` 第一項 orchestration 邊界
+- 更新 `docs/media-acquisition-spec.md`
+- 補 `Local Media v1` 支援格式、大小上限與錯誤分類規格
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
 
 ### 0.1.28-cap-203-integration-coverage - 2026-04-23 10:12
 
