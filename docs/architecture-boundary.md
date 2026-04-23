@@ -1,8 +1,8 @@
-# Architecture Boundary
+﻿# Architecture Boundary
 
 ## 專案目標
 
-本專案要把既有 `Media Summarizer` 桌面 Python app，重構為可在 Obsidian 中運作的 plugin。
+本專案要把既有 `AI Summarizer` 桌面 Python app，重構為可在 Obsidian 中運作的 plugin。
 
 架構設計有兩個固定前提：
 
@@ -14,7 +14,7 @@
 ```text
 src/
   plugin/
-    MediaSummarizerPlugin.ts
+    AISummarizerPlugin.ts
     commands.ts
     lifecycle.ts
   ui/
@@ -174,3 +174,4 @@ interface NoteWriter {
 3. `runtime strategy boundary`（`local_bridge` + `placeholder_only` fallback，已完成）
 4. `media URL flow`（進行中：先完成 dependency readiness + cache resolution）
 5. `local media flow`（待開始）
+

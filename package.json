@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "obsidian-ai-summarizer",
   "version": "0.0.1",
-  "description": "Obsidian plugin scaffold for Media Summarizer",
+  "description": "Obsidian plugin scaffold for AI Summarizer",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
@@ -41,3 +41,4 @@
     "vitest": "^3.1.2"
   }
 }
+

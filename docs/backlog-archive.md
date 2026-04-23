@@ -1,4 +1,4 @@
-# Backlog Archive
+﻿# Backlog Archive
 
 最後更新：2026-04-23 00:44
 
@@ -31,7 +31,7 @@ Obsidian 能載入 plugin，且本地開發鏈可穩定建置與驗證。
 責任邊界：
 plugin 生命週期、指令註冊、設定儲存與基本 notice/logging 由 plugin shell 負責。
 
-- [x] 建立 `src/plugin/MediaSummarizerPlugin.ts`（完成：2026-04-21 15:20）
+- [x] 建立 `src/plugin/AISummarizerPlugin.ts`（完成：2026-04-21 15:20）
 - [x] 建立 `src/plugin/commands.ts`（完成：2026-04-21 15:20）
 - [x] 建立 `src/plugin/lifecycle.ts`（完成：2026-04-21 15:20）
 - [x] 建立 settings persistence wiring（完成：2026-04-21 15:20）
@@ -80,3 +80,4 @@ runtime、AI、Obsidian、web extraction 等 adapter 必須透過明確介面解
 - [x] 建立 source input、progress、result 畫面（完成：2026-04-21 16:10）
 - [x] 建立取消按鈕與 job state 對應 UI（完成：2026-04-21 16:10）
 - [x] 驗證使用者可透過 UI 啟動 webpage flow，且成功、失敗、取消可區分（完成：2026-04-21 16:20）
+

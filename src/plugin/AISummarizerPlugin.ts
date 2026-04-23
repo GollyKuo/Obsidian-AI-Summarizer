@@ -5,20 +5,20 @@ import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
 } from "@services/media/media-cache-root";
-import { MediaSummarizerSettingTab } from "@ui/settings-tab";
+import { AISummarizerSettingTab } from "@ui/settings-tab";
 import {
   DEFAULT_SETTINGS,
-  type MediaSummarizerPluginSettings
+  type AISummarizerPluginSettings
 } from "@domain/settings";
 import { SummarizerFlowModal } from "@ui/flow-modal/SummarizerFlowModal";
 
-export default class MediaSummarizerPlugin extends Plugin {
-  public settings: MediaSummarizerPluginSettings = { ...DEFAULT_SETTINGS };
+export default class AISummarizerPlugin extends Plugin {
+  public settings: AISummarizerPluginSettings = { ...DEFAULT_SETTINGS };
   private lifecycleContext: PluginLifecycleContext | null = null;
 
   public async onload(): Promise<void> {
     await this.loadSettings();
-    this.addSettingTab(new MediaSummarizerSettingTab(this.app, this));
+    this.addSettingTab(new AISummarizerSettingTab(this.app, this));
     registerCommands(this);
     this.lifecycleContext = registerLifecycleHooks(this);
     this.notify("AI Summarizer plugin loaded.");
@@ -37,7 +37,7 @@ export default class MediaSummarizerPlugin extends Plugin {
     const loaded = await this.loadData();
     this.settings = {
       ...DEFAULT_SETTINGS,
-      ...(loaded as Partial<MediaSummarizerPluginSettings> | null)
+      ...(loaded as Partial<AISummarizerPluginSettings> | null)
     };
   }
 

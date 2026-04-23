@@ -1,10 +1,10 @@
-import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
+import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 
 export interface PluginLifecycleContext {
   hookCount: number;
 }
 
-export function registerLifecycleHooks(plugin: MediaSummarizerPlugin): PluginLifecycleContext {
+export function registerLifecycleHooks(plugin: AISummarizerPlugin): PluginLifecycleContext {
   let hookCount = 0;
 
   const fileOpenRef = plugin.app.workspace.on("file-open", () => {

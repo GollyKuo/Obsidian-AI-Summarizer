@@ -1,6 +1,6 @@
-# Media Summarizer Obsidian Plugin
+﻿# AI Summarizer Obsidian Plugin
 
-本 repo 目前作為 `Media Summarizer` 重構為 Obsidian plugin 的專案起始骨架。
+本 repo 目前作為 `AI Summarizer` 重構為 Obsidian plugin 的專案起始骨架。
 
 它不再只是通用規範包，而是已經收斂成這個專案自己的開發基線：
 
@@ -10,7 +10,7 @@
 
 ## 專案目標
 
-把既有的 `Media Summarizer` Python app 重構為 Obsidian plugin，保留以下核心產品能力：
+把既有的 `AI Summarizer` Python app 重構為 Obsidian plugin，保留以下核心產品能力：
 
 1. 支援 `media URL`、`webpage URL`、`local media` 三種來源。
 2. 產出結構化 Obsidian 筆記。

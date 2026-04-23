@@ -1,8 +1,8 @@
-# Media Summarizer Obsidian Plugin 重構步驟
+﻿# AI Summarizer Obsidian Plugin 重構步驟
 
 日期：2026-04-21
 
-本文件是將 `Media Summarizer` 重構為 Obsidian plugin 的執行手冊。
+本文件是將 `AI Summarizer` 重構為 Obsidian plugin 的執行手冊。
 它是寫給 Codex 逐步照做的。
 
 目前故意不先限定最終的執行方式。
@@ -108,7 +108,7 @@ obsidian-media-summarizer/
 ├─ main.ts
 └─ src/
    ├─ plugin/
-   │  ├─ MediaSummarizerPlugin.ts
+   │  ├─ AISummarizerPlugin.ts
    │  ├─ commands.ts
    │  ├─ ribbon.ts
    │  └─ lifecycle.ts
@@ -803,10 +803,10 @@ React UI 必須至少分成以下層級：
 #### 7.13.2 建議元件樹
 
 ```tsx
-<MediaSummarizerPluginRoot>
+<AISummarizerPluginRoot>
   <UiFeedbackProvider>
     <CommandLauncher />
-    <MediaSummarizerFlowModal>
+    <AISummarizerFlowModal>
       <FlowHeader />
       <FlowBody>
         <SourceTypeScreen />
@@ -816,9 +816,9 @@ React UI 必須至少分成以下層級：
         <ResultScreen />
       </FlowBody>
       <FlowFooter />
-    </MediaSummarizerFlowModal>
+    </AISummarizerFlowModal>
   </UiFeedbackProvider>
-</MediaSummarizerPluginRoot>
+</AISummarizerPluginRoot>
 ```
 
 如果後續拆成多個 modal，也必須維持相同職責切分：
@@ -867,7 +867,7 @@ React state 不得全部混在單一 component 中。
 
 若使用 React，建議拆出以下 hooks：
 
-1. `useMediaSummarizerSettings()`
+1. `useAISummarizerSettings()`
    - 讀寫 plugin persisted settings
 2. `useSummarizerFlow()`
    - 管理目前 modal step 與 form state
@@ -1030,7 +1030,7 @@ interface JobState {
 若進入實作階段，Codex 應以以下 component tree 作為第一版藍圖：
 
 ```tsx
-<MediaSummarizerFlowModal
+<AISummarizerFlowModal
   isOpen={isOpen}
   onClose={handleClose}
 >
@@ -1102,7 +1102,7 @@ interface JobState {
       )}
     </FlowContent>
   </FlowLayout>
-</MediaSummarizerFlowModal>
+</AISummarizerFlowModal>
 ```
 
 第一版 props 契約原則如下：
@@ -1245,7 +1245,7 @@ type FlowEvent =
 
 Codex 在真正開始做 React UI 時，應按以下順序落地：
 
-1. 建立 `MediaSummarizerFlowModal` 空殼
+1. 建立 `AISummarizerFlowModal` 空殼
    - 可開關
    - 有 header / content / footer
 2. 建立 `FlowStep` 型別與最小 reducer
@@ -1360,3 +1360,4 @@ Codex 在移植行為時應使用以下對映。
 3. runtime 決策仍可替換
 4. prompts 與 note output 保留了目前專案的產品辨識度
 5. 架構邊界清楚到足以支撐後續執行模式討論
+

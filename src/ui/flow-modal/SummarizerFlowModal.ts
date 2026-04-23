@@ -2,7 +2,7 @@ import { ButtonComponent, Modal, Setting } from "obsidian";
 import { SummarizerError } from "@domain/errors";
 import { processWebpage } from "@orchestration/process-webpage";
 import { throwIfCancelled } from "@orchestration/cancellation";
-import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
+import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { BasicMetadataExtractor } from "@services/web/metadata-extractor";
@@ -31,14 +31,14 @@ async function delay(ms: number, signal: AbortSignal): Promise<void> {
 }
 
 export class SummarizerFlowModal extends Modal {
-  private readonly plugin: MediaSummarizerPlugin;
+  private readonly plugin: AISummarizerPlugin;
   private sourceValue = "";
   private status: UiStatus = "idle";
   private stageMessage = "等待輸入";
   private resultMessage = "";
   private abortController: AbortController | null = null;
 
-  public constructor(plugin: MediaSummarizerPlugin) {
+  public constructor(plugin: AISummarizerPlugin) {
     super(plugin.app);
     this.plugin = plugin;
     this.setTitle("AI 摘要器");

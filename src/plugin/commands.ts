@@ -1,6 +1,6 @@
-import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
+import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 
-export function registerCommands(plugin: MediaSummarizerPlugin): void {
+export function registerCommands(plugin: AISummarizerPlugin): void {
   plugin.addRibbonIcon("sparkles", "開啟 AI 摘要器", () => {
     plugin.openFlowModal();
     plugin.log("info", "Ribbon icon clicked.");

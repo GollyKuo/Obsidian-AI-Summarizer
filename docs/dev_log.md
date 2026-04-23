@@ -1,8 +1,28 @@
-# 開發日誌
+﻿# 開發日誌
 
-最後更新：2026-04-24 00:08
+最後更新：2026-04-24 00:17
 
 ## 版本紀錄
+
+### 0.1.36-ai-summarizer-brand-rename - 2026-04-24 00:17
+
+範圍：
+- 將程式與文件中的舊名稱 `Media Summarizer` / `MediaSummarizer...` 全面對齊為 `AI Summarizer` / `AISummarizer...`。
+
+主要變更：
+- `src/plugin/MediaSummarizerPlugin.ts` 改名為 `src/plugin/AISummarizerPlugin.ts`
+- 更新 `main.ts`、`src/plugin/commands.ts`、`src/plugin/lifecycle.ts`
+- 更新 `src/ui/settings-tab.ts`、`src/ui/flow-modal/SummarizerFlowModal.ts`
+- `MediaSummarizerPluginSettings` 改名為 `AISummarizerPluginSettings`
+- 更新 `package.json` 描述文字與多份專案文件內的舊產品名稱
+- 更新 `README.md`、`docs/API_Instructions.md`、`docs/architecture-boundary.md`
+- 更新 `docs/backlog-archive.md`、`docs/dev_log.md`、`docs/parity-contract.md`
+- 更新 `OBSIDIAN_PLUGIN_REFACTOR_STEPS.md`、`REVIEW_2026-04-21.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.35-ribbon-entrypoint - 2026-04-24 00:08
 
@@ -10,7 +30,7 @@
 - 推進 `CAP-302`，新增 Obsidian 左側 ribbon 入口以開啟 `AI 摘要器`。
 
 主要變更：
-- 更新 `src/plugin/MediaSummarizerPlugin.ts`
+- 更新 `src/plugin/AISummarizerPlugin.ts`
 - 新增 `openFlowModal()`，讓 command/ribbon 共用同一入口行為
 - 更新 `src/plugin/commands.ts`
 - 新增 `addRibbonIcon("sparkles", "開啟 AI 摘要器", ...)`
@@ -367,7 +387,7 @@
 - 新增 `src/services/media/media-cache-root.ts`
 - 新增 `validateMediaCacheRootPath`、`resolveDefaultMediaCacheRoot`、`resolveMediaCacheRoot`
 - 新增 writable probe（建立目錄、寫入暫存檔、清理）
-- 更新 `src/plugin/MediaSummarizerPlugin.ts`，提供 `resolveMediaCacheRootOrThrow`
+- 更新 `src/plugin/AISummarizerPlugin.ts`，提供 `resolveMediaCacheRootOrThrow`
 - 更新 `src/ui/settings-tab.ts` 路徑欄位說明文案（自訂值需為絕對路徑）
 - 新增 `tests/unit/media-cache-root.test.ts`
 - 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
@@ -629,7 +649,7 @@
 - 建立 `src/domain/errors.ts`
 - 建立 `src/domain/jobs.ts`
 - 建立 `src/domain/prompts.ts`
-- 更新 `src/plugin/MediaSummarizerPlugin.ts`，使用 `domain/settings`
+- 更新 `src/plugin/AISummarizerPlugin.ts`，使用 `domain/settings`
 - 更新 `src/ui/settings-tab.ts`，使用 `domain/types`
 - 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
 
@@ -647,11 +667,11 @@
 
 主要變更：
 
-- 建立 `src/plugin/MediaSummarizerPlugin.ts`
+- 建立 `src/plugin/AISummarizerPlugin.ts`
 - 建立 `src/plugin/commands.ts`
 - 建立 `src/plugin/lifecycle.ts`
 - 建立 `src/ui/settings-tab.ts`
-- `main.ts` 改為導出 `MediaSummarizerPlugin`
+- `main.ts` 改為導出 `AISummarizerPlugin`
 - 建立 plugin settings persistence、command 註冊、notice/logging wiring
 - 更新 `docs/backlog.md`、`docs/current-implementation-track.md`
 
@@ -734,7 +754,7 @@
 
 範圍：
 
-- 將 repo 從通用規範包收斂為 `Media Summarizer Obsidian Plugin` 專案骨架
+- 將 repo 從通用規範包收斂為 `AI Summarizer Obsidian Plugin` 專案骨架
 
 主要變更：
 
@@ -752,3 +772,4 @@
 
 - 文件一致性：人工檢查完成
 - 程式驗證：尚未開始，因尚未建立可執行 scaffold
+

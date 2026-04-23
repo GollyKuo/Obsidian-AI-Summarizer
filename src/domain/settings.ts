@@ -3,7 +3,7 @@ import type { RetentionMode, SourceType } from "@domain/types";
 export type RuntimeStrategy = "local_bridge" | "placeholder_only";
 export type MediaCompressionProfile = "balanced" | "quality";
 
-export interface MediaSummarizerPluginSettings {
+export interface AISummarizerPluginSettings {
   apiKey: string;
   model: string;
   outputFolder: string;
@@ -16,7 +16,7 @@ export interface MediaSummarizerPluginSettings {
   lastSourceType: SourceType;
 }
 
-export const DEFAULT_SETTINGS: MediaSummarizerPluginSettings = {
+export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   apiKey: "",
   model: "gemini-2.5-flash",
   outputFolder: "",

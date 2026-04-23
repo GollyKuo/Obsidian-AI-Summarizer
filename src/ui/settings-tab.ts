@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type { MediaCompressionProfile } from "@domain/settings";
-import type MediaSummarizerPlugin from "@plugin/MediaSummarizerPlugin";
+import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import type { RetentionMode, SourceType } from "@domain/types";
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
@@ -37,10 +37,10 @@ interface DesktopDialog {
   }): Promise<OpenDialogResult>;
 }
 
-export class MediaSummarizerSettingTab extends PluginSettingTab {
-  private readonly plugin: MediaSummarizerPlugin;
+export class AISummarizerSettingTab extends PluginSettingTab {
+  private readonly plugin: AISummarizerPlugin;
 
-  public constructor(app: App, plugin: MediaSummarizerPlugin) {
+  public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }

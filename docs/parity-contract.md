@@ -1,8 +1,8 @@
-# Parity Contract
+﻿# Parity Contract
 
 ## 目的
 
-本文件定義 `Media Summarizer` 從 Python app 遷移到 Obsidian plugin 時，必須保留的產品行為。
+本文件定義 `AI Summarizer` 從 Python app 遷移到 Obsidian plugin 時，必須保留的產品行為。
 
 ## 來源類型
 
@@ -101,3 +101,4 @@ plugin settings 至少需要：
 5. placeholder runtime
 6. media URL flow
 7. local media flow
+

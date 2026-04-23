@@ -1,1 +1,1 @@
-export { default } from "@plugin/MediaSummarizerPlugin";
+export { default } from "@plugin/AISummarizerPlugin";
