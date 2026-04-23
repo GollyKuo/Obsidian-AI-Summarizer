@@ -1,8 +1,28 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 00:17
+最後更新：2026-04-24 01:00
 
 ## 版本紀錄
+
+### 0.1.37-runtime-diagnostics-summary - 2026-04-24 01:00
+
+範圍：
+- 推進 `CAP-402`，新增 capability detection / diagnostics summary，讓設定頁可直接檢查桌面/行動端環境、cache root 與本機依賴狀態。
+
+主要變更：
+- 新增 `src/services/media/runtime-diagnostics.ts`
+- 建立 runtime diagnostics 聚合層，收斂 app surface、runtime strategy、cache root、dependency readiness 與 capability summary
+- 更新 `src/ui/settings-tab.ts`
+- 在設定頁新增「執行環境診斷」區塊與重新檢查按鈕
+- 顯示 `webpage_url` / `media_url` / `local_media` 可用性摘要
+- 新增 `tests/unit/runtime-diagnostics.test.ts`
+- 覆蓋 ready、placeholder_only、cache root validation error 與 summary formatting
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-402` 的 capability detection / diagnostics summary 完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test -- tests/unit/runtime-diagnostics.test.ts`
 
 ### 0.1.36-ai-summarizer-brand-rename - 2026-04-24 00:17
 

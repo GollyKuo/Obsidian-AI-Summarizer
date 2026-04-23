@@ -206,7 +206,7 @@ Why：
 Open Work：
 
 - [ ] 定義 debug logging policy（user-facing、developer-facing、runtime-facing）
-- [ ] 建立 capability detection / diagnostics summary（desktop/mobile/runtime availability）
+- [x] 建立 capability detection / diagnostics summary（desktop/mobile/runtime availability）（2026-04-24 01:00）
 - [ ] 統一錯誤訊息層級：notice、modal、log、test assertion
 
 ### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
