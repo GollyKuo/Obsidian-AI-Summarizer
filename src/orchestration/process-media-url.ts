@@ -7,6 +7,11 @@ import type {
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
+import {
+  createArtifactRetentionManager,
+  type ArtifactLifecycleStatus,
+  type ArtifactRetentionManager
+} from "@services/media/artifact-retention";
 import type {
   PreUploadCompressionResult,
   PreUploadCompressor
@@ -38,6 +43,7 @@ export interface TranscriptReadyPayload {
 export interface ProcessMediaUrlDependencies {
   downloaderAdapter: DownloaderAdapter;
   preUploadCompressor: PreUploadCompressor;
+  artifactRetentionManager?: ArtifactRetentionManager;
 }
 
 export interface ProcessMediaUrlResult {
@@ -104,6 +110,13 @@ export async function processMediaUrl(
   signal: AbortSignal,
   hooks?: JobRunHooks
 ): Promise<ProcessMediaUrlResult> {
+  const artifactRetentionManager =
+    dependencies.artifactRetentionManager ?? createArtifactRetentionManager();
+
+  let session: MediaDownloadSession | null = null;
+  let downloadResult: MediaDownloadResult | null = null;
+  let preUploadResult: PreUploadCompressionResult | null = null;
+
   await runJobStep(
     "validating",
     "Validating media URL input",
@@ -114,61 +127,90 @@ export async function processMediaUrl(
     hooks
   );
 
-  const session = await runJobStep(
-    "acquiring",
-    "Preparing media acquisition session",
-    signal,
-    async () =>
-      dependencies.downloaderAdapter.prepareSession(
-        {
-          sourceUrl: input.sourceValue,
-          mediaCacheRoot: input.mediaCacheRoot,
-          vaultId: input.vaultId
-        },
-        signal
-      ),
-    hooks
-  );
+  try {
+    session = await runJobStep(
+      "acquiring",
+      "Preparing media acquisition session",
+      signal,
+      async () =>
+        dependencies.downloaderAdapter.prepareSession(
+          {
+            sourceUrl: input.sourceValue,
+            mediaCacheRoot: input.mediaCacheRoot,
+            vaultId: input.vaultId
+          },
+          signal
+        ),
+      hooks
+    );
+    const activeSession = session;
 
-  const downloadResult = await runJobStep(
-    "acquiring",
-    "Downloading media artifact",
-    signal,
-    async () => dependencies.downloaderAdapter.downloadMedia(session, signal),
-    hooks
-  );
+    downloadResult = await runJobStep(
+      "acquiring",
+      "Downloading media artifact",
+      signal,
+      async () => dependencies.downloaderAdapter.downloadMedia(activeSession, signal),
+      hooks
+    );
+    const activeDownloadResult = downloadResult;
 
-  const preUploadResult = await runJobStep(
-    "transcribing",
-    "Preparing AI-ready media artifacts",
-    signal,
-    async () =>
-      dependencies.preUploadCompressor.prepareForAiUpload(
-        {
-          session,
-          downloadResult,
-          profile: input.mediaCompressionProfile
-        },
-        signal
-      ),
-    hooks
-  );
+    preUploadResult = await runJobStep(
+      "transcribing",
+      "Preparing AI-ready media artifacts",
+      signal,
+      async () =>
+        dependencies.preUploadCompressor.prepareForAiUpload(
+          {
+            session: activeSession,
+            downloadResult: activeDownloadResult,
+            profile: input.mediaCompressionProfile
+          },
+          signal
+        ),
+      hooks
+    );
 
-  const warnings = [...downloadResult.warnings, ...preUploadResult.warnings];
-  emitWarnings(downloadResult.warnings, hooks);
-  emitWarnings(preUploadResult.warnings, hooks);
-  const transcriptReadyPayload = toTranscriptReadyPayload(
-    session,
-    downloadResult,
-    preUploadResult,
-    warnings
-  );
+    const cleanupWarnings = await artifactRetentionManager.cleanup({
+      retentionMode: input.retentionMode,
+      lifecycleStatus: "completed",
+      artifacts: activeSession.artifacts,
+      aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
+    });
 
-  return {
-    session,
-    downloadResult,
-    preUploadResult,
-    transcriptReadyPayload,
-    warnings
-  };
+    const warnings = [...activeDownloadResult.warnings, ...preUploadResult.warnings, ...cleanupWarnings];
+    emitWarnings(activeDownloadResult.warnings, hooks);
+    emitWarnings(preUploadResult.warnings, hooks);
+    emitWarnings(cleanupWarnings, hooks);
+    const transcriptReadyPayload = toTranscriptReadyPayload(
+      activeSession,
+      activeDownloadResult,
+      preUploadResult,
+      warnings
+    );
+
+    return {
+      session: activeSession,
+      downloadResult: activeDownloadResult,
+      preUploadResult,
+      transcriptReadyPayload,
+      warnings
+    };
+  } catch (error) {
+    if (session) {
+      const lifecycleStatus: ArtifactLifecycleStatus =
+        error instanceof SummarizerError && error.category === "cancellation"
+          ? "cancelled"
+          : "failed";
+
+      const cleanupWarnings = await artifactRetentionManager.cleanup({
+        retentionMode: input.retentionMode,
+        lifecycleStatus,
+        artifacts: session.artifacts,
+        aiUploadArtifactPaths: preUploadResult?.aiUploadArtifactPaths ?? []
+      });
+      emitWarnings(cleanupWarnings, hooks);
+    }
+
+    throw error;
+  }
 }

@@ -2,6 +2,11 @@ import { SummarizerError } from "@domain/errors";
 import type { MediaCompressionProfile } from "@domain/settings";
 import type { LocalMediaRequest, SourceMetadata } from "@domain/types";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
+import {
+  createArtifactRetentionManager,
+  type ArtifactLifecycleStatus,
+  type ArtifactRetentionManager
+} from "@services/media/artifact-retention";
 import type { MediaDownloadResult } from "@services/media/downloader-adapter";
 import type {
   LocalMediaIngestionAdapter,
@@ -38,6 +43,7 @@ export interface LocalTranscriptReadyPayload {
 export interface ProcessLocalMediaDependencies {
   localMediaIngestionAdapter: LocalMediaIngestionAdapter;
   preUploadCompressor: PreUploadCompressor;
+  artifactRetentionManager?: ArtifactRetentionManager;
 }
 
 export interface ProcessLocalMediaResult {
@@ -104,6 +110,13 @@ export async function processLocalMedia(
   signal: AbortSignal,
   hooks?: JobRunHooks
 ): Promise<ProcessLocalMediaResult> {
+  const artifactRetentionManager =
+    dependencies.artifactRetentionManager ?? createArtifactRetentionManager();
+
+  let session: LocalMediaIngestionSession | null = null;
+  let ingestionResult: MediaDownloadResult | null = null;
+  let preUploadResult: PreUploadCompressionResult | null = null;
+
   await runJobStep(
     "validating",
     "Validating local media input",
@@ -114,61 +127,90 @@ export async function processLocalMedia(
     hooks
   );
 
-  const session = await runJobStep(
-    "acquiring",
-    "Preparing local media session",
-    signal,
-    async () =>
-      dependencies.localMediaIngestionAdapter.prepareSession(
-        {
-          sourcePath: input.sourceValue,
-          mediaCacheRoot: input.mediaCacheRoot,
-          vaultId: input.vaultId
-        },
-        signal
-      ),
-    hooks
-  );
+  try {
+    session = await runJobStep(
+      "acquiring",
+      "Preparing local media session",
+      signal,
+      async () =>
+        dependencies.localMediaIngestionAdapter.prepareSession(
+          {
+            sourcePath: input.sourceValue,
+            mediaCacheRoot: input.mediaCacheRoot,
+            vaultId: input.vaultId
+          },
+          signal
+        ),
+      hooks
+    );
+    const activeSession = session;
 
-  const ingestionResult = await runJobStep(
-    "acquiring",
-    "Ingesting local media artifact",
-    signal,
-    async () => dependencies.localMediaIngestionAdapter.ingestMedia(session, signal),
-    hooks
-  );
+    ingestionResult = await runJobStep(
+      "acquiring",
+      "Ingesting local media artifact",
+      signal,
+      async () => dependencies.localMediaIngestionAdapter.ingestMedia(activeSession, signal),
+      hooks
+    );
+    const activeIngestionResult = ingestionResult;
 
-  const preUploadResult = await runJobStep(
-    "transcribing",
-    "Preparing AI-ready media artifacts",
-    signal,
-    async () =>
-      dependencies.preUploadCompressor.prepareForAiUpload(
-        {
-          session,
-          downloadResult: ingestionResult,
-          profile: input.mediaCompressionProfile
-        },
-        signal
-      ),
-    hooks
-  );
+    preUploadResult = await runJobStep(
+      "transcribing",
+      "Preparing AI-ready media artifacts",
+      signal,
+      async () =>
+        dependencies.preUploadCompressor.prepareForAiUpload(
+          {
+            session: activeSession,
+            downloadResult: activeIngestionResult,
+            profile: input.mediaCompressionProfile
+          },
+          signal
+        ),
+      hooks
+    );
 
-  const warnings = [...ingestionResult.warnings, ...preUploadResult.warnings];
-  emitWarnings(ingestionResult.warnings, hooks);
-  emitWarnings(preUploadResult.warnings, hooks);
-  const transcriptReadyPayload = toTranscriptReadyPayload(
-    session,
-    ingestionResult,
-    preUploadResult,
-    warnings
-  );
+    const cleanupWarnings = await artifactRetentionManager.cleanup({
+      retentionMode: input.retentionMode,
+      lifecycleStatus: "completed",
+      artifacts: activeSession.artifacts,
+      aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
+    });
 
-  return {
-    session,
-    ingestionResult,
-    preUploadResult,
-    transcriptReadyPayload,
-    warnings
-  };
+    const warnings = [...activeIngestionResult.warnings, ...preUploadResult.warnings, ...cleanupWarnings];
+    emitWarnings(activeIngestionResult.warnings, hooks);
+    emitWarnings(preUploadResult.warnings, hooks);
+    emitWarnings(cleanupWarnings, hooks);
+    const transcriptReadyPayload = toTranscriptReadyPayload(
+      activeSession,
+      activeIngestionResult,
+      preUploadResult,
+      warnings
+    );
+
+    return {
+      session: activeSession,
+      ingestionResult: activeIngestionResult,
+      preUploadResult,
+      transcriptReadyPayload,
+      warnings
+    };
+  } catch (error) {
+    if (session) {
+      const lifecycleStatus: ArtifactLifecycleStatus =
+        error instanceof SummarizerError && error.category === "cancellation"
+          ? "cancelled"
+          : "failed";
+
+      const cleanupWarnings = await artifactRetentionManager.cleanup({
+        retentionMode: input.retentionMode,
+        lifecycleStatus,
+        artifacts: session.artifacts,
+        aiUploadArtifactPaths: preUploadResult?.aiUploadArtifactPaths ?? []
+      });
+      emitWarnings(cleanupWarnings, hooks);
+    }
+
+    throw error;
+  }
 }

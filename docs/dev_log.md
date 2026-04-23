@@ -1,8 +1,32 @@
 # 開發日誌
 
-最後更新：2026-04-23 18:31
+最後更新：2026-04-23 20:38
 
 ## 版本紀錄
+
+### 0.1.33-artifact-retention-lifecycle - 2026-04-23 20:38
+
+範圍：
+- 推進 `CAP-206`，落地 retention matrix 與 cleanup/recovery 成功/失敗/取消責任分界。
+
+主要變更：
+- 新增 `src/services/media/artifact-retention.ts`
+- 建立 retention 決策與 cleanup 執行器（`none` / `source` / `all` + `completed` / `failed` / `cancelled`）
+- 更新 `src/orchestration/process-media-url.ts`
+- 導入 artifact retention cleanup，成功流程與例外流程都會執行對應 lifecycle cleanup
+- 更新 `src/orchestration/process-local-media.ts`
+- 導入同樣 cleanup 機制，與 media URL flow 對齊
+- 新增 `tests/unit/artifact-retention.test.ts`
+- 覆蓋 retention plan、failed/cancelled recovery 保留策略、cleanup 失敗警告
+- 更新 `docs/media-acquisition-spec.md`
+- 補齊 retention matrix 與 cleanup/recovery 邊界說明
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-206` 的 retention matrix 與 cleanup/recovery 兩項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.32-ai-output-contract-normalization - 2026-04-23 18:31
 

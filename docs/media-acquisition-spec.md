@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-04-23 16:24
+最後更新：2026-04-23 20:38
 
 ## 目的
 
@@ -171,13 +171,21 @@
 ## Retention 模式對應
 
 - `none`
-  - 完成後刪除：`downloaded.*`、`normalized.wav`、`transcript.srt`
-  - 保留：筆記輸出與必要 metadata 摘要（可落在 note/frontmatter）
+  - 成功完成 (`completed`)：刪除 `downloaded.*`、`normalized.wav`、`transcript.srt`、`ai-upload/`、`metadata.json`
+  - 失敗或取消 (`failed` / `cancelled`)：為了 recovery 保留 `downloaded.*`、`metadata.json`；刪除其餘中間產物
 - `source`
-  - 保留：`downloaded.*`
-  - 刪除：`normalized.wav`、`transcript.srt`
+  - 成功完成 (`completed`)：保留 `downloaded.*`、`metadata.json`；刪除 `normalized.wav`、`transcript.srt`、`ai-upload/`
+  - 失敗或取消 (`failed` / `cancelled`)：與上列一致（保留 source + metadata 以利恢復）
 - `all`
-  - 保留：`downloaded.*`、`normalized.wav`、`ai-upload/`、`transcript.srt`、`metadata.json`
+  - 成功完成 (`completed`)：保留 `downloaded.*`、`normalized.wav`、`ai-upload/`、`transcript.srt`、`metadata.json`
+  - 失敗或取消 (`failed` / `cancelled`)：保留全部 session artifact，供診斷與人工恢復
+
+## Cleanup/Recovery 責任分界（v1）
+
+1. cleanup 決策由 orchestration 依 `retentionMode + lifecycleStatus` 統一執行，不由單一 adapter 各自判斷。
+2. `process-media-url` / `process-local-media` 皆在流程結束（成功或丟錯）後觸發 retention cleanup。
+3. `completed` 依 retention mode 套用最終保留矩陣。
+4. `failed` / `cancelled` 優先保留 recovery 所需最小集合（至少 source + metadata；`all` 則全保留）。
 
 ## 安全恢復規格
 
