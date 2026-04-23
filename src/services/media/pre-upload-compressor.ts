@@ -37,6 +37,7 @@ interface ConversionFailureDetails {
 interface PreUploadCompressorOptions {
   commandExecutor?: CommandExecutor;
   mkdir?: (targetPath: string) => Promise<void>;
+  readdir?: (targetPath: string) => Promise<string[]>;
   stat?: (targetPath: string) => Promise<{ isFile: () => boolean }>;
 }
 
@@ -50,6 +51,9 @@ export interface PreUploadCompressionResult {
   normalizedAudioPath: string;
   aiUploadArtifactPaths: string[];
   selectedCodec: "opus" | "aac" | "flac";
+  chunkCount: number;
+  chunkDurationsMs: number[];
+  vadApplied: boolean;
   warnings: string[];
 }
 
@@ -135,6 +139,9 @@ const QUALITY_PRESETS: ConversionPreset[] = [
     ]
   }
 ];
+
+const CHUNK_SEGMENT_SECONDS = 12 * 60;
+const CHUNK_THRESHOLD_SECONDS = 15 * 60;
 
 async function defaultCommandExecutor(
   command: string,
@@ -235,6 +242,66 @@ function getPresets(profile: MediaCompressionProfile): ConversionPreset[] {
   return BALANCED_PRESETS;
 }
 
+function buildProbeDurationArgs(targetPath: string): string[] {
+  return [
+    "-v",
+    "error",
+    "-show_entries",
+    "format=duration",
+    "-of",
+    "default=noprint_wrappers=1:nokey=1",
+    targetPath
+  ];
+}
+
+function parseDurationMs(raw: string): number | null {
+  const parsed = Number.parseFloat(raw.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  return Math.round(parsed * 1000);
+}
+
+async function probeDurationMs(
+  targetPath: string,
+  commandExecutor: CommandExecutor,
+  signal: AbortSignal
+): Promise<number | null> {
+  const probeResult = await commandExecutor("ffprobe", buildProbeDurationArgs(targetPath), signal);
+  return parseDurationMs(probeResult.stdout);
+}
+
+function buildChunkArgs(inputPath: string, chunkPatternPath: string): string[] {
+  return [
+    "-y",
+    "-i",
+    inputPath,
+    "-f",
+    "segment",
+    "-segment_time",
+    String(CHUNK_SEGMENT_SECONDS),
+    "-reset_timestamps",
+    "1",
+    "-c",
+    "copy",
+    chunkPatternPath
+  ];
+}
+
+function chunkFilenamePattern(extension: string): RegExp {
+  return new RegExp(`^chunk-\\d{4}\\.${extension}$`);
+}
+
+function compareByNameAscending(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
 export function createPreUploadCompressor(
   options: PreUploadCompressorOptions = {}
 ): PreUploadCompressor {
@@ -244,6 +311,7 @@ export function createPreUploadCompressor(
     (async (targetPath: string) => {
       await fs.mkdir(targetPath, { recursive: true });
     });
+  const readdir = options.readdir ?? ((targetPath: string) => fs.readdir(targetPath));
   const stat =
     options.stat ??
     (async (targetPath: string) => {
@@ -354,10 +422,91 @@ export function createPreUploadCompressor(
           );
         }
 
+        let aiUploadArtifactPaths = [outputPath];
+        let durationMs: number | null = null;
+        try {
+          durationMs = await probeDurationMs(outputPath, commandExecutor, signal);
+        } catch (error) {
+          if (isAbortError(error) || signal.aborted) {
+            throw new SummarizerError({
+              category: "cancellation",
+              message: "Media pre-upload compression cancelled by user.",
+              recoverable: true,
+              cause: error
+            });
+          }
+
+          warnings.push(
+            `Skipping duration probe for AI upload artifact: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
+        }
+
+        if (durationMs !== null && durationMs > CHUNK_THRESHOLD_SECONDS * 1000) {
+          const chunkPattern = path.join(
+            session.artifacts.aiUploadDirectory,
+            `chunk-%04d.${preset.extension}`
+          );
+          try {
+            await commandExecutor("ffmpeg", buildChunkArgs(outputPath, chunkPattern), signal);
+            const entries = await readdir(session.artifacts.aiUploadDirectory);
+            const chunkFiles = entries
+              .filter((entry) => chunkFilenamePattern(preset.extension).test(entry))
+              .sort(compareByNameAscending)
+              .map((entry) => path.join(session.artifacts.aiUploadDirectory, entry));
+
+            if (chunkFiles.length > 0) {
+              aiUploadArtifactPaths = chunkFiles;
+              warnings.push(
+                `Chunking applied for long media (${Math.round(durationMs / 1000)}s -> ${chunkFiles.length} chunks).`
+              );
+            }
+          } catch (error) {
+            if (isAbortError(error) || signal.aborted) {
+              throw new SummarizerError({
+                category: "cancellation",
+                message: "Media pre-upload compression cancelled by user.",
+                recoverable: true,
+                cause: error
+              });
+            }
+
+            warnings.push(
+              `Chunking skipped after failure: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        }
+
+        const chunkDurationsMs: number[] = [];
+        for (const artifactPath of aiUploadArtifactPaths) {
+          try {
+            const artifactDurationMs = await probeDurationMs(artifactPath, commandExecutor, signal);
+            chunkDurationsMs.push(artifactDurationMs ?? 0);
+          } catch (error) {
+            if (isAbortError(error) || signal.aborted) {
+              throw new SummarizerError({
+                category: "cancellation",
+                message: "Media pre-upload compression cancelled by user.",
+                recoverable: true,
+                cause: error
+              });
+            }
+
+            chunkDurationsMs.push(0);
+            warnings.push(
+              `Chunk duration probe failed: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        }
+
         return {
           normalizedAudioPath: session.artifacts.normalizedAudioPath,
-          aiUploadArtifactPaths: [outputPath],
+          aiUploadArtifactPaths,
           selectedCodec: preset.codec,
+          chunkCount: aiUploadArtifactPaths.length,
+          chunkDurationsMs,
+          vadApplied: false,
           warnings
         };
       }

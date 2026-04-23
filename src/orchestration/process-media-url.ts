@@ -26,6 +26,10 @@ export interface TranscriptReadyPayload {
   downloadedPath: string;
   normalizedAudioPath: string;
   aiUploadArtifactPaths: string[];
+  chunkCount: number;
+  chunkDurationsMs: number[];
+  vadApplied: boolean;
+  selectedCodec: PreUploadCompressionResult["selectedCodec"];
   transcriptPath: string;
   aiUploadDirectory: string;
   warnings: string[];
@@ -84,6 +88,10 @@ function toTranscriptReadyPayload(
     downloadedPath: downloadResult.downloadedPath,
     normalizedAudioPath: preUploadResult.normalizedAudioPath,
     aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths,
+    chunkCount: preUploadResult.chunkCount,
+    chunkDurationsMs: preUploadResult.chunkDurationsMs,
+    vadApplied: preUploadResult.vadApplied,
+    selectedCodec: preUploadResult.selectedCodec,
     transcriptPath: session.artifacts.transcriptPath,
     aiUploadDirectory: session.artifacts.aiUploadDirectory,
     warnings

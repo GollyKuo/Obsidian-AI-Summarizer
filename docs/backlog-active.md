@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-22 08:54
+最後更新：2026-04-23 08:22
 
 ## 使用規則
 
@@ -115,7 +115,7 @@ Done When：
 
 - [ ] `balanced` profile 對照 `normalized.wav` 可降低至少 70% 上傳量（3 組樣本）
 - [ ] 至少 2 個案例可驗證品質守門會觸發回退
-- [ ] media URL flow 可把 AI-ready payload 穩定交給後續 runtime / AI pipeline
+- [x] media URL flow 可把 AI-ready payload 穩定交給後續 runtime / AI pipeline（完成：2026-04-23 08:22）
 
 ### CAP-204 Local Media Flow 本機媒體流程
 

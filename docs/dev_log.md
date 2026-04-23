@@ -1,15 +1,37 @@
 # 開發日誌
 
-最後更新：2026-04-22 08:54
+最後更新：2026-04-23 08:22
 
 ## 版本紀錄
 
-### 0.1.26-pre-upload-compressor-and-handoff - 2026-04-23 00:49
+### 0.1.27-chunk-payload-and-runtime-bridge - 2026-04-23 08:22
 
 蝭?嚗?
-- 推進 `CAP-203`，落地 pre-upload 壓縮服務並接入 `process-media-url` handoff。
+- 推進 `CAP-203` chunk/payload 邊界，並讓 `local_bridge` runtime 接上 media URL 主線。
 
 銝餉?霈嚗?
+- 更新 `src/services/media/pre-upload-compressor.ts`
+- 新增長音訊 chunk 處理（segment split）、`chunkCount`、`chunkDurationsMs`、`vadApplied`（v1 固定 `false`）
+- 更新 `src/orchestration/process-media-url.ts`
+- `TranscriptReadyPayload` 新增 `chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec`
+- 更新 `src/runtime/local-bridge-runtime.ts`
+- `processMediaUrl` 由 `runtime_unavailable` 改為執行 acquisition + pre-upload handoff 主線
+- 新增 `tests/unit/local-bridge-runtime.test.ts`
+- 更新 `tests/unit/pre-upload-compressor.test.ts`（新增 chunk 行為測試）
+- 更新 `tests/integration/process-media-url.integration.test.ts`（驗證 chunk/payload 欄位）
+- 更新 `src/domain/types.ts` 的 media URL request 擴充欄位（`mediaCacheRoot`/`vaultId`/`mediaCompressionProfile`）
+- 更新 `docs/backlog-active.md` 的 CAP-203 runtime handoff 驗收項
+
+撽?嚗?
+- `npm run typecheck` ??
+- `npm run test` ??嚗?36 tests嚗?
+
+### 0.1.26-pre-upload-compressor-and-handoff - 2026-04-23 00:49
+
+範圍：
+- 推進 `CAP-203`，落地 pre-upload 壓縮服務並接入 `process-media-url` handoff。
+
+主要變更：
 - 新增 `src/services/media/pre-upload-compressor.ts`
 - 建立 `normalized.wav` 產生與 AI 上傳壓縮流程（`balanced`: Opus -> AAC -> FLAC；`quality`: FLAC）
 - 建立回退策略與錯誤映射（`cancellation`、`runtime_unavailable`、`download_failure`）
@@ -19,16 +41,16 @@
 - 更新 `tests/integration/process-media-url.integration.test.ts`，覆蓋 pre-upload handoff 與 stage/warning 行為
 - 更新 `docs/backlog.md`、`docs/backlog-active.md` 的 CAP-203 完成項目
 
-撽?嚗?
-- `npm run typecheck` ??
-- `npm run test` ??嚗?34 tests嚗?
+驗證：
+- `npm run typecheck` 通過
+- `npm run test` 通過（34 tests）
 
 ### 0.1.25-process-media-url-orchestration - 2026-04-23 00:41
 
-蝭?嚗?
+範圍：
 - 續推 `CAP-203`，新增 `process-media-url` orchestration 主線與 transcript-ready payload。
 
-銝餉?霈嚗?
+主要變更：
 - 新增 `src/orchestration/process-media-url.ts`
 - 以 `runJobStep` 串接 `validating -> acquiring` 階段，整合 `prepareSession` 與 `downloadMedia`
 - 新增 `ProcessMediaUrlInput`、`TranscriptReadyPayload`、`ProcessMediaUrlResult`
@@ -36,16 +58,16 @@
 - 新增 `tests/integration/process-media-url.integration.test.ts`
 - 驗證成功流程、`validation_error`、`cancellation` 三種路徑
 
-撽?嚗?
-- `npm run typecheck` ??
-- `npm run test -- tests/integration/process-media-url.integration.test.ts` ??
+驗證：
+- `npm run typecheck` 通過
+- `npm run test -- tests/integration/process-media-url.integration.test.ts` 通過
 
 ### 0.1.24-cap-202-boundary-hardening - 2026-04-23 00:15
 
-蝭?嚗?
+範圍：
 - 完成 `CAP-202` 尚未落地的 session isolation、安全恢復邊界、下載 cancellation 串接與 metadata normalization。
 
-銝餉?霈嚗?
+主要變更：
 - 更新 `src/services/media/downloader-adapter.ts`
 - `yt-dlp` 下載改為結構化輸出解析，只允許當前 session 內路徑做 artifact 恢復
 - 下載成功與恢復後，正規化 `Title`、`Creator/Author`、`Platform`、`Source`、`Created` 並落盤 `metadata.json`
@@ -54,9 +76,9 @@
 - 更新 `tests/unit/downloader-adapter.test.ts`，補 metadata、session isolation、cancellation、錯誤分類測試
 - 更新 `docs/backlog.md`、`docs/backlog-active.md` 的 CAP-202 勾選狀態
 
-撽?嚗?
-- `npm run typecheck` ??
-- `npm run test` ??嚗?26 tests嚗?
+驗證：
+- `npm run typecheck` 通過
+- `npm run test` 通過（26 tests）
 
 ### 0.1.23-yt-dlp-download-execution - 2026-04-22 08:54
 

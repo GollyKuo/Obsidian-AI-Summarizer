@@ -85,6 +85,9 @@ describe("pre-upload compressor", () => {
 
       expect(result.selectedCodec).toBe("opus");
       expect(result.aiUploadArtifactPaths[0].endsWith("ai-upload.ogg")).toBe(true);
+      expect(result.chunkCount).toBe(1);
+      expect(result.chunkDurationsMs).toEqual([0]);
+      expect(result.vadApplied).toBe(false);
       expect(result.warnings).toHaveLength(0);
     });
   });
@@ -121,7 +124,60 @@ describe("pre-upload compressor", () => {
 
       expect(result.selectedCodec).toBe("aac");
       expect(result.aiUploadArtifactPaths[0].endsWith("ai-upload.m4a")).toBe(true);
+      expect(result.chunkCount).toBe(1);
+      expect(result.vadApplied).toBe(false);
       expect(result.warnings[0]).toContain("Compression fallback applied");
+    });
+  });
+
+  it("splits long artifact into chunks and returns chunk metadata", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = makeSession(tempDirectory);
+      await fs.mkdir(session.sessionDirectory, { recursive: true });
+      await fs.writeFile(session.artifacts.downloadedPath, "downloaded", "utf8");
+
+      const compressor = createPreUploadCompressor({
+        commandExecutor: async (command, args) => {
+          if (command === "ffprobe") {
+            const probeTarget = args[args.length - 1];
+            if (probeTarget.endsWith("ai-upload.ogg")) {
+              return { stdout: "1000.0", stderr: "" };
+            }
+            if (probeTarget.endsWith("chunk-0000.ogg")) {
+              return { stdout: "500.0", stderr: "" };
+            }
+            if (probeTarget.endsWith("chunk-0001.ogg")) {
+              return { stdout: "500.0", stderr: "" };
+            }
+            return { stdout: "0", stderr: "" };
+          }
+
+          const outputPath = args[args.length - 1];
+          if (outputPath.includes("chunk-%04d.ogg")) {
+            await fs.writeFile(path.join(session.artifacts.aiUploadDirectory, "chunk-0000.ogg"), "ok", "utf8");
+            await fs.writeFile(path.join(session.artifacts.aiUploadDirectory, "chunk-0001.ogg"), "ok", "utf8");
+            return { stdout: "", stderr: "" };
+          }
+
+          await fs.mkdir(path.dirname(outputPath), { recursive: true });
+          await fs.writeFile(outputPath, "ok", "utf8");
+          return { stdout: "", stderr: "" };
+        }
+      });
+
+      const result = await compressor.prepareForAiUpload(
+        {
+          session,
+          downloadResult: makeDownloadResult(session),
+          profile: "balanced"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.aiUploadArtifactPaths).toHaveLength(2);
+      expect(result.chunkCount).toBe(2);
+      expect(result.chunkDurationsMs).toEqual([500000, 500000]);
+      expect(result.warnings.some((warning) => warning.includes("Chunking applied"))).toBe(true);
     });
   });
 

@@ -72,6 +72,9 @@ describe("processMediaUrl integration", () => {
           normalizedAudioPath: session.artifacts.normalizedAudioPath,
           aiUploadArtifactPaths: [`${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`],
           selectedCodec: "aac",
+          chunkCount: 1,
+          chunkDurationsMs: [180_000],
+          vadApplied: false,
           warnings: preUploadWarnings
         };
       }
@@ -106,6 +109,10 @@ describe("processMediaUrl integration", () => {
     expect(result.transcriptReadyPayload.aiUploadArtifactPaths).toEqual([
       `${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`
     ]);
+    expect(result.transcriptReadyPayload.chunkCount).toBe(1);
+    expect(result.transcriptReadyPayload.chunkDurationsMs).toEqual([180_000]);
+    expect(result.transcriptReadyPayload.vadApplied).toBe(false);
+    expect(result.transcriptReadyPayload.selectedCodec).toBe("aac");
     expect(result.transcriptReadyPayload.aiUploadDirectory).toBe(session.artifacts.aiUploadDirectory);
     expect(result.warnings).toHaveLength(2);
     expect(warnings).toEqual(result.warnings);
