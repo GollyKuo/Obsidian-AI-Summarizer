@@ -1,8 +1,34 @@
 # 開發日誌
 
-最後更新：2026-04-23 17:49
+最後更新：2026-04-23 18:31
 
 ## 版本紀錄
+
+### 0.1.32-ai-output-contract-normalization - 2026-04-23 18:31
+
+範圍：
+- 完成 `CAP-205` 剩餘兩項：共用 AI output contract 與 `API_Instructions.md` 規則映射。
+
+主要變更：
+- 新增 `src/services/ai/ai-output-normalizer.ts`
+- 建立跨輸入共用的 AI output 正規化層（media / webpage）
+- 規則包含：summary H2 起始層級正規化、heading 後空行收斂、emoji 過濾、transcript `[] -> {}` 時間標記正規化
+- 更新 `src/orchestration/process-media.ts`
+- media summarizing 後導入 output normalizer，再進入 note writer
+- 更新 `src/orchestration/process-webpage.ts`
+- webpage summarizing 後導入 output normalizer，再進入 note writer
+- 新增 `tests/unit/ai-output-normalizer.test.ts`
+- 覆蓋 media/webpage 正規化與 already-compliant 情境
+- 更新 `tests/integration/process-media.integration.test.ts`
+- 調整 warning 斷言並驗證 AI output contract warning 已回傳
+- 更新 `docs/API_Instructions.md`
+- 補上 output normalizer 與 orchestration 實際映射位置
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-205` 最後兩項完成
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
 
 ### 0.1.31-media-chunking-and-token-control - 2026-04-23 17:49
 

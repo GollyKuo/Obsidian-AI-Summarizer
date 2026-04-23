@@ -1,0 +1,54 @@
+import { describe, expect, it } from "vitest";
+import {
+  normalizeMediaSummaryResult,
+  normalizeWebpageSummaryResult
+} from "@services/ai/ai-output-normalizer";
+
+describe("ai-output-normalizer", () => {
+  it("normalizes media summary/transcript by contract rules", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: "# Summary 🎯\n\n這是一段摘要內容",
+      transcriptMarkdown: "[0m1s - 0m2s] 逐字稿😀",
+      warnings: ["ai-warning"]
+    });
+
+    expect(result.summaryMarkdown.startsWith("## Summary")).toBe(true);
+    expect(result.summaryMarkdown.includes("🎯")).toBe(false);
+    expect(result.summaryMarkdown.includes("\n\n這是一段摘要內容")).toBe(false);
+    expect(result.transcriptMarkdown).toContain("{0m1s - 0m2s}");
+    expect(result.transcriptMarkdown.includes("[")).toBe(false);
+    expect(result.transcriptMarkdown.includes("😀")).toBe(false);
+    expect(result.warnings).toContain("ai-warning");
+    expect(
+      result.warnings.some((warning) => warning.includes("normalized summary heading to start from H2"))
+    ).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("converted transcript time markers from [] to {}"))
+    ).toBe(true);
+  });
+
+  it("adds H2 heading when webpage summary has no heading", () => {
+    const result = normalizeWebpageSummaryResult({
+      summaryMarkdown: "純文字摘要",
+      warnings: []
+    });
+
+    expect(result.summaryMarkdown.startsWith("## 一、重點摘要")).toBe(true);
+    expect(result.summaryMarkdown).toContain("純文字摘要");
+    expect(
+      result.warnings.some((warning) => warning.includes("normalized summary heading to start from H2"))
+    ).toBe(true);
+  });
+
+  it("preserves output when already compliant", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: "## 一、重點摘要\n內容",
+      transcriptMarkdown: "{0m1s - 0m2s} 逐字稿",
+      warnings: []
+    });
+
+    expect(result.summaryMarkdown).toBe("## 一、重點摘要\n內容");
+    expect(result.transcriptMarkdown).toBe("{0m1s - 0m2s} 逐字稿");
+    expect(result.warnings).toEqual([]);
+  });
+});

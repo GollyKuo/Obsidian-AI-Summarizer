@@ -9,6 +9,7 @@ import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-r
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 
 type MediaRequest = MediaUrlRequest | LocalMediaRequest;
@@ -69,7 +70,7 @@ export async function processMedia(
   warnings.push(...mediaInput.warnings);
   emitWarnings(mediaInput.warnings, hooks);
 
-  const summary = await runJobStep(
+  const summaryRaw = await runJobStep(
     "summarizing",
     "Generating media summary",
     signal,
@@ -86,6 +87,7 @@ export async function processMedia(
     hooks
   );
 
+  const summary = normalizeMediaSummaryResult(summaryRaw);
   warnings.push(...summary.warnings);
   emitWarnings(summary.warnings, hooks);
 

@@ -2,6 +2,7 @@ import { SummarizerError } from "@domain/errors";
 import type { WriteResult, WebpageRequest, WebpageSummaryResult } from "@domain/types";
 import type { AiProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import { normalizeWebpageSummaryResult } from "@services/ai/ai-output-normalizer";
 import type { MetadataExtractor } from "@services/web/metadata-extractor";
 import type { WebpageExtractor } from "@services/web/webpage-extractor";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
@@ -62,7 +63,7 @@ export async function processWebpage(
 
   const metadata = dependencies.metadataExtractor.fromWebpage(input.sourceValue, webpageText);
 
-  const summary = await runJobStep(
+  const summaryRaw = await runJobStep(
     "summarizing",
     "Generating webpage summary",
     signal,
@@ -77,6 +78,7 @@ export async function processWebpage(
     hooks
   );
 
+  const summary = normalizeWebpageSummaryResult(summaryRaw);
   warnings.push(...summary.warnings);
   emitWarnings(summary.warnings, hooks);
 

@@ -91,7 +91,12 @@ describe("processMedia integration", () => {
     expect(localMediaCallCount).toBe(0);
     expect(result.summary.summaryMarkdown).toContain("Media URL summary");
     expect(result.writeResult.notePath).toBe("Summaries/Media URL Demo.md");
-    expect(result.warnings).toEqual(["runtime-warning", "ai-warning", "write-warning"]);
+    expect(result.warnings).toContain("runtime-warning");
+    expect(result.warnings).toContain("ai-warning");
+    expect(result.warnings).toContain("write-warning");
+    expect(
+      result.warnings.some((warning) => warning.includes("AI output contract: normalized summary heading"))
+    ).toBe(true);
     expect(warnings).toEqual(result.warnings);
     expect(stages).toEqual([
       "validating:Validating media input",
@@ -176,7 +181,9 @@ describe("processMedia integration", () => {
     expect(mediaUrlCallCount).toBe(0);
     expect(localMediaCallCount).toBe(1);
     expect(result.writeResult.notePath).toBe("Summaries/Local Demo.md");
-    expect(result.warnings).toEqual([]);
+    expect(
+      result.warnings.some((warning) => warning.includes("AI output contract: normalized summary heading"))
+    ).toBe(true);
   });
 
   it("applies chunking strategy when transcript is large", async () => {

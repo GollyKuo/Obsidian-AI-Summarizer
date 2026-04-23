@@ -67,6 +67,7 @@ describe("processWebpage integration", () => {
     );
 
     expect(result.summary.summaryMarkdown).toContain("Mock summary");
+    expect(result.summary.summaryMarkdown.startsWith("## Summary")).toBe(true);
     expect(result.writeResult.notePath).toBe("Summaries/Mock Title.md");
     expect(result.warnings).toContain("paywall-suspected");
   });

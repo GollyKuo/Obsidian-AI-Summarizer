@@ -89,6 +89,11 @@
 - **提示詞規約常數**: `src/domain/prompts.ts` (`PROMPT_CONTRACT`)
 - **摘要提示詞組裝**: `src/services/ai/prompt-builder.ts` (`buildMediaSummaryPrompt`、`buildWebpageSummaryPrompt`)
 - **逐字稿提示詞組裝**: `src/services/ai/prompt-builder.ts` (`buildTranscriptPrompt`)
+- **AI 輸出契約正規化**: `src/services/ai/ai-output-normalizer.ts`
+  - media / webpage 共用輸出規則（H2 起始、emoji 過濾、heading 空行收斂）
+  - transcript 時間標記格式正規化（`[]` 轉 `{}`）
+- **映射入口（media）**: `src/orchestration/process-media.ts`
+- **映射入口（webpage）**: `src/orchestration/process-webpage.ts`
 - **本檔定位**: 本文件為提示詞規範來源，若規範變更，需同步更新上述 TypeScript 實作
 
 ---
