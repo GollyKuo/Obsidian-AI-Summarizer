@@ -1,8 +1,33 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 01:18
+最後更新：2026-04-24 01:28
 
 ## 版本紀錄
+
+### 0.1.39-smoke-checklist-and-test-matrix - 2026-04-24 01:28
+
+範圍：
+- 推進 `CAP-401`，建立手動 smoke checklist 與 capability-based test matrix，並接入 package scripts。
+
+主要變更：
+- 新增 `scripts/smoke-checklist.mjs`
+- 提供 `--capability` / `--surface` 兩種手動 smoke checklist 入口
+- 更新 `package.json`
+- 新增 `smoke:webpage`、`smoke:media-url`、`smoke:local-media`、`smoke:desktop`、`smoke:mobile`
+- `gate:release` 改為串接 desktop/mobile smoke checklist
+- 新增 `docs/smoke-checklist.md`
+- 新增 `docs/test-matrix.md`
+- 更新 `docs/commands-reference.md`
+- 更新 `docs/release-gate.md`
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-401` 的 smoke checklist 與 capability-based test matrix 完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run smoke:desktop`
+- `npm run smoke:mobile`
 
 ### 0.1.38-error-reporting-and-logging-policy - 2026-04-24 01:18
 
@@ -820,4 +845,6 @@
 
 - 文件一致性：人工檢查完成
 - 程式驗證：尚未開始，因尚未建立可執行 scaffold
+
+
 

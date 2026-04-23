@@ -16,8 +16,12 @@
     "check:build:vault": "npm run build:vault",
     "gate:local": "npm run check:types && npm run check:test && npm run check:build",
     "gate:local:vault": "npm run check:types && npm run check:test && npm run check:build:vault",
-    "smoke:mobile": "node -e \"console.log('Run manual mobile checklist')\"",
-    "gate:release": "npm run gate:local && npm run smoke:mobile",
+    "smoke:webpage": "node scripts/smoke-checklist.mjs --capability webpage",
+    "smoke:media-url": "node scripts/smoke-checklist.mjs --capability media_url",
+    "smoke:local-media": "node scripts/smoke-checklist.mjs --capability local_media",
+    "smoke:desktop": "node scripts/smoke-checklist.mjs --surface desktop",
+    "smoke:mobile": "node scripts/smoke-checklist.mjs --surface mobile",
+    "gate:release": "npm run gate:local && npm run smoke:desktop && npm run smoke:mobile",
     "validate": "npm run gate:local"
   },
   "keywords": [
@@ -41,4 +45,5 @@
     "vitest": "^3.1.2"
   }
 }
+
 

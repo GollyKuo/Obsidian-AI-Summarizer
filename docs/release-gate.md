@@ -1,32 +1,30 @@
-# Release Gate（通用版）
+﻿# Release Gate
 
-## 固定指令
+## 指令順序
 
 1. `npm run check:types`
 2. `npm run check:test`
 3. `npm run check:build`
-4. `npm run gate:local`（1~3）
-5. `npm run gate:release`（`gate:local` + `smoke:mobile`）
+4. `npm run gate:local`
+5. `npm run gate:release`
 
-## 最小可發版條件
+## 放行條件
 
 1. `gate:local` 全通過
-2. 受影響模組測試已跑且無新增失敗
-3. 若變更 UI，mobile smoke 已完成
-4. 若變更 migration/state contract，遷移測試已通過
+2. 本次變更影響到的 capability 已完成對應 smoke
+3. 若變更 UI，`smoke:desktop` / `smoke:mobile` 已逐項確認
+4. 若變更 migration / state contract，需另外補人工驗證
 
-## 失敗處理 SOP
+## 失敗時 SOP
 
 ### Build 失敗
 
-1. 拆跑 `check:types` / `check:test` / `check:build`
-2. 先修型別契約，再修測試，再修 build
-3. 修完至少重跑 `gate:local`
+1. 先看 `check:types` / `check:test` / `check:build` 哪一步失敗
+2. 修正後至少重跑失敗指令
+3. 發版前重新跑 `gate:local`
 
-### Migration 失敗
+### Smoke 失敗
 
-1. 先跑 migration 專屬測試
-2. 檢查 step contract 與順序
-3. 維持 fallback 可啟動原則
-4. 修完重跑 `gate:local`
-
+1. 記錄失敗 capability 與步驟
+2. 修正後重跑對應 `smoke:*`
+3. 若屬於主線回歸，重新跑 `gate:release`
