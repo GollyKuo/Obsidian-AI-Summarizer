@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { processWebpage } from "@orchestration/process-webpage";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import type { MetadataExtractor } from "@services/web/metadata-extractor";
 import type { WebpageExtractor } from "@services/web/webpage-extractor";
@@ -25,13 +25,13 @@ describe("processWebpage integration", () => {
       }
     };
 
-    const aiProvider: AiProvider = {
+    const summaryProvider: SummaryProvider = {
       async summarizeMedia() {
         throw new Error("Not used in webpage flow test");
       },
-      async summarizeWebpage() {
+      async summarizeWebpage(input) {
         return {
-          summaryMarkdown: "# Summary\n\nMock summary.",
+          summaryMarkdown: `# Summary\n\n${input.summaryProvider}/${input.summaryModel}\n\nMock summary.`,
           warnings: ["paywall-suspected"]
         };
       }
@@ -55,12 +55,13 @@ describe("processWebpage integration", () => {
       {
         sourceKind: "webpage_url",
         sourceValue: "https://example.com/article",
-        model: "gemini-2.5-flash"
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
       },
       {
         webpageExtractor,
         metadataExtractor,
-        aiProvider,
+        summaryProvider,
         noteWriter
       },
       abortController.signal
@@ -83,7 +84,8 @@ describe("processWebpage integration", () => {
         {
           sourceKind: "webpage_url",
           sourceValue: "not-a-url",
-          model: "gemini-2.5-flash"
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash"
         },
         {
           webpageExtractor: {
@@ -102,7 +104,7 @@ describe("processWebpage integration", () => {
               };
             }
           },
-          aiProvider: {
+          summaryProvider: {
             async summarizeMedia() {
               throw new Error("not used");
             },

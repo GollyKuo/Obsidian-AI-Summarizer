@@ -7,16 +7,18 @@ import type {
 } from "@domain/types";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
+import type { TranscriptionProvider } from "@services/ai/transcription-provider";
 
 type MediaRequest = MediaUrlRequest | LocalMediaRequest;
 
 export interface ProcessMediaDependencies {
   runtimeProvider: RuntimeProvider;
-  aiProvider: AiProvider;
+  transcriptionProvider: TranscriptionProvider;
+  summaryProvider: SummaryProvider;
   noteWriter: NoteWriter;
 }
 
@@ -70,6 +72,27 @@ export async function processMedia(
   warnings.push(...mediaInput.warnings);
   emitWarnings(mediaInput.warnings, hooks);
 
+  const transcription = await runJobStep(
+    "transcribing",
+    "Generating media transcript",
+    signal,
+    async () =>
+      dependencies.transcriptionProvider.transcribeMedia(
+        {
+          metadata: mediaInput.metadata,
+          normalizedText: mediaInput.normalizedText,
+          transcript: mediaInput.transcript,
+          transcriptionProvider: input.transcriptionProvider,
+          transcriptionModel: input.transcriptionModel
+        },
+        signal
+      ),
+    hooks
+  );
+
+  warnings.push(...transcription.warnings);
+  emitWarnings(transcription.warnings, hooks);
+
   const summaryRaw = await runJobStep(
     "summarizing",
     "Generating media summary",
@@ -79,15 +102,21 @@ export async function processMedia(
         {
           metadata: mediaInput.metadata,
           normalizedText: mediaInput.normalizedText,
-          transcript: mediaInput.transcript
+          transcript: transcription.transcript,
+          summaryProvider: input.summaryProvider,
+          summaryModel: input.summaryModel
         },
-        dependencies.aiProvider,
+        dependencies.summaryProvider,
         signal
       ),
     hooks
   );
 
-  const summary = normalizeMediaSummaryResult(summaryRaw);
+  const summary = normalizeMediaSummaryResult({
+    summaryMarkdown: summaryRaw.summaryMarkdown,
+    transcriptMarkdown: transcription.transcriptMarkdown,
+    warnings: summaryRaw.warnings
+  });
   warnings.push(...summary.warnings);
   emitWarnings(summary.warnings, hooks);
 

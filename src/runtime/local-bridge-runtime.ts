@@ -55,7 +55,10 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       {
         sourceKind: "media_url",
         sourceValue: input.sourceValue,
-        model: input.model,
+        transcriptionProvider: input.transcriptionProvider,
+        transcriptionModel: input.transcriptionModel,
+        summaryProvider: input.summaryProvider,
+        summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
         vaultId: input.vaultId ?? this.defaultVaultId,
@@ -92,7 +95,10 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       {
         sourceKind: "local_media",
         sourceValue: input.sourceValue,
-        model: input.model,
+        transcriptionProvider: input.transcriptionProvider,
+        transcriptionModel: input.transcriptionModel,
+        summaryProvider: input.summaryProvider,
+        summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
         vaultId: input.vaultId ?? this.defaultVaultId,

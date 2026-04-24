@@ -6,6 +6,10 @@ import { processMedia } from "@orchestration/process-media";
 import { processWebpage } from "@orchestration/process-webpage";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import type { AiProvider } from "@services/ai/ai-provider";
+import {
+  formatTranscriptMarkdown,
+  type TranscriptionProvider
+} from "@services/ai/transcription-provider";
 import { BasicMetadataExtractor } from "@services/web/metadata-extractor";
 import type { WebpageExtractor } from "@services/web/webpage-extractor";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
@@ -218,7 +222,7 @@ export class SummarizerFlowModal extends Modal {
         throwIfCancelled(signal);
         await delay(350, signal);
         return {
-          summaryMarkdown: `# ${input.metadata.title}\n\n${input.webpageText.slice(0, 180)}`,
+          summaryMarkdown: `# ${input.metadata.title}\n\nProvider: ${input.summaryProvider}\nModel: ${input.summaryModel}\n\n${input.webpageText.slice(0, 180)}`,
           warnings: []
         };
       },
@@ -226,11 +230,37 @@ export class SummarizerFlowModal extends Modal {
         throwIfCancelled(signal);
         await delay(350, signal);
         return {
-          summaryMarkdown: `# ${input.metadata.title}\n\n## Summary\n\n${input.normalizedText}`,
-          transcriptMarkdown: input.transcript
-            .map((segment) => `- ${segment.startMs}-${segment.endMs}: ${segment.text}`)
-            .join("\n"),
+          summaryMarkdown: `# ${input.metadata.title}\n\n## Summary\n\nProvider: ${input.summaryProvider}\nModel: ${input.summaryModel}\n\n${input.normalizedText}`,
           warnings: []
+        };
+      }
+    };
+  }
+
+  private buildTranscriptionProvider(): TranscriptionProvider {
+    return {
+      transcribeMedia: async (input, signal) => {
+        throwIfCancelled(signal);
+        await delay(350, signal);
+
+        const transcript =
+          input.transcript.length > 0
+            ? input.transcript
+            : [
+                {
+                  startMs: 0,
+                  endMs: 30000,
+                  text: `Mock transcript generated from ${input.transcriptionProvider}/${input.transcriptionModel}.`
+                }
+              ];
+
+        return {
+          transcript,
+          transcriptMarkdown: formatTranscriptMarkdown(transcript),
+          warnings:
+            input.transcript.length > 0
+              ? []
+              : ["Mock transcription provider generated placeholder transcript text."]
         };
       }
     };
@@ -379,12 +409,13 @@ export class SummarizerFlowModal extends Modal {
       {
         sourceKind: "webpage_url",
         sourceValue: this.sourceValue,
-        model: this.plugin.settings.model
+        summaryProvider: this.plugin.settings.summaryProvider,
+        summaryModel: this.plugin.settings.summaryModel
       },
       {
         webpageExtractor,
         metadataExtractor: new BasicMetadataExtractor(),
-        aiProvider: this.buildAiProvider(),
+        summaryProvider: this.buildAiProvider(),
         noteWriter: this.buildNoteWriter()
       },
       signal,
@@ -409,14 +440,18 @@ export class SummarizerFlowModal extends Modal {
       {
         sourceKind: this.sourceType,
         sourceValue: this.sourceValue,
-        model: this.plugin.settings.model,
+        transcriptionProvider: this.plugin.settings.transcriptionProvider,
+        transcriptionModel: this.plugin.settings.transcriptionModel,
+        summaryProvider: this.plugin.settings.summaryProvider,
+        summaryModel: this.plugin.settings.summaryModel,
         retentionMode: this.plugin.settings.retentionMode,
         mediaCacheRoot: this.plugin.settings.mediaCacheRoot,
         mediaCompressionProfile: this.plugin.settings.mediaCompressionProfile
       } as MediaUrlRequest | LocalMediaRequest,
       {
         runtimeProvider: this.buildRuntimeProvider(),
-        aiProvider: this.buildAiProvider(),
+        transcriptionProvider: this.buildTranscriptionProvider(),
+        summaryProvider: this.buildAiProvider(),
         noteWriter: this.buildNoteWriter()
       },
       signal,

@@ -1,5 +1,5 @@
 import { PROMPT_CONTRACT } from "@domain/prompts";
-import type { MediaAiInput, WebpageAiInput } from "@domain/types";
+import type { MediaSummaryInput, WebpageAiInput } from "@domain/types";
 
 function buildMetadataBlock(metadata: {
   title: string;
@@ -17,7 +17,7 @@ function buildMetadataBlock(metadata: {
   ].join("\n");
 }
 
-export function buildMediaSummaryPrompt(input: MediaAiInput): string {
+export function buildMediaSummaryPrompt(input: MediaSummaryInput): string {
   return [
     PROMPT_CONTRACT.mediaSummaryPrompt,
     "",

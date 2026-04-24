@@ -85,7 +85,10 @@ describe("processMediaUrl integration", () => {
       {
         sourceKind: "media_url",
         sourceValue: "https://www.youtube.com/watch?v=demo",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none",
         mediaCacheRoot: "D:\\media-cache",
         vaultId: "vault-a",
@@ -143,7 +146,10 @@ describe("processMediaUrl integration", () => {
     const invalidInput = {
       sourceKind: "webpage_url",
       sourceValue: "https://example.com",
-      model: "gemini-2.5-flash",
+      transcriptionProvider: "gemini",
+      transcriptionModel: "gemini-2.5-flash",
+      summaryProvider: "gemini",
+      summaryModel: "gemini-2.5-flash",
       retentionMode: "none",
       mediaCacheRoot: "D:\\media-cache",
       vaultId: "vault-a"
@@ -178,7 +184,10 @@ describe("processMediaUrl integration", () => {
         {
           sourceKind: "media_url",
           sourceValue: "https://www.youtube.com/watch?v=demo",
-          model: "gemini-2.5-flash",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
           retentionMode: "none",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
@@ -218,7 +227,10 @@ describe("processMediaUrl integration", () => {
         {
           sourceKind: "media_url",
           sourceValue: "https://www.youtube.com/watch?v=demo",
-          model: "gemini-2.5-flash",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
           retentionMode: "none",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",

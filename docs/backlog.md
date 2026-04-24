@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-04-24 09:57
+最後更新：2026-04-24 16:24
 
 ## 用途
 
@@ -105,7 +105,7 @@
 狀態：`active`
 
 摘要：
-收斂 transcript、summary、chunking 與跨輸入來源共用的 AI output contract。
+收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分與 provider routing，剩 fallback / retry 收尾。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
@@ -132,10 +132,10 @@
 
 #### CAP-303 Documentation And User Manual 文件與使用手冊
 
-狀態：`completed`
+狀態：`active`
 
 摘要：
-已完成安裝、設定、smoke test 與日常操作手冊整理。
+已完成安裝、設定、smoke test 與日常操作手冊第一版，並補上多模型、轉錄/摘要拆分與 provider 設定教學，剩疑難排解與完整 walkthrough。
 
 ### Reliability And Operations 穩定性與營運
 
@@ -192,10 +192,10 @@
 
 #### CAP-504 Multi-Model Provider Strategy 多模型 Provider 策略
 
-狀態：`parking`
+狀態：`queued`
 
 摘要：
-保留多模型 provider contract 與 transcript-first / multimodal-first strategy。
+規劃 provider 分層：音訊轉錄可使用 Gemini 等 audio-capable 模型，文字摘要可使用 Gemini、OpenRouter/Qwen 或其他 text model。
 
 #### CAP-505 Batch And Queueing 批次與佇列
 

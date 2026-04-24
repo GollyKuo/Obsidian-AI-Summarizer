@@ -11,7 +11,6 @@ describe("summarizeMediaWithChunking", () => {
         callCount += 1;
         return {
           summaryMarkdown: `Summary: ${input.transcript.length}`,
-          transcriptMarkdown: "Transcript",
           warnings: []
         };
       },
@@ -36,7 +35,9 @@ describe("summarizeMediaWithChunking", () => {
             endMs: 1000,
             text: "small transcript"
           }
-        ]
+        ],
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
       },
       aiProvider,
       new AbortController().signal,
@@ -61,7 +62,6 @@ describe("summarizeMediaWithChunking", () => {
 
         return {
           summaryMarkdown: `Chunk summary ${transcriptLengths.length}`,
-          transcriptMarkdown: `Chunk transcript ${transcriptLengths.length}`,
           warnings: [`chunk-warning-${transcriptLengths.length}`]
         };
       },
@@ -84,7 +84,9 @@ describe("summarizeMediaWithChunking", () => {
           { startMs: 0, endMs: 1000, text: "1234567890" },
           { startMs: 1000, endMs: 2000, text: "abcdefghij" },
           { startMs: 2000, endMs: 3000, text: "klmnopqrst" }
-        ]
+        ],
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
       },
       aiProvider,
       new AbortController().signal,
@@ -98,7 +100,6 @@ describe("summarizeMediaWithChunking", () => {
     expect(normalizedTextInputs).toEqual(["abcdefgh", "", ""]);
     expect(result.summaryMarkdown).toContain("## Chunk 1");
     expect(result.summaryMarkdown).toContain("Chunk summary 3");
-    expect(result.transcriptMarkdown).toContain("Chunk transcript 2");
     expect(result.warnings[0]).toContain("Chunked media summary into 3 chunks");
     expect(result.warnings).toContain("chunk-warning-1");
     expect(result.warnings).toContain("chunk-warning-2");
@@ -116,7 +117,6 @@ describe("summarizeMediaWithChunking", () => {
         seenNormalizedText.push(input.normalizedText);
         return {
           summaryMarkdown: "ok",
-          transcriptMarkdown: "ok",
           warnings: []
         };
       },
@@ -135,7 +135,9 @@ describe("summarizeMediaWithChunking", () => {
           created: "2026-04-23T00:00:00.000Z"
         },
         normalizedText: "1234567890",
-        transcript: []
+        transcript: [],
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
       },
       aiProvider,
       new AbortController().signal,

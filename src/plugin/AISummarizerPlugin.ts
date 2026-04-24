@@ -15,6 +15,10 @@ import {
 import { AISummarizerSettingTab } from "@ui/settings-tab";
 import {
   DEFAULT_SETTINGS,
+  normalizeSummaryModel,
+  normalizeSummaryProvider,
+  normalizeTranscriptionModel,
+  normalizeTranscriptionProvider,
   type AISummarizerPluginSettings
 } from "@domain/settings";
 import { SummarizerFlowModal } from "@ui/flow-modal/SummarizerFlowModal";
@@ -43,9 +47,30 @@ export default class AISummarizerPlugin extends Plugin {
 
   public async loadSettings(): Promise<void> {
     const loaded = await this.loadData();
+    const loadedSettings = (loaded as
+      | (Partial<AISummarizerPluginSettings> & { model?: string })
+      | null);
+    const legacyModel = String(loadedSettings?.model ?? "");
+    const transcriptionProvider = normalizeTranscriptionProvider(
+      String(loadedSettings?.transcriptionProvider ?? DEFAULT_SETTINGS.transcriptionProvider)
+    );
+    const summaryProvider = normalizeSummaryProvider(
+      String(loadedSettings?.summaryProvider ?? DEFAULT_SETTINGS.summaryProvider)
+    );
+
     this.settings = {
       ...DEFAULT_SETTINGS,
-      ...(loaded as Partial<AISummarizerPluginSettings> | null)
+      ...loadedSettings,
+      transcriptionProvider,
+      transcriptionModel: normalizeTranscriptionModel(
+        String(loadedSettings?.transcriptionModel ?? legacyModel ?? DEFAULT_SETTINGS.transcriptionModel)
+      ),
+      summaryProvider,
+      summaryModel: normalizeSummaryModel(
+        summaryProvider,
+        String(loadedSettings?.summaryModel ?? legacyModel ?? DEFAULT_SETTINGS.summaryModel)
+      ),
+      openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey)
     };
   }
 

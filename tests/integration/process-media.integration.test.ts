@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { processMedia } from "@orchestration/process-media";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import type { TranscriptionProvider } from "@services/ai/transcription-provider";
 
 describe("processMedia integration", () => {
   it("runs media_url pipeline: runtime -> summary -> note", async () => {
@@ -37,11 +38,20 @@ describe("processMedia integration", () => {
       }
     };
 
-    const aiProvider: AiProvider = {
+    const transcriptionProvider: TranscriptionProvider = {
+      async transcribeMedia() {
+        return {
+          transcript: [],
+          transcriptMarkdown: "No transcript",
+          warnings: ["transcription-warning"]
+        };
+      }
+    };
+
+    const summaryProvider: SummaryProvider = {
       async summarizeMedia() {
         return {
           summaryMarkdown: "# Summary\n\nMedia URL summary",
-          transcriptMarkdown: "No transcript",
           warnings: ["ai-warning"]
         };
       },
@@ -67,13 +77,17 @@ describe("processMedia integration", () => {
       {
         sourceKind: "media_url",
         sourceValue: "https://www.youtube.com/watch?v=demo",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none",
         mediaCompressionProfile: "balanced"
       },
       {
         runtimeProvider,
-        aiProvider,
+        transcriptionProvider,
+        summaryProvider,
         noteWriter
       },
       new AbortController().signal,
@@ -92,6 +106,7 @@ describe("processMedia integration", () => {
     expect(result.summary.summaryMarkdown).toContain("Media URL summary");
     expect(result.writeResult.notePath).toBe("Summaries/Media URL Demo.md");
     expect(result.warnings).toContain("runtime-warning");
+    expect(result.warnings).toContain("transcription-warning");
     expect(result.warnings).toContain("ai-warning");
     expect(result.warnings).toContain("write-warning");
     expect(
@@ -101,6 +116,7 @@ describe("processMedia integration", () => {
     expect(stages).toEqual([
       "validating:Validating media input",
       "acquiring:Processing media URL input",
+      "transcribing:Generating media transcript",
       "summarizing:Generating media summary",
       "writing:Writing media note into vault"
     ]);
@@ -136,11 +152,20 @@ describe("processMedia integration", () => {
       }
     };
 
-    const aiProvider: AiProvider = {
+    const transcriptionProvider: TranscriptionProvider = {
+      async transcribeMedia() {
+        return {
+          transcript: [],
+          transcriptMarkdown: "No transcript",
+          warnings: []
+        };
+      }
+    };
+
+    const summaryProvider: SummaryProvider = {
       async summarizeMedia() {
         return {
           summaryMarkdown: "# Summary\n\nLocal summary",
-          transcriptMarkdown: "No transcript",
           warnings: []
         };
       },
@@ -166,13 +191,17 @@ describe("processMedia integration", () => {
       {
         sourceKind: "local_media",
         sourceValue: "D:\\source\\demo.mp3",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none",
         mediaCompressionProfile: "balanced"
       },
       {
         runtimeProvider,
-        aiProvider,
+        transcriptionProvider,
+        summaryProvider,
         noteWriter
       },
       new AbortController().signal
@@ -217,12 +246,21 @@ describe("processMedia integration", () => {
       }
     };
 
-    const aiProvider: AiProvider = {
+    const transcriptionProvider: TranscriptionProvider = {
+      async transcribeMedia(input) {
+        return {
+          transcript: input.transcript,
+          transcriptMarkdown: "Chunk transcript content",
+          warnings: []
+        };
+      }
+    };
+
+    const summaryProvider: SummaryProvider = {
       async summarizeMedia() {
         summarizeMediaCalls += 1;
         return {
           summaryMarkdown: `Chunk summary ${summarizeMediaCalls}`,
-          transcriptMarkdown: `Chunk transcript ${summarizeMediaCalls}`,
           warnings: []
         };
       },
@@ -249,12 +287,16 @@ describe("processMedia integration", () => {
       {
         sourceKind: "media_url",
         sourceValue: "https://www.youtube.com/watch?v=chunk",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none"
       },
       {
         runtimeProvider,
-        aiProvider,
+        transcriptionProvider,
+        summaryProvider,
         noteWriter
       },
       new AbortController().signal
@@ -284,12 +326,20 @@ describe("processMedia integration", () => {
         {
           sourceKind: "media_url",
           sourceValue: "   ",
-          model: "gemini-2.5-flash",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
           retentionMode: "none"
         },
         {
           runtimeProvider,
-          aiProvider: {
+          transcriptionProvider: {
+            async transcribeMedia() {
+              throw new Error("should not execute");
+            }
+          },
+          summaryProvider: {
             async summarizeMedia() {
               throw new Error("should not execute");
             },

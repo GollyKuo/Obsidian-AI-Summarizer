@@ -21,7 +21,7 @@
 
 - [Discussion.md](d:\程式開發\AI Summarizer\Discussion.md)
   - 所有待討論問題集中於此
-- [docs/user-manual.md](d:\程式開發\AI Summarizer\docs\user-manual.md)
+- [docs/Manual.md](d:\程式開發\AI Summarizer\docs\Manual.md)
   - 安裝、設定、smoke test 與 vault sync 操作手冊
 - [docs/architecture-boundary.md](d:\程式開發\AI Summarizer\docs\architecture-boundary.md)
   - 專案分層、依賴方向與高風險區

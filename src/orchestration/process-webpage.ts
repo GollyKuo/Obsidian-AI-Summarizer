@@ -1,6 +1,6 @@
 import { SummarizerError } from "@domain/errors";
 import type { WriteResult, WebpageRequest, WebpageSummaryResult } from "@domain/types";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeWebpageSummaryResult } from "@services/ai/ai-output-normalizer";
 import { applyWebpageMetadataPolicy } from "@services/web/webpage-metadata-policy";
@@ -11,7 +11,7 @@ import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-r
 export interface ProcessWebpageDependencies {
   webpageExtractor: WebpageExtractor;
   metadataExtractor: MetadataExtractor;
-  aiProvider: AiProvider;
+  summaryProvider: SummaryProvider;
   noteWriter: NoteWriter;
 }
 
@@ -73,10 +73,12 @@ export async function processWebpage(
     "Generating webpage summary",
     signal,
     async () =>
-      dependencies.aiProvider.summarizeWebpage(
+      dependencies.summaryProvider.summarizeWebpage(
         {
           metadata,
-          webpageText
+          webpageText,
+          summaryProvider: input.summaryProvider,
+          summaryModel: input.summaryModel
         },
         signal
       ),

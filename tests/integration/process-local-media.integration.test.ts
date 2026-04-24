@@ -86,7 +86,10 @@ describe("processLocalMedia integration", () => {
       {
         sourceKind: "local_media",
         sourceValue: "D:\\source\\demo.mp3",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none",
         mediaCacheRoot: "D:\\media-cache",
         vaultId: "vault-a",
@@ -146,7 +149,10 @@ describe("processLocalMedia integration", () => {
     const invalidInput = {
       sourceKind: "media_url",
       sourceValue: "D:\\source\\demo.mp3",
-      model: "gemini-2.5-flash",
+      transcriptionProvider: "gemini",
+      transcriptionModel: "gemini-2.5-flash",
+      summaryProvider: "gemini",
+      summaryModel: "gemini-2.5-flash",
       retentionMode: "none",
       mediaCacheRoot: "D:\\media-cache",
       vaultId: "vault-a"
@@ -185,7 +191,10 @@ describe("processLocalMedia integration", () => {
         {
           sourceKind: "local_media",
           sourceValue: "D:\\source\\demo.mp3",
-          model: "gemini-2.5-flash",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
           retentionMode: "none",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
@@ -225,7 +234,10 @@ describe("processLocalMedia integration", () => {
         {
           sourceKind: "local_media",
           sourceValue: "D:\\source\\demo.mp3",
-          model: "gemini-2.5-flash",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
           retentionMode: "none",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",

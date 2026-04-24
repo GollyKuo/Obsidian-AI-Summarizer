@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-24 09:57
+最後更新：2026-04-24 16:24
 
 ## 使用規則
 
@@ -12,13 +12,15 @@
 ## 目前階段
 
 - Phase 3 收斂：`CAP-202` 到 `CAP-206` 已完成主體實作，剩實機 smoke、量測與 retention 邊界收尾。
-- Phase 4 準備：`CAP-302`、`CAP-303`、`CAP-401` 到 `CAP-404` 已完成，待移入 archive 並規劃下一輪能力。
+- Phase 4 準備：`CAP-302`、`CAP-401` 到 `CAP-404` 已完成，待移入 archive；`CAP-303` 重新打開，用於完善使用者手冊。
 
 ## 唯一主線
 
 1. 收尾 `CAP-202`：完成 YouTube / podcast 各至少一條手動 smoke 下載驗證。
 2. 收尾 `CAP-203`：完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本上傳量量測（目標至少 70%）。
-3. 收尾 `CAP-206`：定案字幕與逐字稿衍生輸出的 artifact lifecycle（v1/vNext 邊界）。
+3. 推進 `CAP-205`：規劃並落地「轉錄模型」與「摘要模型」拆分，支援 Gemini 轉錄 + OpenRouter/Qwen 摘要。
+4. 收尾 `CAP-206`：定案字幕與逐字稿衍生輸出的 artifact lifecycle（v1/vNext 邊界）。
+5. 推進 `CAP-303`：補齊使用者手冊，涵蓋模型選擇、多 provider、轉錄/摘要拆分與常見問題。
 
 ## 當前阻塞與前置依賴
 
@@ -28,7 +30,8 @@
 
 ## 下一個切換點
 
-- 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-303`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
+- 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
+- 當 `CAP-205` 多模型拆分策略完成後，決定是否把 `CAP-504` 從 queued 拉入 active。
 - 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
 
 ## Product Flows 產品流程
@@ -147,6 +150,14 @@ Open Work：
 - [x] 定義長內容 chunking / merge 策略與 token control（`media-summary-chunking`）（完成：2026-04-23 17:49）
 - [x] 定義網頁、媒體、未來多模型共用的 AI output contract（`ai-output-normalizer`）（完成：2026-04-23 18:31）
 - [x] 把 `API_Instructions.md` 的規則映射到 media/webpage 兩種輸入路徑（完成：2026-04-23 18:31）
+- [x] 將 media pipeline 明確拆成 `acquiring -> transcribing -> summarizing -> writing`（完成：2026-04-24 16:24）
+- [x] 新增 `TranscriptionProvider` 介面，負責 audio/video artifact 到 transcript markdown / transcript segments（完成：2026-04-24 16:24）
+- [x] 將現有 `AiProvider` 收斂為 summary provider，避免摘要模型承擔音訊輸入責任（完成：2026-04-24 16:24）
+- [x] 設定頁拆分模型選擇：`transcriptionProvider/transcriptionModel` 與 `summaryProvider/summaryModel`（完成：2026-04-24 16:24）
+- [x] 支援預設組合：Gemini audio-capable model 轉錄，Gemini summary model 摘要（完成：2026-04-24 16:24）
+- [x] 支援 OpenRouter summary provider，第一版可用 `qwen/qwen3.6-plus` 處理已有逐字稿的文字摘要（完成：2026-04-24 16:24）
+- [ ] 定義 fallback / retry：轉錄成功但摘要失敗時，可保留 transcript 並只重跑摘要
+- [x] 補上 unit / integration tests，覆蓋轉錄模型與摘要模型不同 provider 的 routing 行為（完成：2026-04-24 16:24）
 
 ### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
@@ -183,8 +194,14 @@ Open Work：
 
 Open Work：
 
-- [x] 撰寫 `docs/user-manual.md`（完成：2026-04-24 09:08）
+- [x] 撰寫 `docs/Manual.md`（完成：2026-04-24 09:08）
 - [x] 整理安裝、設定、smoke test、vault build/sync 的操作說明（完成：2026-04-24 09:08）
+- [x] 補齊模型選擇章節：Gemini 四模型下拉選單、推薦預設、quality / fast 使用情境（完成：2026-04-24 16:24）
+- [x] 補齊轉錄模型與摘要模型拆分說明：為何拆分、建議組合、成本與品質取捨（完成：2026-04-24 16:24）
+- [x] 補齊 OpenRouter / Qwen 摘要模型使用限制：可做文字摘要，不作為 audio transcription 主路徑（完成：2026-04-24 16:24）
+- [x] 補齊 API key 與 provider 設定教學：Gemini、OpenRouter，以及未來 OpenAI API 與 ChatGPT/Codex Pro 訂閱差異（完成：2026-04-24 16:24）
+- [ ] 補齊常見問題與疑難排解：轉錄失敗、摘要失敗、重跑摘要、模型不可用、rate limit、成本預估
+- [ ] 補齊使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片、已有逐字稿重跑摘要
 
 ## Reliability And Operations 穩定性與營運
 

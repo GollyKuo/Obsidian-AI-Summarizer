@@ -1,11 +1,13 @@
 import type {
-  MediaAiInput,
-  MediaSummaryResult,
+  MediaSummaryDraft,
+  MediaSummaryInput,
   WebpageAiInput,
   WebpageSummaryResult
 } from "@domain/types";
 
-export interface AiProvider {
-  summarizeMedia(input: MediaAiInput, signal: AbortSignal): Promise<MediaSummaryResult>;
+export interface SummaryProvider {
+  summarizeMedia(input: MediaSummaryInput, signal: AbortSignal): Promise<MediaSummaryDraft>;
   summarizeWebpage(input: WebpageAiInput, signal: AbortSignal): Promise<WebpageSummaryResult>;
 }
+
+export type AiProvider = SummaryProvider;

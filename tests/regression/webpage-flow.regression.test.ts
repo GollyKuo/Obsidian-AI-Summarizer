@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { processWebpage } from "@orchestration/process-webpage";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import type { MetadataExtractor } from "@services/web/metadata-extractor";
 import type { WebpageExtractor } from "@services/web/webpage-extractor";
@@ -31,7 +31,7 @@ describe("webpage flow regression gate", () => {
       }
     };
 
-    const aiProvider: AiProvider = {
+    const summaryProvider: SummaryProvider = {
       async summarizeMedia() {
         summarizeMediaCalls += 1;
         throw new Error("webpage regression should never call summarizeMedia");
@@ -65,12 +65,13 @@ describe("webpage flow regression gate", () => {
       {
         sourceKind: "webpage_url",
         sourceValue: "https://example.com/article",
-        model: "gemini-2.5-flash"
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
       },
       {
         webpageExtractor,
         metadataExtractor,
-        aiProvider,
+        summaryProvider,
         noteWriter
       },
       new AbortController().signal
@@ -107,7 +108,8 @@ describe("webpage flow regression gate", () => {
         {
           sourceKind: "webpage_url",
           sourceValue: "not-a-url",
-          model: "gemini-2.5-flash"
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash"
         },
         {
           webpageExtractor: {
@@ -127,7 +129,7 @@ describe("webpage flow regression gate", () => {
               };
             }
           },
-          aiProvider: {
+          summaryProvider: {
             async summarizeMedia() {
               throw new Error("not used");
             },

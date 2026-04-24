@@ -1,3 +1,10 @@
+import type {
+  SummaryModel,
+  SummaryProvider,
+  TranscriptionModel,
+  TranscriptionProvider
+} from "@domain/model-selection";
+
 export type SourceType = "media_url" | "webpage_url" | "local_media";
 export type RetentionMode = "none" | "source" | "all";
 
@@ -18,7 +25,10 @@ export interface TranscriptSegment {
 export interface MediaUrlRequest {
   sourceKind: "media_url";
   sourceValue: string;
-  model: string;
+  transcriptionProvider: TranscriptionProvider;
+  transcriptionModel: TranscriptionModel;
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
   vaultId?: string;
@@ -28,7 +38,10 @@ export interface MediaUrlRequest {
 export interface LocalMediaRequest {
   sourceKind: "local_media";
   sourceValue: string;
-  model: string;
+  transcriptionProvider: TranscriptionProvider;
+  transcriptionModel: TranscriptionModel;
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
   vaultId?: string;
@@ -38,7 +51,8 @@ export interface LocalMediaRequest {
 export interface WebpageRequest {
   sourceKind: "webpage_url";
   sourceValue: string;
-  model: string;
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
 }
 
 export interface MediaProcessResult {
@@ -54,15 +68,38 @@ export interface WebpageProcessResult {
   warnings: string[];
 }
 
-export interface MediaAiInput {
+export interface MediaTranscriptionInput {
   metadata: SourceMetadata;
   normalizedText: string;
   transcript: TranscriptSegment[];
+  transcriptionProvider: TranscriptionProvider;
+  transcriptionModel: TranscriptionModel;
+}
+
+export interface MediaTranscriptionResult {
+  transcript: TranscriptSegment[];
+  transcriptMarkdown: string;
+  warnings: string[];
+}
+
+export interface MediaSummaryInput {
+  metadata: SourceMetadata;
+  normalizedText: string;
+  transcript: TranscriptSegment[];
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
 }
 
 export interface WebpageAiInput {
   metadata: SourceMetadata;
   webpageText: string;
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
+}
+
+export interface MediaSummaryDraft {
+  summaryMarkdown: string;
+  warnings: string[];
 }
 
 export interface MediaSummaryResult {

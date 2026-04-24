@@ -99,7 +99,10 @@ describe("LocalBridgeRuntimeProvider", () => {
       {
         sourceKind: "media_url",
         sourceValue: "https://www.youtube.com/watch?v=demo",
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none"
       },
       new AbortController().signal
@@ -165,7 +168,10 @@ describe("LocalBridgeRuntimeProvider", () => {
       {
         sourceKind: "local_media",
         sourceValue: localSession.localSourcePath,
-        model: "gemini-2.5-flash",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "none"
       },
       new AbortController().signal

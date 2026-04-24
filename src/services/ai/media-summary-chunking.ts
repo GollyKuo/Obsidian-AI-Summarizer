@@ -1,5 +1,9 @@
-import type { MediaAiInput, MediaSummaryResult, TranscriptSegment } from "@domain/types";
-import type { AiProvider } from "@services/ai/ai-provider";
+import type {
+  MediaSummaryDraft,
+  MediaSummaryInput,
+  TranscriptSegment
+} from "@domain/types";
+import type { SummaryProvider } from "@services/ai/ai-provider";
 
 export interface MediaSummaryChunkingOptions {
   maxChunkCharacters?: number;
@@ -121,11 +125,11 @@ function mergeChunkMarkdown(
 }
 
 export async function summarizeMediaWithChunking(
-  input: MediaAiInput,
-  aiProvider: AiProvider,
+  input: MediaSummaryInput,
+  summaryProvider: SummaryProvider,
   signal: AbortSignal,
   options: MediaSummaryChunkingOptions = {}
-): Promise<MediaSummaryResult> {
+): Promise<MediaSummaryDraft> {
   const maxChunkCharacters = clampPositiveInteger(
     options.maxChunkCharacters,
     DEFAULT_MAX_CHUNK_CHARACTERS
@@ -146,11 +150,13 @@ export async function summarizeMediaWithChunking(
       maxNormalizedTextCharacters,
       "normalized text"
     );
-    const summary = await aiProvider.summarizeMedia(
+    const summary = await summaryProvider.summarizeMedia(
       {
         metadata: input.metadata,
         normalizedText: normalizedTextLimit.value,
-        transcript: chunks[0] ?? []
+        transcript: chunks[0] ?? [],
+        summaryProvider: input.summaryProvider,
+        summaryModel: input.summaryModel
       },
       signal
     );
@@ -171,14 +177,16 @@ export async function summarizeMediaWithChunking(
     "normalized text in chunk mode"
   );
 
-  const chunkSummaries: MediaSummaryResult[] = [];
+  const chunkSummaries: MediaSummaryDraft[] = [];
   for (let index = 0; index < chunks.length; index += 1) {
     const chunk = chunks[index];
-    const summary = await aiProvider.summarizeMedia(
+    const summary = await summaryProvider.summarizeMedia(
       {
         metadata: input.metadata,
         normalizedText: index === 0 ? firstChunkNormalizedText.value : "",
-        transcript: chunk
+        transcript: chunk,
+        summaryProvider: input.summaryProvider,
+        summaryModel: input.summaryModel
       },
       signal
     );
@@ -189,11 +197,6 @@ export async function summarizeMediaWithChunking(
     "# Summary",
     chunkSummaries.map((entry) => entry.summaryMarkdown)
   );
-  const mergedTranscriptMarkdown = mergeChunkMarkdown(
-    "## Transcript",
-    chunkSummaries.map((entry) => entry.transcriptMarkdown)
-  );
-
   const warnings: string[] = [
     `Chunked media summary into ${chunks.length} chunks with max ${maxChunkCharacters} characters per chunk.`,
     ...chunkSummaries.flatMap((entry) => entry.warnings)
@@ -204,7 +207,6 @@ export async function summarizeMediaWithChunking(
 
   return {
     summaryMarkdown: mergedSummaryMarkdown,
-    transcriptMarkdown: mergedTranscriptMarkdown,
     warnings
   };
 }

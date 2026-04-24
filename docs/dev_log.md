@@ -1,8 +1,55 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 10:06
+最後更新：2026-04-24 16:24
 
 ## 版本紀錄
+
+### 0.1.46-cap-205-model-split-and-provider-routing - 2026-04-24 16:24
+
+範圍：
+- 推進 `CAP-205`，將單一 `model` 設定拆成「轉錄模型」與「摘要模型」，並補齊 provider routing 與設定頁。
+
+主要變更：
+- 新增 `src/domain/model-selection.ts`
+- 定義 `transcriptionProvider/transcriptionModel` 與 `summaryProvider/summaryModel`
+- 新增 Gemini 與 OpenRouter/Qwen 的 provider/model option、預設值與 normalization 規則
+- 更新 `src/domain/settings.ts`
+- plugin settings 改為保存 Gemini API key、OpenRouter API key、轉錄 provider/model、摘要 provider/model
+- 更新 `src/domain/types.ts`
+- request/input contract 拆分轉錄與摘要模型欄位，新增 `MediaTranscriptionInput/Result` 與 `MediaSummaryDraft`
+- 新增 `src/services/ai/transcription-provider.ts`
+- 建立 `TranscriptionProvider` 介面與 transcript markdown formatter
+- 更新 `src/services/ai/ai-provider.ts`
+- 將既有 `AiProvider` 收斂為 summary provider alias
+- 更新 `src/orchestration/process-media.ts`
+- media 主流程正式拆成 `acquiring -> transcribing -> summarizing -> writing`
+- 更新 `src/orchestration/process-webpage.ts`
+- webpage flow 改走 `summaryProvider/summaryModel`
+- 更新 `src/services/ai/media-summary-chunking.ts`、`src/services/ai/prompt-builder.ts`
+- chunking 與 prompt input 改對齊 summary-only provider contract
+- 更新 `src/plugin/AISummarizerPlugin.ts`
+- settings loading 支援新欄位，並對舊版單一 `model` 設定做相容 migration
+- 重寫 `src/ui/settings-tab.ts`
+- 設定頁改為 provider/model 雙層設定，支援 OpenRouter API key 顯示條件
+- 更新 `src/ui/flow-modal/SummarizerFlowModal.ts`
+- mock flow 對齊轉錄 provider 與摘要 provider 的新 contract
+- 更新測試：
+  - `tests/integration/process-media.integration.test.ts`
+  - `tests/integration/process-webpage.integration.test.ts`
+  - `tests/integration/process-media-url.integration.test.ts`
+  - `tests/integration/process-local-media.integration.test.ts`
+  - `tests/regression/webpage-flow.regression.test.ts`
+  - `tests/unit/media-summary-chunking.test.ts`
+  - `tests/unit/local-bridge-runtime.test.ts`
+  - `tests/unit/settings.test.ts`
+- 更新 `docs/Manual.md`、`docs/backlog.md`、`docs/backlog-active.md`
+- 補齊 provider/model split 的使用說明與 backlog 狀態
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `git diff`
 
 ### 0.1.45-cap-404-dependency-drift-strategy - 2026-04-24 10:06
 
@@ -68,13 +115,13 @@
 - 完成 `CAP-303`，補齊 user manual，並收斂安裝、設定、smoke test、vault build/sync 的使用說明。
 
 主要變更：
-- 新增 `docs/user-manual.md`
+- 新增 `docs/Manual.md`
 - 整理安裝、建置、啟用 plugin、三種輸入流程與常見錯誤
 - 明確說明 `build`、`build:vault`、`dev:vault`、自訂 vault sync 的差異
 - 更新 `docs/commands-reference.md`
 - 補上第一輪安裝指令與自訂 vault sync 指令
 - 更新 `README.md`
-- 將 `docs/user-manual.md`、`docs/commands-reference.md`、`docs/release-gate.md` 納入主要入口
+- 將 `docs/Manual.md`、`docs/commands-reference.md`、`docs/release-gate.md` 納入主要入口
 - 更新 `docs/backlog-active.md`
 - 勾選 `CAP-303` 兩個未完成項
 
