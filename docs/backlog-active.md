@@ -216,9 +216,9 @@ Why：
 
 Open Work：
 
-- [ ] 保持每次 build 後同步到指定 Obsidian vault 的開發工作流
-- [ ] 整理 build / release / commit / test SOP 與檢查點
-- [ ] 規劃 release automation（未來可接 GitHub Actions）
+- [x] 保持每次 build 後同步到指定 Obsidian vault 的開發工作流（完成：2026-04-24 09:26）
+- [x] 整理 build / release / commit / test SOP 與檢查點（完成：2026-04-24 09:26）
+- [x] 規劃 release automation（GitHub Actions）（完成：2026-04-24 09:26）
 
 ### CAP-404 External Dependency Update Strategy 外部依賴更新策略
 

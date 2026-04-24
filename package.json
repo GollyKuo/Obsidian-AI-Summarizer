@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
     "dev:vault": "node esbuild.config.mjs --watch --vault \"D:\\程式開發\\Obsidian Test\"",
+    "dev:vault:target": "node scripts/vault-sync.mjs --mode watch",
     "build": "node esbuild.config.mjs --production",
     "build:vault": "node esbuild.config.mjs --production --vault \"D:\\程式開發\\Obsidian Test\"",
+    "build:vault:target": "node scripts/vault-sync.mjs --mode build",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
     "check:types": "npm run typecheck",

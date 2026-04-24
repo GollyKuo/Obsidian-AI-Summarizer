@@ -39,6 +39,8 @@
   - 工程側指令總表
 - [docs/release-gate.md](d:\程式開發\AI Summarizer\docs\release-gate.md)
   - release 放行條件與失敗時 SOP
+- [docs/release-build-vault-sop.md](d:\程式開發\AI Summarizer\docs\release-build-vault-sop.md)
+  - build / release / commit / test / vault sync 操作 SOP
 
 ## 目標目錄骨架
 

@@ -1,8 +1,35 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 09:08
+最後更新：2026-04-24 09:26
 
 ## 版本紀錄
+
+### 0.1.44-cap-403-release-build-vault-sync - 2026-04-24 09:26
+
+範圍：
+- 完成 `CAP-403`，固定 vault sync 開發流程、補齊 release/build/commit/test SOP，並落地 GitHub Actions release gate。
+
+主要變更：
+- 新增 `scripts/vault-sync.mjs`
+- 提供可指定 vault 的標準入口（`--vault` 或 `AI_SUMMARIZER_VAULT_PATH`）
+- 更新 `package.json`
+- 新增 `dev:vault:target` 與 `build:vault:target`
+- 新增 `.github/workflows/release-gate.yml`
+- 在 PR / push / 手動觸發執行 `npm run gate:release`
+- 新增 `docs/release-build-vault-sop.md`
+- 固化 build / release / commit / test / vault sync SOP 與檢查點
+- 更新 `docs/release-gate.md`
+- 補 CI automation 與 vault sync gate 說明
+- 更新 `docs/commands-reference.md`
+- 納入 target vault sync 指令
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-403` 三個未完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `git diff`
 
 ### 0.1.43-user-manual-and-vault-ops-docs - 2026-04-24 09:08
 

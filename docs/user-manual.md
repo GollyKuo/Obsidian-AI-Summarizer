@@ -78,8 +78,15 @@ npm run gate:local:vault
 若不是使用內建測試 vault，直接執行：
 
 ```bash
-node esbuild.config.mjs --production --vault "D:\Your\Vault"
-node esbuild.config.mjs --watch --vault "D:\Your\Vault"
+npm run build:vault:target -- --vault "D:\Your\Vault"
+npm run dev:vault:target -- --vault "D:\Your\Vault"
+```
+
+也可使用環境變數：
+
+```bash
+set AI_SUMMARIZER_VAULT_PATH=D:\Your\Vault
+npm run build:vault:target
 ```
 
 同步目標會是：
@@ -280,3 +287,4 @@ npm run gate:release
 3. smoke 檢查：`docs/smoke-checklist.md`
 4. release 放行：`docs/release-gate.md`
 5. 目前主線進度：`docs/backlog-active.md`
+6. build/release/vault SOP：`docs/release-build-vault-sop.md`
