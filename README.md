@@ -21,6 +21,8 @@
 
 - [Discussion.md](d:\程式開發\AI Summarizer\Discussion.md)
   - 所有待討論問題集中於此
+- [docs/user-manual.md](d:\程式開發\AI Summarizer\docs\user-manual.md)
+  - 安裝、設定、smoke test 與 vault sync 操作手冊
 - [docs/architecture-boundary.md](d:\程式開發\AI Summarizer\docs\architecture-boundary.md)
   - 專案分層、依賴方向與高風險區
 - [docs/parity-contract.md](d:\程式開發\AI Summarizer\docs\parity-contract.md)
@@ -33,6 +35,10 @@
   - 已完成能力與歷史參考
 - [docs/dev_log.md](d:\程式開發\AI Summarizer\docs\dev_log.md)
   - 版本與里程碑紀錄
+- [docs/commands-reference.md](d:\程式開發\AI Summarizer\docs\commands-reference.md)
+  - 工程側指令總表
+- [docs/release-gate.md](d:\程式開發\AI Summarizer\docs\release-gate.md)
+  - release 放行條件與失敗時 SOP
 
 ## 目標目錄骨架
 

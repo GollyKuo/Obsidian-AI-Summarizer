@@ -182,8 +182,8 @@ Open Work：
 
 Open Work：
 
-- [ ] 撰寫 `docs/user-manual.md`
-- [ ] 整理安裝、設定、smoke test、vault build/sync 的操作說明
+- [x] 撰寫 `docs/user-manual.md`（完成：2026-04-24 09:08）
+- [x] 整理安裝、設定、smoke test、vault build/sync 的操作說明（完成：2026-04-24 09:08）
 
 ## Reliability And Operations 穩定性與營運
 

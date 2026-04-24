@@ -1,8 +1,28 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 08:48
+最後更新：2026-04-24 09:08
 
 ## 版本紀錄
+
+### 0.1.43-user-manual-and-vault-ops-docs - 2026-04-24 09:08
+
+範圍：
+- 完成 `CAP-303`，補齊 user manual，並收斂安裝、設定、smoke test、vault build/sync 的使用說明。
+
+主要變更：
+- 新增 `docs/user-manual.md`
+- 整理安裝、建置、啟用 plugin、三種輸入流程與常見錯誤
+- 明確說明 `build`、`build:vault`、`dev:vault`、自訂 vault sync 的差異
+- 更新 `docs/commands-reference.md`
+- 補上第一輪安裝指令與自訂 vault sync 指令
+- 更新 `README.md`
+- 將 `docs/user-manual.md`、`docs/commands-reference.md`、`docs/release-gate.md` 納入主要入口
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-303` 兩個未完成項
+
+驗證：
+- 手動比對 `package.json` script 與 `esbuild.config.mjs` 的 vault sync 行為
+- `git diff`
 
 ### 0.1.42-cap-302-settings-and-guidance - 2026-04-24 08:48
 
