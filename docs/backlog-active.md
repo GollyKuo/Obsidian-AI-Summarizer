@@ -1,114 +1,233 @@
-﻿# Active Backlog
+# Active Backlog
 
-?敺?堆?2026-04-24 00:08
+最後更新：2026-04-24 00:08
 
-## 雿輻閬?
+## 使用規則
 
-1. ?祆??芣?桀?甇?撱箄身??銝甇亙停閬祕雿??賢?撅扎?2. 撌脣???銝??閬撣貉蕭頩斤??批捆嚗宏??`docs/backlog-archive.md`??3. ?圈?瘙撅祆?曇??賢?撅歹??湔?撠? capability嚗?閬?像銵?track??4. 隞颱? `[x]` ??質?璅內摰???嚗撘摰 `嚗???YYYY-MM-DD HH:mm嚗??
-## ?桀??挾
+1. 本檔只放目前正在建設或下一步就要實作的能力層。
+2. 已完成且不再需要日常追蹤的內容，移到 `docs/backlog-archive.md`。
+3. 新需求若屬於現行能力層，直接掛到對應 capability；不要另開平行 track。
+4. 任何 `[x]` 項目都要標示完成時間，格式固定為 `（完成：YYYY-MM-DD HH:mm）`。
 
-- Phase 3嚗誑 `CAP-202` ??`CAP-206` ?箔蜓蝺???摰? media acquisition?I-ready pipeline ??note output ????
-## ?臭?銝餌?
+## 目前階段
 
-1. ????`CAP-202 Media Acquisition Boundary` ?祕??頛?憭望??Ｗ儔??瘨? metadata normalization??2. ?亦?摰? `CAP-203 AI-Ready Media Processing` ??蝮柴?畾萸AD??鞈芸????`process-media-url`??3. ?郊?嗆? `CAP-205 AI Processing Pipeline` ??`CAP-206 Note Output And Artifact Retention`??
-## ?嗅??餃???蝵桐?鞈?
-- YouTube / podcast ?? smoke 撠鋆?嚗AP-202 ?撩撖行?銝?撽???- AI-ready artifact contract 撠甇???賢嚗??∩? transcript / summary handoff??- retention matrix 撠摰儔摰?嚗?敶梢 media/local media/output cleanup ?捱蝑???
-## 銝?????
+- Phase 3：以 `CAP-202` 到 `CAP-206` 為主線，持續完成 media acquisition、AI-ready pipeline 與 note output 邊界。
 
-- ??`CAP-202` ?賜帘摰??session ???`downloaded.*` 銝?cancellation ?舐敺?銝餌???????`CAP-203`??- ??`CAP-203` 摰? `ai-upload.*` ??鞈芸??璈敺?銝餌?? `CAP-204` ??UI/??鋆撥??
-## Product Flows ?Ｗ?瘚?
+## 唯一主線
 
-### CAP-201 Webpage Flow Baseline 蝬脤?瘚??箇?
+1. 先完成 `CAP-202 Media Acquisition Boundary` 的實際下載、假失敗恢復、取消與 metadata normalization。
+2. 接續完成 `CAP-203 AI-Ready Media Processing` 的壓縮、分段、VAD、品質回退與 `process-media-url`。
+3. 同步收斂 `CAP-205 AI Processing Pipeline` 與 `CAP-206 Note Output And Artifact Retention`。
 
-鞎砌遙??嚗?敺?`webpage URL` ??`summary note` ?洵銝璇??港蜓蝺????箏蝟餌絞撽?璅???
-撌脣???
+## 當前阻塞與前置依賴
 
-- [x] 撱箇? `orchestration/cancellation.ts`嚗???2026-04-21 15:58嚗?- [x] 撱箇? `orchestration/job-runner.ts`嚗???2026-04-21 15:58嚗?- [x] 撱箇? `orchestration/process-webpage.ts`嚗???2026-04-21 15:58嚗?- [x] 撱箇? mocked webpage integration test嚗???2026-04-21 15:58嚗?- [x] 撽? `webpage URL -> extraction -> summary -> note write`嚗???2026-04-21 15:58嚗?- [x] 摰??? smoke嚗Ⅱ隤敺撓?亥粥?啣神蝑?嚗???2026-04-21 16:20嚗?
-敺?撘瘀?
+- YouTube / podcast 手動 smoke 尚未補齊，CAP-202 還缺實機下載驗證。
+- AI-ready artifact contract 尚未正式落地，會卡住 transcript / summary handoff。
+- retention matrix 尚未定義完成，會影響 media/local media/output cleanup 的決策邊界。
 
-- [ ] 鋆?隞祥?皜祈??批捆銝??渲郎隤??賢?摰儔???園?
+## 下一個切換點
 
-### CAP-202 Media Acquisition Boundary 慦?????
+- 當 `CAP-202` 能穩定產出 session 隔離的 `downloaded.*` 且 cancellation 可用後，主線切換重心到 `CAP-203`。
+- 當 `CAP-203` 完成 `ai-upload.*` 與品質回退機制後，主線切到 `CAP-204` 與 UI/手冊補強。
 
-Why嚗?慦?靘??舀撠?敺雯??閬?粥?慦????具???賢?嚗????頛翰??蝮柴I 銝??隤斗敺押?
-Scope嚗?`media URL -> acquisition session -> normalized media input`嚗??舀 YouTube / podcast / direct media URL??
-Dependencies嚗?`RuntimeProvider`???其?鞈?readiness?ache root policy?rtifact ?賢?閬???
-撌脣???
+## Product Flows 產品流程
 
-- [x] 摰儔銝??澆????曇楝敺??潘?`docs/media-acquisition-spec.md`嚗?摰?嚗?026-04-21 23:32嚗?- [x] 摰?憭?舫??`mediaCacheRoot`嚗?閮凋?撖怠 vault嚗???2026-04-22 00:01嚗?- [x] 摰? AI 銝??蝮桃??伐??賡閮?畾萸AD??鞈芸??嚗?摰?嚗?026-04-22 00:11嚗?- [x] 摰? `RuntimeProvider` v1 media strategy ??`local_bridge`嚗???`placeholder_only` fallback嚗???2026-04-22 00:24嚗?- [x] 撱箇? runtime strategy ??嚗runtime-factory`?local-bridge-runtime`嚗?摰?嚗?026-04-22 00:24嚗?- [x] ?啣? settings嚗mediaCacheRoot`?mediaCompressionProfile`嚗???2026-04-22 00:26嚗?- [x] 撱箇? `mediaCacheRoot` 蝯?頝臬?撽??撖急扳炎?伐?摰?嚗?026-04-22 01:00嚗?- [x] 撱箇? cache root resolution嚗閮???血?雿輻 OS ?身 cache嚗?摰?嚗?026-04-22 01:00嚗?- [x] 撱箇?憭靘陷 readiness嚗yt-dlp`?ffmpeg`?ffprobe`嚗?摰?嚗?026-04-22 07:14嚗?- [x] 撱箇?憭靘陷?航炊????`runtime_unavailable`嚗???2026-04-22 07:14嚗?- [x] 撱箇? media URL 撽???皞?憿?youtube / podcast / direct media嚗?摰?嚗?026-04-22 07:16嚗?- [x] 撱箇? `services/media/downloader-adapter.ts` ??session 閬???artifact path 閬嚗???2026-04-22 07:40嚗?
-Open Work嚗?
-- [x] ?亙 `yt-dlp` 撖阡?銝??瑁???`downloaded.*` ?Ｙ?賜嚗???2026-04-22 08:54嚗?- [x] 撱箇? session isolation ???冽敺抬?蝳迫???downloads ?桅??葫蝯?瑼?摰?嚗?026-04-23 00:15嚗?- [x] 撱箇? `yt-dlp` ?仃?敺拇??塚??亙?蝔??梢雿?session ?批歇???游?擃?嚗??賢摰?舀敺拇???摰?嚗?026-04-22 08:54嚗?- [x] 撱箇?銝??挾 cancellation 銝脫嚗bortSignal嚗?摰?嚗?026-04-23 00:15嚗?- [x] 撱箇? media metadata 甇????`Title`?Creator/Author`?Platform`?Source`?Created`嚗?摰?嚗?026-04-23 00:15嚗?- [x] 撱箇??航炊?????梧?`validation_error`?download_failure`?runtime_unavailable`?cancellation`嚗?摰?嚗?026-04-23 00:15嚗?
-Done When嚗?
-- [x] ?舐帘摰??session ???`downloaded.*`嚗?銝情??vault嚗???2026-04-23 00:15嚗?- [x] 銝?????2 蝘?迫摮?摨?銝?畾?摮文?蝔?嚗???2026-04-23 00:41嚗?- [ ] YouTube / podcast ?撠?璇???smoke ?臬???頛?
-### CAP-203 AI-Ready Media Processing AI ?舐慦???
+### CAP-201 Webpage Flow Baseline 網頁流程基線
 
-Why嚗??迤瘨??祉???AI ingestion ??蝥?閬?銝???擃?? AI-ready artifact嚗???STT / summary 敺蝛拙???
-Scope嚗?`downloaded.* -> normalized.* -> ai-upload.* -> transcript-ready payload`
+責任邊界：
+從 `webpage URL` 到 `summary note` 的第一條完整主線，先作為全系統驗證樣板。
 
-Dependencies嚗?`CAP-202 Media Acquisition Boundary`?rompt contract?untime payloads??
-Open Work嚗?
-- [x] 撱箇? `services/media/pre-upload-compressor.ts`嚗?唾???蝺函Ⅳ??畾萸AD嚗?摰?嚗?026-04-23 00:49嚗?- [x] 撱箇?憯葬?釭摰??????嚗pus -> AAC -> FLAC嚗?摰?嚗?026-04-23 00:49嚗?- [x] 撱箇? `orchestration/process-media-url.ts`嚗???2026-04-23 00:41嚗?- [x] 摰儔 transcript-ready payload ??蝥?AI processing handoff嚗???2026-04-23 00:41嚗?- [x] 撱箇? unit tests嚗?蝮?profile???璇辣?摰孵?摨血??嚗?摰?嚗?026-04-23 00:49嚗?- [x] 撱箇? integration tests嚗??仃??瘨?鞈芸??嚗?摰?嚗?026-04-23 10:12嚗?
-Done When嚗?
-- [ ] `balanced` profile 撠 `normalized.wav` ?舫?雿撠?70% 銝??3 蝯見?穿?
-- [x] ?喳? 2 ??靘撽??釭摰??孛?澆??嚗???2026-04-23 10:12嚗?- [x] media URL flow ?舀? AI-ready payload 蝛拙?鈭斤策敺? runtime / AI pipeline嚗???2026-04-23 08:22嚗?
-### CAP-204 Local Media Flow ?祆?慦?瘚?
+已完成：
 
-Why嚗???蝟餌絞撌脫??祆?瑼????賢?嚗?唳瑽葉嚗?銝餌?銝?芣 media URL ??撅祉靘?
-Scope嚗??祆??唾? / 敶梁??臬?撘炎?乓翰?? artifact lifecycle嚗? media URL ?梁 AI-ready pipeline??
-Open Work嚗?
-- [x] 摰儔 `local media` v1 ?舀蝭?嚗udio/video?之撠??嗚捆?冽撘?嚗???2026-04-23 16:24嚗?- [x] 摰儔 local file ingestion adapter ?隤文?憿?摰?嚗?026-04-23 16:24嚗?- [x] 霈?local media flow ?梁 `CAP-203` ??蝮株? AI-ready handoff嚗???2026-04-23 16:24嚗?- [x] 鋆?local media ??unit / integration 皜祈岫嚗???2026-04-23 16:24嚗?
-### CAP-205 AI Processing Pipeline AI ??蝞∠?
+- [x] 建立 `orchestration/cancellation.ts`（完成：2026-04-21 15:58）
+- [x] 建立 `orchestration/job-runner.ts`（完成：2026-04-21 15:58）
+- [x] 建立 `orchestration/process-webpage.ts`（完成：2026-04-21 15:58）
+- [x] 建立 mocked webpage integration test（完成：2026-04-21 15:58）
+- [x] 驗證 `webpage URL -> extraction -> summary -> note write`（完成：2026-04-21 15:58）
+- [x] 完成手動 smoke，確認可從輸入走到寫筆記（完成：2026-04-21 16:20）
 
-Why嚗??桀?撌脫? prompt contract嚗?????蝣箇蝡?????-> ?挾?? -> ?蝯?閬?-> note payload??惜??
-Scope嚗?AI provider ?澆蝑??批捆 chunking?ummary merge?ranscript / webpage output policy??
-Open Work嚗?
-- [x] 摰儔 transcript generation ??summary generation ??orchestration ??嚗process-media`嚗?摰?嚗?026-04-23 16:24嚗?- [x] 摰儔?瑕摰?chunking / merge 蝑??token control嚗media-summary-chunking`嚗?摰?嚗?026-04-23 17:49嚗?- [x] 摰儔蝬脤???擃靘?璅∪??梁??AI output contract嚗ai-output-normalizer`嚗?摰?嚗?026-04-23 18:31嚗?- [x] ??`API_Instructions.md` ????撠 media/webpage ?拍車頛詨頝臬?嚗???2026-04-23 18:31嚗?
-### CAP-206 Note Output And Artifact Retention 蝑?頛詨??拐???
-Why嚗???蝟餌絞??璆?靽?蝑????頛荔??唳瑽???note writer ??path resolver嚗rtifact lifecycle ???惜??
-Scope嚗?`downloaded.*`?normalized.*`?ai-upload.*`?ranscript?inal note ???賡望????芋撘?
-Open Work嚗?
-- [x] 摰儔 retention modes 撠? artifact ??????`artifact-retention`嚗?摰?嚗?026-04-23 20:38嚗?- [x] 摰儔 note output metadata contract ??path collision policy ?脖?甇亥??潘?摰?嚗?026-04-24 00:00嚗?- [x] 摰儔 webpage metadata policy嚗?蝣箄?摰雯??皞?`Platform` 蝯曹?頛詨??`Web`嚗???2026-04-24 00:00嚗?- [x] 摰儔 cleanup/recovery ?冽??仃??瘨?蝔桃???鞎砌遙??嚗???2026-04-23 20:38嚗?- [ ] 瘙箏?摮???蝔輸?隞嗚??撓?箸?衣??亙?銝 artifact lifecycle
-- [ ] 摰儔摮??Ｙ??臬蝝 v1/vNext嚗???`.srt` ???Fmpeg 頠?撟??乓摮?敶梁?靽?蝑
+待補強：
 
-## User Experience 雿輻擃?
+- [ ] 補上付費牆偵測與內容不完整警語的能力定義與驗收點
 
-### CAP-302 Entry Points And Settings Experience ?亙?身摰?撽?
-Why嚗??暹??撠?UI ?舐嚗??????渡??Ｗ??亙???身摰?撽?
-Open Work嚗?
-- [x] ?啣? Obsidian 撌血 ribbon ??嚗????? `AI ???灼嚗???2026-04-24 00:08嚗?- [ ] 瘙箏? template ?游??洵銝??UX
-- [ ] ?渡? prompt 鞈??note output 蝭
-- [ ] 撱箇? media / webpage / local media ?撓?亙?撠??航炊?內??
+### CAP-202 Media Acquisition Boundary 媒體取得邊界
 
-### CAP-303 Documentation And User Manual ?辣?蝙?冽???
-Open Work嚗?
-- [ ] ?啣神 `docs/user-manual.md`
-- [ ] ?渡?摰??身摰moke test?ault build/sync ??雿牧??
-## Reliability And Operations 蝛拙??扯???
+Why：
+媒體來源是本專案從「網頁摘要器」走向「全媒體摘要器」的關鍵能力，且會牽動下載、快取、壓縮、AI 上傳成本與錯誤恢復。
 
-### CAP-401 Test Matrix And Smoke Gates 皜祈岫?拚??Smoke Gate
+Scope：
+`media URL -> acquisition session -> normalized media input`，先支援 YouTube / podcast / direct media URL。
 
-Why嚗??桀?撌脫? typecheck/test/build嚗??Ｗ??賢?憓?敺??閬???隞斗???蝝??????霅?
-Open Work嚗?
-- [x] 整理 webpage / media URL / local media 的 smoke checklist（2026-04-24 01:28）
-- [x] 建立 capability-based 測試矩陣（2026-04-24 01:28）
-- [x] 定義桌面 regression gate，確保新 runtime 或新流程不破壞既有 webpage flow（2026-04-24 07:35）
+Dependencies：
+`RuntimeProvider`、外部依賴 readiness、cache root policy、artifact 命名規則。
 
-### CAP-402 Diagnostics And Error Reporting 閮箸?隤文???
-Why嚗?????debug log?像?啣皜祇?胯?頛敺拍?撽??唳瑽???observability ?嗆?甇???賢?嚗??航??log??
-Open Work嚗?
-- [x] 摰儔 debug logging policy嚗ser-facing?eveloper-facing?untime-facing嚗?2026-04-24 01:18嚗?- [x] 撱箇? capability detection / diagnostics summary嚗esktop/mobile/runtime availability嚗?2026-04-24 01:00嚗?- [x] 蝯曹??航炊閮撅斤?嚗otice?odal?og?est assertion嚗?026-04-24 01:18嚗?
-### CAP-403 Release, Build, And Vault Sync ?澆??遣蝵株? Vault ?郊
+已完成：
 
-Why嚗??桀?撌脫??砍 build嚗?撌乩?瘚??犖撌乓???dev log 憿舐內 release automation ?極?琿??渡??臬?閬??
-Open Work嚗?
-- [ ] 靽?瘥活 build 敺?甇亙?? Obsidian vault ???澆極雿?
-- [ ] ?渡? build / release / commit / test SOP ?炎?仿?
-- [ ] 閬? release automation嚗靘??GitHub Actions嚗?
-### CAP-404 External Dependency Update Strategy 憭靘陷?湔蝑
+- [x] 定義下載格式與存放路徑規格（`docs/media-acquisition-spec.md`）（完成：2026-04-21 23:32）
+- [x] 定案外部可選擇 `mediaCacheRoot`，預設不寫入 vault（完成：2026-04-22 00:01）
+- [x] 定案 AI 上傳前壓縮策略（抽音訊、分段、VAD、品質回退）（完成：2026-04-22 00:11）
+- [x] 定案 `RuntimeProvider` v1 media strategy 採 `local_bridge`，保留 `placeholder_only` fallback（完成：2026-04-22 00:24）
+- [x] 建立 runtime strategy 邊界（`runtime-factory`、`local-bridge-runtime`）（完成：2026-04-22 00:24）
+- [x] 新增 settings：`mediaCacheRoot`、`mediaCompressionProfile`（完成：2026-04-22 00:26）
+- [x] 建立 `mediaCacheRoot` 絕對路徑驗證與可寫性檢查（完成：2026-04-22 01:00）
+- [x] 建立 cache root resolution（自訂優先，否則使用 OS 預設 cache）（完成：2026-04-22 01:00）
+- [x] 建立外部依賴 readiness（`yt-dlp`、`ffmpeg`、`ffprobe`）（完成：2026-04-22 07:14）
+- [x] 建立外部依賴錯誤映射到 `runtime_unavailable`（完成：2026-04-22 07:14）
+- [x] 建立 media URL 驗證與來源分類（youtube / podcast / direct media）（完成：2026-04-22 07:16）
+- [x] 建立 `services/media/downloader-adapter.ts` 的 session 規劃與 artifact path 規格（完成：2026-04-22 07:40）
 
-Why嚗?`yt-dlp` ??擃?頛憓?摨西????乩??閮剛??湔蝑嚗?蝥??餌?鋡怠??典像?啗????瑯?
-Open Work嚗?
-- [ ] 閬? `yt-dlp` update strategy嚗??祆炎?乓?唳??靘??堆?
-- [ ] 摰儔?憛??祆炎?亥??湔??瘚?嚗?瘙??臬銵 timeout嚗?銝??餃? plugin ??
-- [ ] 閬? `ffmpeg` / `ffprobe` ?詨捆?扯?撟喳撌桃瑼Ｘ
-- [ ] 摰儔 dependency drift 撠?smoke / release gate ?蔣??
+Open Work：
+
+- [x] 接入 `yt-dlp` 實際下載執行與 `downloaded.*` 產物落盤（完成：2026-04-22 08:54）
+- [x] 建立 session isolation 與安全恢復，禁止掃整個 downloads 目錄猜測結果檔（完成：2026-04-23 00:15）
+- [x] 建立 `yt-dlp` 假失敗恢復機制，若子程序報錯但 session 內已有完整媒體檔，需能判定為可恢復成功（完成：2026-04-22 08:54）
+- [x] 建立下載階段 cancellation 串接（AbortSignal）（完成：2026-04-23 00:15）
+- [x] 建立 media metadata 正規化（`Title`、`Creator/Author`、`Platform`、`Source`、`Created`）（完成：2026-04-23 00:15）
+- [x] 建立錯誤分類與回報（`validation_error`、`download_failure`、`runtime_unavailable`、`cancellation`）（完成：2026-04-23 00:15）
+
+Done When：
+
+- [x] 可穩定產出 session 隔離的 `downloaded.*`，且不污染 vault（完成：2026-04-23 00:15）
+- [x] 下載取消在 2 秒內停止子程序，且不殘留孤兒程序（完成：2026-04-23 00:41）
+- [ ] YouTube / podcast 各至少一條手動 smoke 可完成下載
+
+### CAP-203 AI-Ready Media Processing AI 可用媒體處理
+
+Why：
+真正消耗成本的是 AI ingestion 與後續摘要，不先把媒體整理成 AI-ready artifact，後面 STT / summary 很難穩定。
+
+Scope：
+`downloaded.* -> normalized.* -> ai-upload.* -> transcript-ready payload`
+
+Dependencies：
+`CAP-202 Media Acquisition Boundary`、prompt contract、runtime payloads。
+
+Open Work：
+
+- [x] 建立 `services/media/pre-upload-compressor.ts`（抽音訊、重編碼、分段、VAD）（完成：2026-04-23 00:49）
+- [x] 建立壓縮品質守門與回退重跑（Opus -> AAC -> FLAC）（完成：2026-04-23 00:49）
+- [x] 建立 `orchestration/process-media-url.ts`（完成：2026-04-23 00:41）
+- [x] 定義 transcript-ready payload 與後續 AI processing handoff（完成：2026-04-23 00:41）
+- [x] 建立 unit tests（壓縮 profile、回退條件、內容密度守門）（完成：2026-04-23 00:49）
+- [x] 建立 integration tests（成功、失敗、取消、品質回退）（完成：2026-04-23 10:12）
+
+Done When：
+
+- [ ] `balanced` profile 對照 `normalized.wav` 可降低至少 70% 上傳量（3 組樣本）
+- [x] 至少 2 個案例可驗證品質守門會觸發回退（完成：2026-04-23 10:12）
+- [x] media URL flow 可把 AI-ready payload 穩定交給後續 runtime / AI pipeline（完成：2026-04-23 08:22）
+
+### CAP-204 Local Media Flow 本機媒體流程
+
+Why：
+舊版系統已有本機檔案處理能力；在新架構中，這條主線不能只是 media URL 的附屬特例。
+
+Scope：
+本機音訊 / 影片匯入、格式檢查、快取與 artifact lifecycle，與 media URL 共用 AI-ready pipeline。
+
+Open Work：
+
+- [x] 定義 `local media` v1 支援範圍（audio/video、大小限制、容器格式）（完成：2026-04-23 16:24）
+- [x] 定義 local file ingestion adapter 與錯誤分類（完成：2026-04-23 16:24）
+- [x] 讓 local media flow 共用 `CAP-203` 的壓縮與 AI-ready handoff（完成：2026-04-23 16:24）
+- [x] 補 local media 的 unit / integration 測試（完成：2026-04-23 16:24）
+
+### CAP-205 AI Processing Pipeline AI 處理管線
+
+Why：
+目前已有 prompt contract，但還沒有明確獨立的「轉錄 -> 分段摘要 -> 最終摘要 -> note payload」能力層。
+
+Scope：
+AI provider 呼叫策略、長內容 chunking、summary merge、transcript / webpage output policy。
+
+Open Work：
+
+- [x] 定義 transcript generation 與 summary generation 的 orchestration 邊界（`process-media`）（完成：2026-04-23 16:24）
+- [x] 定義長內容 chunking / merge 策略與 token control（`media-summary-chunking`）（完成：2026-04-23 17:49）
+- [x] 定義網頁、媒體、未來多模型共用的 AI output contract（`ai-output-normalizer`）（完成：2026-04-23 18:31）
+- [x] 把 `API_Instructions.md` 的規則映射到 media/webpage 兩種輸入路徑（完成：2026-04-23 18:31）
+
+### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
+
+Why：
+舊版系統有清楚的保留策略與清理邏輯；新架構目前只有 note writer 與 path resolver，artifact lifecycle 還沒成層。
+
+Scope：
+`downloaded.*`、`normalized.*`、`ai-upload.*`、transcript、final note 的生命週期與保留模式。
+
+Open Work：
+
+- [x] 定義 retention modes 對各 artifact 的保留矩陣（`artifact-retention`）（完成：2026-04-23 20:38）
+- [x] 定義 note output metadata contract 與 path collision policy 的進一步規格（完成：2026-04-24 00:00）
+- [x] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`（完成：2026-04-24 00:00）
+- [x] 定義 cleanup/recovery 在成功、失敗、取消三種狀態的責任分界（完成：2026-04-23 20:38）
+- [ ] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle
+- [ ] 定義字幕產線是否納入 v1/vNext，包含 `.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略
+
+## User Experience 使用體驗
+
+### CAP-302 Entry Points And Settings Experience 入口與設定體驗
+
+Why：
+現有最小 UI 可用，但還沒有完整的產品入口與對應設定體驗。
+
+Open Work：
+
+- [x] 新增 Obsidian 左側 ribbon 按鈕，點擊後開啟 `AI 摘要器`（完成：2026-04-24 00:08）
+- [ ] 決定 template 整合的第一版 UX
+- [ ] 整理 prompt 資產與 note output 範本
+- [ ] 建立 media / webpage / local media 的輸入引導與錯誤提示文案
+
+### CAP-303 Documentation And User Manual 文件與使用手冊
+
+Open Work：
+
+- [ ] 撰寫 `docs/user-manual.md`
+- [ ] 整理安裝、設定、smoke test、vault build/sync 的操作說明
+
+## Reliability And Operations 穩定性與營運
+
+### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
+
+Why：
+目前已有 typecheck/test/build，但產品能力增加後，需要從「指令成功」升級成「能力矩陣驗證」。
+
+Open Work：
+
+- [x] 整理 webpage / media URL / local media 的 smoke checklist（完成：2026-04-24 01:28）
+- [x] 建立 capability-based 測試矩陣，而不是只按檔案或服務測（完成：2026-04-24 01:28）
+- [x] 定義桌面 regression gate，確保新 runtime 或新流程不破壞既有 webpage flow（完成：2026-04-24 07:35）
+
+### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
+
+Why：
+舊版有 debug log、平台偵測除錯、下載恢復經驗；新架構應把 observability 當成正式能力，而不是臨時 log。
+
+Open Work：
+
+- [x] 定義 debug logging policy（user-facing、developer-facing、runtime-facing）（2026-04-24 01:18）
+- [x] 建立 capability detection / diagnostics summary（desktop/mobile/runtime availability）（2026-04-24 01:00）
+- [x] 統一錯誤訊息層級：notice、modal、log、test assertion（2026-04-24 01:18）
+
+### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
+
+Why：
+目前已有本地 build，但工作流仍偏人工。舊版 dev log 顯示 release automation 與工具鏈整理是必要能力。
+
+Open Work：
+
+- [ ] 保持每次 build 後同步到指定 Obsidian vault 的開發工作流
+- [ ] 整理 build / release / commit / test SOP 與檢查點
+- [ ] 規劃 release automation（未來可接 GitHub Actions）
+
+### CAP-404 External Dependency Update Strategy 外部依賴更新策略
+
+Why：
+`yt-dlp` 與媒體下載環境高度變動，若不提早設計更新策略，後續會頻繁被外部平台變化打斷。
+
+Open Work：
+
+- [ ] 規劃 `yt-dlp` update strategy（版本檢查、更新提醒、未來自動更新）
+- [ ] 定義非阻塞版本檢查與更新提醒流程，要求背景執行、具 timeout，且不得阻塞 plugin 啟動
+- [ ] 規劃 `ffmpeg` / `ffprobe` 相容性與平台差異檢查
+- [ ] 定義 dependency drift 對 smoke / release gate 的影響
