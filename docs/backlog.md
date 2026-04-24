@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-04-23 00:49
+最後更新：2026-04-24 09:57
 
 ## 用途
 
@@ -125,47 +125,47 @@
 
 #### CAP-302 Entry Points And Settings Experience 入口與設定體驗
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-下一輪 UX 補強，包含 ribbon 入口、template UX、輸入引導與錯誤文案。
+已完成 ribbon 入口、template UX、輸入引導與錯誤文案第一版。
 
 #### CAP-303 Documentation And User Manual 文件與使用手冊
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-整理安裝、設定、smoke test 與日常操作手冊。
+已完成安裝、設定、smoke test 與日常操作手冊整理。
 
 ### Reliability And Operations 穩定性與營運
 
 #### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-建立 capability-based 測試矩陣、smoke checklist 與 regression gate。
+已完成 capability-based 測試矩陣、smoke checklist 與 regression gate。
 
 #### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-統一 logging policy、diagnostics summary 與錯誤呈現層級。
+已完成 logging policy、diagnostics summary 與錯誤呈現層級收斂。
 
 #### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-固化 build / release / vault sync SOP，並規劃 release automation。
+已完成 build / release / vault sync SOP，並完成 release automation 規劃。
 
 #### CAP-404 External Dependency Update Strategy 外部依賴更新策略
 
-狀態：`queued`
+狀態：`completed`
 
 摘要：
-建立 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性與 drift gate 策略。
+已完成 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性與 drift gate 策略。
 
 ### Expansion 擴充能力
 

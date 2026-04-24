@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-24 00:08
+最後更新：2026-04-24 09:57
 
 ## 使用規則
 
@@ -11,24 +11,25 @@
 
 ## 目前階段
 
-- Phase 3：以 `CAP-202` 到 `CAP-206` 為主線，持續完成 media acquisition、AI-ready pipeline 與 note output 邊界。
+- Phase 3 收斂：`CAP-202` 到 `CAP-206` 已完成主體實作，剩實機 smoke、量測與 retention 邊界收尾。
+- Phase 4 準備：`CAP-302`、`CAP-303`、`CAP-401` 到 `CAP-404` 已完成，待移入 archive 並規劃下一輪能力。
 
 ## 唯一主線
 
-1. 先完成 `CAP-202 Media Acquisition Boundary` 的實際下載、假失敗恢復、取消與 metadata normalization。
-2. 接續完成 `CAP-203 AI-Ready Media Processing` 的壓縮、分段、VAD、品質回退與 `process-media-url`。
-3. 同步收斂 `CAP-205 AI Processing Pipeline` 與 `CAP-206 Note Output And Artifact Retention`。
+1. 收尾 `CAP-202`：完成 YouTube / podcast 各至少一條手動 smoke 下載驗證。
+2. 收尾 `CAP-203`：完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本上傳量量測（目標至少 70%）。
+3. 收尾 `CAP-206`：定案字幕與逐字稿衍生輸出的 artifact lifecycle（v1/vNext 邊界）。
 
 ## 當前阻塞與前置依賴
 
-- YouTube / podcast 手動 smoke 尚未補齊，CAP-202 還缺實機下載驗證。
-- AI-ready artifact contract 尚未正式落地，會卡住 transcript / summary handoff。
-- retention matrix 尚未定義完成，會影響 media/local media/output cleanup 的決策邊界。
+- 缺少可重現的 YouTube / podcast 手動 smoke 結果與紀錄格式。
+- 缺少 `balanced` profile 的基準樣本與量測紀錄，無法關閉 CAP-203 最後驗收點。
+- 字幕產線（`.srt` / 軟字幕嵌入）是否納入 v1 尚未定案，影響 CAP-206 lifecycle 收斂。
 
 ## 下一個切換點
 
-- 當 `CAP-202` 能穩定產出 session 隔離的 `downloaded.*` 且 cancellation 可用後，主線切換重心到 `CAP-203`。
-- 當 `CAP-203` 完成 `ai-upload.*` 與品質回退機制後，主線切到 `CAP-204` 與 UI/手冊補強。
+- 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-303`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
+- 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
 
 ## Product Flows 產品流程
 
