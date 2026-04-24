@@ -31,6 +31,8 @@ export interface MediaUrlRequest {
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
+  ffmpegPath?: string;
+  ffprobePath?: string;
   vaultId?: string;
   mediaCompressionProfile?: "balanced" | "quality";
 }
@@ -44,6 +46,8 @@ export interface LocalMediaRequest {
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
+  ffmpegPath?: string;
+  ffprobePath?: string;
   vaultId?: string;
   mediaCompressionProfile?: "balanced" | "quality";
 }

@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
@@ -13,6 +15,7 @@ import {
 } from "@domain/settings";
 import type { RetentionMode, SourceType } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
+import { testAiApiAvailability } from "@services/ai/api-health-check";
 import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
@@ -29,6 +32,7 @@ import {
 import { getSourceGuidance } from "@ui/source-guidance";
 
 type SettingsSection = "ai_models" | "output_media" | "templates_prompts" | "diagnostics";
+type ApiTestTarget = "transcription" | "summary";
 
 const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
   { id: "ai_models", label: "AI 模型" },
@@ -75,7 +79,28 @@ interface DesktopDialog {
     title?: string;
     defaultPath?: string;
     properties: string[];
+    filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<OpenDialogResult>;
+}
+
+type MediaToolPathSettingKey = "ffmpegPath" | "ffprobePath";
+
+const execFileAsync = promisify(execFile);
+
+async function findExecutableInPath(command: string): Promise<string | null> {
+  const lookupCommand = process.platform === "win32" ? "where.exe" : "which";
+  const result = await execFileAsync(lookupCommand, [command], {
+    timeout: 5_000,
+    maxBuffer: 1024 * 1024,
+    windowsHide: true
+  });
+  const output = `${String(result.stdout ?? "")}\n${String(result.stderr ?? "")}`;
+  return (
+    output
+      .split(/\r?\n/g)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? null
+  );
 }
 
 function getTemplateDropdownValue(templateReference: string): string {
@@ -117,12 +142,12 @@ function getDiagnosticStateLabel(state: DiagnosticsState): string {
 
 function getDiagnosticStatusText(summary: RuntimeDiagnosticsSummary): string {
   if (summary.overallState === "ready") {
-    return "媒體處理狀態：正常";
+    return "正常";
   }
   if (summary.overallState === "warning") {
-    return "媒體處理狀態：需注意";
+    return "需注意";
   }
-  return "媒體處理狀態：異常";
+  return "異常";
 }
 
 function getDiagnosticUserMessage(summary: RuntimeDiagnosticsSummary): string {
@@ -152,6 +177,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private runtimeDiagnostics: RuntimeDiagnosticsSummary | null = null;
   private runtimeDiagnosticsError: string | null = null;
   private diagnosticsLoading = false;
+  private apiTestTarget: ApiTestTarget | null = null;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -200,6 +226,64 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     this.display();
   }
 
+  private async pickMediaToolExecutable(settingKey: MediaToolPathSettingKey): Promise<void> {
+    const dialog = this.getDesktopDialog();
+    if (!dialog) {
+      this.plugin.notify("目前環境無法開啟檔案選擇器，請手動輸入可執行檔路徑。");
+      return;
+    }
+
+    const toolName = settingKey === "ffmpegPath" ? "ffmpeg" : "ffprobe";
+    const result = await dialog.showOpenDialog({
+      title: `選擇 ${toolName} 可執行檔`,
+      defaultPath: this.plugin.settings[settingKey] || undefined,
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Executable",
+          extensions: process.platform === "win32" ? ["exe"] : ["*"]
+        }
+      ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return;
+    }
+
+    this.plugin.settings[settingKey] = result.filePaths[0];
+    this.runtimeDiagnostics = null;
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private async autoDetectMediaToolExecutable(
+    settingKey: MediaToolPathSettingKey,
+    toolName: string
+  ): Promise<void> {
+    if (this.detectAppSurface() !== "desktop") {
+      this.plugin.notify("自動偵測只支援桌面版 Obsidian。");
+      return;
+    }
+
+    try {
+      const detectedPath = await findExecutableInPath(toolName);
+      if (!detectedPath) {
+        this.plugin.notify(`找不到 ${toolName}。請先安裝，或用「選擇檔案」手動指定。`);
+        return;
+      }
+
+      this.plugin.settings[settingKey] = detectedPath;
+      this.runtimeDiagnostics = null;
+      await this.plugin.saveSettings();
+      this.plugin.notify(`已找到 ${toolName}: ${detectedPath}`);
+      this.display();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.notify(`找不到 ${toolName}。請先安裝，或用「選擇檔案」手動指定。`);
+      this.plugin.reportWarning("media_tool_detection", `${toolName}: ${message}`);
+    }
+  }
+
   private async refreshDiagnostics(): Promise<void> {
     this.diagnosticsLoading = true;
     this.runtimeDiagnosticsError = null;
@@ -214,6 +298,51 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       this.runtimeDiagnosticsError = report.modalMessage;
     } finally {
       this.diagnosticsLoading = false;
+      this.display();
+    }
+  }
+
+  private async testTranscriptionApi(): Promise<void> {
+    await this.runApiTest("transcription", {
+      kind: "transcription",
+      provider: this.plugin.settings.transcriptionProvider,
+      model: this.plugin.settings.transcriptionModel,
+      apiKey: this.plugin.settings.apiKey
+    });
+  }
+
+  private async testSummaryApi(): Promise<void> {
+    const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
+    await this.runApiTest("summary", {
+      kind: "summary",
+      provider: this.plugin.settings.summaryProvider,
+      model: this.plugin.settings.summaryModel,
+      apiKey: isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey
+    });
+  }
+
+  private async runApiTest(
+    target: ApiTestTarget,
+    request: Parameters<typeof testAiApiAvailability>[0]
+  ): Promise<void> {
+    if (this.apiTestTarget) {
+      return;
+    }
+
+    this.apiTestTarget = target;
+    this.display();
+
+    try {
+      await this.plugin.saveSettings();
+      const result = await testAiApiAvailability(request);
+      this.plugin.notify(result.message);
+      if (result.ok) {
+        this.plugin.reportInfo("api_health_check", result.message);
+      } else {
+        this.plugin.reportWarning("api_health_check", result.message);
+      }
+    } finally {
+      this.apiTestTarget = null;
       this.display();
     }
   }
@@ -288,6 +417,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.display();
           })
+      )
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "transcription" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testTranscriptionApi();
+          })
       );
   }
 
@@ -347,7 +484,15 @@ export class AISummarizerSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.display();
           });
-      });
+      })
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "summary" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testSummaryApi();
+          })
+      );
   }
 
   private renderAiModelSettings(containerEl: HTMLElement): void {
@@ -526,43 +671,110 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderDiagnosticOverview(containerEl: HTMLElement): void {
-    const diagnosticsEl = containerEl.createDiv({ cls: "ai-summarizer-diagnostics" });
-    diagnosticsEl.style.marginTop = "1rem";
+    const diagnosticsSetting = new Setting(containerEl).setName("媒體處理狀態");
+    const diagnosticsEl = diagnosticsSetting.descEl.createDiv({
+      cls: "ai-summarizer-diagnostics"
+    });
 
     if (this.runtimeDiagnosticsError) {
-      diagnosticsEl.createEl("h3", { text: "檢查失敗" });
       diagnosticsEl.createEl("p", { text: this.runtimeDiagnosticsError });
+      diagnosticsSetting.addExtraButton((button) => {
+        button.setIcon("alert-triangle").setTooltip("檢查失敗");
+      });
       return;
     }
 
     if (this.diagnosticsLoading) {
-      diagnosticsEl.createEl("h3", { text: "正在檢查..." });
       diagnosticsEl.createEl("p", { text: "正在確認外掛執行環境與媒體處理工具。" });
+      diagnosticsSetting.addExtraButton((button) => {
+        button.setIcon("refresh-cw").setTooltip("檢查中");
+      });
       return;
     }
 
     if (!this.runtimeDiagnostics) {
-      diagnosticsEl.createEl("h3", { text: "尚未檢查" });
       diagnosticsEl.createEl("p", { text: "按下重新檢查後，這裡會顯示目前可用功能。" });
+      diagnosticsSetting.addExtraButton((button) => {
+        button.setIcon("circle-help").setTooltip("尚未檢查");
+      });
       return;
     }
 
-    diagnosticsEl.createEl("h3", { text: getDiagnosticStatusText(this.runtimeDiagnostics) });
+    const statusText = getDiagnosticStatusText(this.runtimeDiagnostics);
+    diagnosticsSetting.addExtraButton((button) => {
+      button
+        .setIcon(this.runtimeDiagnostics?.overallState === "ready" ? "check-circle" : "alert-triangle")
+        .setTooltip(`狀態：${statusText}`);
+    });
+
+    const statusEl = diagnosticsEl.createDiv();
+    statusEl.style.display = "inline-flex";
+    statusEl.style.alignItems = "center";
+    statusEl.style.gap = "0.5rem";
+    statusEl.style.marginBottom = "0.5rem";
+    statusEl.createSpan({ text: statusText });
+
     diagnosticsEl.createEl("p", { text: getDiagnosticUserMessage(this.runtimeDiagnostics) });
 
-    const listEl = diagnosticsEl.createEl("ul");
+    const listEl = diagnosticsEl.createDiv();
+    listEl.style.display = "grid";
+    listEl.style.gap = "0.35rem";
+    listEl.style.marginTop = "0.75rem";
     for (const capability of this.runtimeDiagnostics.capabilities) {
+      const rowEl = listEl.createDiv();
+      rowEl.style.display = "grid";
+      rowEl.style.gridTemplateColumns = "minmax(10rem, 1fr) auto";
+      rowEl.style.gap = "1rem";
+      rowEl.style.alignItems = "center";
+
       const label = DIAGNOSTIC_CAPABILITY_LABELS[capability.sourceType];
       const status = getDiagnosticStateLabel(capability.state);
-      listEl.createEl("li", { text: `${label}：${status}` });
+      rowEl.createSpan({ text: label });
+      rowEl.createSpan({ text: status });
     }
 
     const detailsEl = diagnosticsEl.createEl("details");
-    detailsEl.style.marginTop = "1rem";
+    detailsEl.style.marginTop = "0.85rem";
     detailsEl.createEl("summary", { text: "詳細資訊" });
     detailsEl.createEl("pre", {
       text: formatRuntimeDiagnosticsSummary(this.runtimeDiagnostics).join("\n")
     });
+  }
+
+  private renderMediaToolPathSetting(
+    containerEl: HTMLElement,
+    settingKey: MediaToolPathSettingKey,
+    toolName: string
+  ): void {
+    new Setting(containerEl)
+      .setName(toolName)
+      .setDesc(`可留空使用系統 PATH；按「自動填入」會搜尋 PATH 並寫入偵測到的 ${toolName} 路徑。`)
+      .addText((text) =>
+        text
+          .setPlaceholder(process.platform === "win32" ? `例如 C:\\ffmpeg\\bin\\${toolName}.exe` : `例如 /usr/local/bin/${toolName}`)
+          .setValue(this.plugin.settings[settingKey])
+          .onChange(async (value) => {
+            this.plugin.settings[settingKey] = value.trim();
+            this.runtimeDiagnostics = null;
+            await this.plugin.saveSettings();
+          })
+      )
+      .addButton((button) =>
+        button.setButtonText("選擇檔案").onClick(() => {
+          void this.pickMediaToolExecutable(settingKey);
+        })
+      )
+      .addButton((button) =>
+        button.setButtonText("自動填入").onClick(() => {
+          void this.autoDetectMediaToolExecutable(settingKey, toolName);
+        })
+      );
+  }
+
+  private renderMediaToolPathSettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "媒體工具路徑" });
+    this.renderMediaToolPathSetting(containerEl, "ffmpegPath", "ffmpeg");
+    this.renderMediaToolPathSetting(containerEl, "ffprobePath", "ffprobe");
   }
 
   private renderDiagnostics(containerEl: HTMLElement): void {
@@ -575,6 +787,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    this.renderMediaToolPathSettings(containerEl);
 
     new Setting(containerEl)
       .setName("媒體功能檢查")

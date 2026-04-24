@@ -19,6 +19,8 @@ import type {
 
 export interface ProcessMediaUrlInput extends MediaUrlRequest {
   mediaCacheRoot: string;
+  ffmpegPath?: string;
+  ffprobePath?: string;
   vaultId: string;
   mediaCompressionProfile: MediaCompressionProfile;
 }

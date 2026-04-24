@@ -3,7 +3,7 @@
   "name": "Obsidian AI Summarizer",
   "version": "0.1.47-settings-diagnostics-and-version-sync",
   "minAppVersion": "1.5.0",
-  "description": "Summarize webpages and media into structured Obsidian notes.",
+  "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "author": "GollyKuo",
   "isDesktopOnly": false
 }

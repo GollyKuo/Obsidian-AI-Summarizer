@@ -2,6 +2,7 @@ import type { AISummarizerPluginSettings, RuntimeStrategy } from "@domain/settin
 import { SummarizerError } from "@domain/errors";
 import type { SourceType } from "@domain/types";
 import {
+  createMediaRuntimeDependencySpecs,
   runMediaDependencyReadinessCheck,
   type MediaRuntimeDependencyDiagnostics
 } from "@services/media/dependency-readiness";
@@ -236,7 +237,15 @@ export async function collectRuntimeDiagnostics(
   options: RuntimeDiagnosticsOptions = {}
 ): Promise<RuntimeDiagnosticsSummary> {
   const cacheRootResolver = options.cacheRootResolver ?? resolveMediaCacheRoot;
-  const dependencyChecker = options.dependencyChecker ?? runMediaDependencyReadinessCheck;
+  const dependencyChecker =
+    options.dependencyChecker ??
+    (() =>
+      runMediaDependencyReadinessCheck({
+        specs: createMediaRuntimeDependencySpecs({
+          ffmpegPath: settings.ffmpegPath,
+          ffprobePath: settings.ffprobePath
+        })
+      }));
   const cacheRoot = await collectCacheRootDiagnostics(settings, cacheRootResolver);
   const dependencies = await collectDependencyDiagnostics(settings.runtimeStrategy, dependencyChecker);
   const dependencyDrift = collectDependencyDriftDiagnostics(settings.runtimeStrategy, dependencies);

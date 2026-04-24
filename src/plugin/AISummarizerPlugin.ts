@@ -70,7 +70,9 @@ export default class AISummarizerPlugin extends Plugin {
         summaryProvider,
         String(loadedSettings?.summaryModel ?? legacyModel ?? DEFAULT_SETTINGS.summaryModel)
       ),
-      openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey)
+      openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
+      ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
+      ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)
     };
   }
 

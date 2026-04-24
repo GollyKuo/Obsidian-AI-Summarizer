@@ -6,7 +6,11 @@ import type {
   WebpageProcessResult,
   WebpageRequest
 } from "@domain/types";
-import { assertMediaDependenciesReady } from "@services/media/dependency-readiness";
+import {
+  assertMediaDependenciesReady,
+  createMediaRuntimeDependencySpecs,
+  type MediaRuntimeDependencyDiagnostics
+} from "@services/media/dependency-readiness";
 import {
   createDownloaderAdapter,
   type DownloaderAdapter
@@ -33,23 +37,54 @@ interface LocalBridgeRuntimeProviderOptions {
 
 export class LocalBridgeRuntimeProvider implements RuntimeProvider {
   public readonly strategy = "local_bridge";
-  private readonly dependencyChecker: () => Promise<unknown>;
-  private readonly downloaderAdapter: DownloaderAdapter;
-  private readonly localMediaIngestionAdapter: LocalMediaIngestionAdapter;
-  private readonly preUploadCompressor: PreUploadCompressor;
+  private readonly dependencyChecker: (() => Promise<unknown>) | null;
+  private readonly downloaderAdapter: DownloaderAdapter | null;
+  private readonly localMediaIngestionAdapter: LocalMediaIngestionAdapter | null;
+  private readonly preUploadCompressor: PreUploadCompressor | null;
   private readonly defaultVaultId: string;
 
   public constructor(options: LocalBridgeRuntimeProviderOptions = {}) {
-    this.dependencyChecker = options.dependencyChecker ?? (() => assertMediaDependenciesReady());
-    this.downloaderAdapter = options.downloaderAdapter ?? createDownloaderAdapter();
-    this.localMediaIngestionAdapter =
-      options.localMediaIngestionAdapter ?? createLocalMediaIngestionAdapter();
-    this.preUploadCompressor = options.preUploadCompressor ?? createPreUploadCompressor();
+    this.dependencyChecker = options.dependencyChecker ?? null;
+    this.downloaderAdapter = options.downloaderAdapter ?? null;
+    this.localMediaIngestionAdapter = options.localMediaIngestionAdapter ?? null;
+    this.preUploadCompressor = options.preUploadCompressor ?? null;
     this.defaultVaultId = options.defaultVaultId ?? "default-vault";
   }
 
+  private buildMediaRuntimeDependencyChecker(
+    input: Pick<MediaUrlRequest | LocalMediaRequest, "ffmpegPath" | "ffprobePath">
+  ): () => Promise<MediaRuntimeDependencyDiagnostics> {
+    return () =>
+      assertMediaDependenciesReady({
+        specs: createMediaRuntimeDependencySpecs({
+          ffmpegPath: input.ffmpegPath,
+          ffprobePath: input.ffprobePath
+        })
+      });
+  }
+
+  private buildDependencyChecker(
+    input: Pick<MediaUrlRequest | LocalMediaRequest, "ffmpegPath" | "ffprobePath">
+  ): () => Promise<unknown> {
+    return this.dependencyChecker ?? this.buildMediaRuntimeDependencyChecker(input);
+  }
+
+  private buildPreUploadCompressor(
+    input: Pick<MediaUrlRequest | LocalMediaRequest, "ffmpegPath" | "ffprobePath">
+  ): PreUploadCompressor {
+    return (
+      this.preUploadCompressor ??
+      createPreUploadCompressor({
+        ffmpegCommand: input.ffmpegPath,
+        ffprobeCommand: input.ffprobePath
+      })
+    );
+  }
+
   public async processMediaUrl(input: MediaUrlRequest, signal: AbortSignal): Promise<MediaProcessResult> {
-    await this.dependencyChecker();
+    const dependencyChecker = this.buildDependencyChecker(input);
+    const mediaRuntimeDependencyChecker = this.buildMediaRuntimeDependencyChecker(input);
+    await dependencyChecker();
 
     const processResult = await runProcessMediaUrlFlow(
       {
@@ -61,12 +96,16 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
+        ffmpegPath: input.ffmpegPath,
+        ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,
         mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced"
       },
       {
-        downloaderAdapter: this.downloaderAdapter,
-        preUploadCompressor: this.preUploadCompressor
+        downloaderAdapter:
+          this.downloaderAdapter ??
+          createDownloaderAdapter({ dependencyChecker: mediaRuntimeDependencyChecker }),
+        preUploadCompressor: this.buildPreUploadCompressor(input)
       },
       signal
     );
@@ -89,7 +128,9 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
   }
 
   public async processLocalMedia(input: LocalMediaRequest, signal: AbortSignal): Promise<MediaProcessResult> {
-    await this.dependencyChecker();
+    const dependencyChecker = this.buildDependencyChecker(input);
+    const mediaRuntimeDependencyChecker = this.buildMediaRuntimeDependencyChecker(input);
+    await dependencyChecker();
 
     const processResult = await runProcessLocalMediaFlow(
       {
@@ -101,12 +142,16 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
+        ffmpegPath: input.ffmpegPath,
+        ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,
         mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced"
       },
       {
-        localMediaIngestionAdapter: this.localMediaIngestionAdapter,
-        preUploadCompressor: this.preUploadCompressor
+        localMediaIngestionAdapter:
+          this.localMediaIngestionAdapter ??
+          createLocalMediaIngestionAdapter({ dependencyChecker: mediaRuntimeDependencyChecker }),
+        preUploadCompressor: this.buildPreUploadCompressor(input)
       },
       signal
     );

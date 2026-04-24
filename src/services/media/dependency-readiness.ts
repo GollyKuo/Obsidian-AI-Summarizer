@@ -25,6 +25,11 @@ export interface MediaRuntimeDependencyDiagnostics {
   statuses: MediaRuntimeDependencyStatus[];
 }
 
+export interface MediaRuntimeToolPaths {
+  ffmpegPath?: string;
+  ffprobePath?: string;
+}
+
 interface ExecCommandResult {
   stdout: string;
   stderr: string;
@@ -57,6 +62,33 @@ export const DEFAULT_MEDIA_RUNTIME_DEPENDENCIES: MediaRuntimeDependencySpec[] = 
     args: ["-version"]
   }
 ];
+
+function normalizeCommand(command: string | undefined, fallback: string): string {
+  const normalized = command?.trim();
+  return normalized && normalized.length > 0 ? normalized : fallback;
+}
+
+export function createMediaRuntimeDependencySpecs(
+  paths: MediaRuntimeToolPaths = {}
+): MediaRuntimeDependencySpec[] {
+  return DEFAULT_MEDIA_RUNTIME_DEPENDENCIES.map((spec) => {
+    if (spec.name === "ffmpeg") {
+      return {
+        ...spec,
+        command: normalizeCommand(paths.ffmpegPath, spec.command)
+      };
+    }
+
+    if (spec.name === "ffprobe") {
+      return {
+        ...spec,
+        command: normalizeCommand(paths.ffprobePath, spec.command)
+      };
+    }
+
+    return spec;
+  });
+}
 
 async function defaultExecutor(command: string, args: string[]): Promise<ExecCommandResult> {
   const result = await execFileAsync(command, args, {

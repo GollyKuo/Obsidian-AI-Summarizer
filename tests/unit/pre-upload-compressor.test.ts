@@ -92,6 +92,45 @@ describe("pre-upload compressor", () => {
     });
   });
 
+  it("uses configured ffmpeg and ffprobe commands", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = makeSession(tempDirectory);
+      const commands: string[] = [];
+      await fs.mkdir(session.sessionDirectory, { recursive: true });
+      await fs.writeFile(session.artifacts.downloadedPath, "downloaded", "utf8");
+
+      const compressor = createPreUploadCompressor({
+        ffmpegCommand: "C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe",
+        ffprobeCommand: "C:\\Tools\\ffmpeg\\bin\\ffprobe.exe",
+        commandExecutor: async (command, args) => {
+          commands.push(command);
+          if (command.includes("ffprobe")) {
+            return { stdout: "30.0\n", stderr: "" };
+          }
+
+          const outputPath = args[args.length - 1];
+          await fs.mkdir(path.dirname(outputPath), { recursive: true });
+          await fs.writeFile(outputPath, "ok", "utf8");
+          return { stdout: "", stderr: "" };
+        }
+      });
+
+      await compressor.prepareForAiUpload(
+        {
+          session,
+          downloadResult: makeDownloadResult(session),
+          profile: "balanced"
+        },
+        new AbortController().signal
+      );
+
+      expect(commands).toContain("C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe");
+      expect(commands).toContain("C:\\Tools\\ffmpeg\\bin\\ffprobe.exe");
+      expect(commands).not.toContain("ffmpeg");
+      expect(commands).not.toContain("ffprobe");
+    });
+  });
+
   it("falls back to aac when opus conversion fails", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const session = makeSession(tempDirectory);

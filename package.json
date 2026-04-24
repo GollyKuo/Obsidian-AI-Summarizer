@@ -1,7 +1,7 @@
 {
   "name": "obsidian-ai-summarizer",
   "version": "0.1.47-settings-diagnostics-and-version-sync",
-  "description": "Obsidian plugin scaffold for AI Summarizer",
+  "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "main": "main.js",
   "scripts": {
     "version:sync": "node scripts/sync-version-from-dev-log.mjs",

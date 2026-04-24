@@ -36,6 +36,8 @@ interface ConversionFailureDetails {
 
 interface PreUploadCompressorOptions {
   commandExecutor?: CommandExecutor;
+  ffmpegCommand?: string;
+  ffprobeCommand?: string;
   mkdir?: (targetPath: string) => Promise<void>;
   readdir?: (targetPath: string) => Promise<string[]>;
   stat?: (targetPath: string) => Promise<{ isFile: () => boolean }>;
@@ -254,6 +256,11 @@ function buildProbeDurationArgs(targetPath: string): string[] {
   ];
 }
 
+function normalizeCommand(command: string | undefined, fallback: string): string {
+  const normalized = command?.trim();
+  return normalized && normalized.length > 0 ? normalized : fallback;
+}
+
 function parseDurationMs(raw: string): number | null {
   const parsed = Number.parseFloat(raw.trim());
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -265,9 +272,10 @@ function parseDurationMs(raw: string): number | null {
 async function probeDurationMs(
   targetPath: string,
   commandExecutor: CommandExecutor,
-  signal: AbortSignal
+  signal: AbortSignal,
+  ffprobeCommand: string
 ): Promise<number | null> {
-  const probeResult = await commandExecutor("ffprobe", buildProbeDurationArgs(targetPath), signal);
+  const probeResult = await commandExecutor(ffprobeCommand, buildProbeDurationArgs(targetPath), signal);
   return parseDurationMs(probeResult.stdout);
 }
 
@@ -306,6 +314,8 @@ export function createPreUploadCompressor(
   options: PreUploadCompressorOptions = {}
 ): PreUploadCompressor {
   const commandExecutor = options.commandExecutor ?? defaultCommandExecutor;
+  const ffmpegCommand = normalizeCommand(options.ffmpegCommand, "ffmpeg");
+  const ffprobeCommand = normalizeCommand(options.ffprobeCommand, "ffprobe");
   const mkdir =
     options.mkdir ??
     (async (targetPath: string) => {
@@ -332,7 +342,7 @@ export function createPreUploadCompressor(
 
       try {
         await commandExecutor(
-          "ffmpeg",
+          ffmpegCommand,
           buildNormalizedAudioArgs(downloadResult.downloadedPath, session.artifacts.normalizedAudioPath),
           signal
         );
@@ -381,7 +391,7 @@ export function createPreUploadCompressor(
 
         try {
           await commandExecutor(
-            "ffmpeg",
+            ffmpegCommand,
             preset.buildArgs(session.artifacts.normalizedAudioPath, outputPath),
             signal
           );
@@ -425,7 +435,7 @@ export function createPreUploadCompressor(
         let aiUploadArtifactPaths = [outputPath];
         let durationMs: number | null = null;
         try {
-          durationMs = await probeDurationMs(outputPath, commandExecutor, signal);
+          durationMs = await probeDurationMs(outputPath, commandExecutor, signal, ffprobeCommand);
         } catch (error) {
           if (isAbortError(error) || signal.aborted) {
             throw new SummarizerError({
@@ -449,7 +459,7 @@ export function createPreUploadCompressor(
             `chunk-%04d.${preset.extension}`
           );
           try {
-            await commandExecutor("ffmpeg", buildChunkArgs(outputPath, chunkPattern), signal);
+            await commandExecutor(ffmpegCommand, buildChunkArgs(outputPath, chunkPattern), signal);
             const entries = await readdir(session.artifacts.aiUploadDirectory);
             const chunkFiles = entries
               .filter((entry) => chunkFilenamePattern(preset.extension).test(entry))
@@ -481,7 +491,12 @@ export function createPreUploadCompressor(
         const chunkDurationsMs: number[] = [];
         for (const artifactPath of aiUploadArtifactPaths) {
           try {
-            const artifactDurationMs = await probeDurationMs(artifactPath, commandExecutor, signal);
+            const artifactDurationMs = await probeDurationMs(
+              artifactPath,
+              commandExecutor,
+              signal,
+              ffprobeCommand
+            );
             chunkDurationsMs.push(artifactDurationMs ?? 0);
           } catch (error) {
             if (isAbortError(error) || signal.aborted) {

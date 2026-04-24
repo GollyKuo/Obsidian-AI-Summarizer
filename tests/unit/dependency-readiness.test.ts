@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   assertMediaDependenciesReady,
+  createMediaRuntimeDependencySpecs,
   runMediaDependencyReadinessCheck,
   type DependencyCommandExecutor
 } from "@services/media/dependency-readiness";
@@ -49,5 +50,20 @@ describe("media dependency readiness", () => {
     await expect(assertMediaDependenciesReady({ executor })).rejects.toMatchObject({
       category: "runtime_unavailable"
     });
+  });
+
+  it("uses configured ffmpeg and ffprobe executable paths when provided", () => {
+    const specs = createMediaRuntimeDependencySpecs({
+      ffmpegPath: "C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe",
+      ffprobePath: "C:\\Tools\\ffmpeg\\bin\\ffprobe.exe"
+    });
+
+    expect(specs.find((spec) => spec.name === "yt-dlp")?.command).toBe("yt-dlp");
+    expect(specs.find((spec) => spec.name === "ffmpeg")?.command).toBe(
+      "C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe"
+    );
+    expect(specs.find((spec) => spec.name === "ffprobe")?.command).toBe(
+      "C:\\Tools\\ffmpeg\\bin\\ffprobe.exe"
+    );
   });
 });

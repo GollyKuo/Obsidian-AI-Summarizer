@@ -36,6 +36,8 @@ export interface AISummarizerPluginSettings {
   summaryModel: SummaryModel;
   outputFolder: string;
   mediaCacheRoot: string;
+  ffmpegPath: string;
+  ffprobePath: string;
   mediaCompressionProfile: MediaCompressionProfile;
   templateReference: string;
   retentionMode: RetentionMode;
@@ -53,6 +55,8 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   summaryModel: DEFAULT_SUMMARY_MODEL,
   outputFolder: "",
   mediaCacheRoot: "",
+  ffmpegPath: "",
+  ffprobePath: "",
   mediaCompressionProfile: "balanced",
   templateReference: "",
   retentionMode: "none",

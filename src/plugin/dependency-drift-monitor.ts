@@ -1,6 +1,7 @@
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { evaluateDependencyDrift } from "@services/media/dependency-drift";
 import {
+  createMediaRuntimeDependencySpecs,
   runMediaDependencyReadinessCheck,
   type MediaRuntimeDependencyDiagnostics
 } from "@services/media/dependency-readiness";
@@ -28,7 +29,15 @@ export function startDependencyDriftMonitor(
   }
 
   const timeoutMs = Math.max(1_000, options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-  const dependencyChecker = options.dependencyChecker ?? runMediaDependencyReadinessCheck;
+  const dependencyChecker =
+    options.dependencyChecker ??
+    (() =>
+      runMediaDependencyReadinessCheck({
+        specs: createMediaRuntimeDependencySpecs({
+          ffmpegPath: plugin.settings.ffmpegPath,
+          ffprobePath: plugin.settings.ffprobePath
+        })
+      }));
 
   void (async () => {
     const timeoutToken = Symbol("timeout");
