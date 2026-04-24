@@ -41,7 +41,7 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
 };
 
 const RETENTION_LABELS: Record<RetentionMode, string> = {
-  none: "流程結束後刪除暫存產物",
+  none: "流程完成後刪除暫存產物",
   source: "保留來源檔與 metadata",
   all: "保留全部暫存產物"
 };
@@ -83,6 +83,13 @@ function getSelectedModelDescription(
   const options =
     provider === "openrouter" ? OPENROUTER_SUMMARY_MODEL_OPTIONS : GEMINI_MODEL_OPTIONS;
   return options.find((option) => option.value === model)?.description ?? "";
+}
+
+function addSectionNote(containerEl: HTMLElement, text: string): void {
+  containerEl.createEl("p", {
+    cls: "ai-summarizer-settings-note",
+    text
+  });
 }
 
 export class AISummarizerSettingTab extends PluginSettingTab {
@@ -156,12 +163,16 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderProviderSettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Provider 與模型" });
+  private renderTranscriptionSettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "轉錄模型設定" });
+    addSectionNote(
+      containerEl,
+      "用於 media URL 與本機媒體，負責把音訊或影片轉成逐字稿。摘要模型不會直接處理音訊。"
+    );
 
     new Setting(containerEl)
-      .setName("Gemini API Key")
-      .setDesc("Gemini 轉錄與摘要共用的 API Key。")
+      .setName("轉錄 API Key")
+      .setDesc("目前轉錄 provider 固定為 Gemini，因此這裡使用 Gemini API Key。")
       .addText((text) =>
         text
           .setPlaceholder("輸入 Gemini API Key")
@@ -174,7 +185,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("轉錄 Provider")
-      .setDesc("media URL 與本機媒體的音訊轉錄 provider。v1 先固定使用 Gemini。")
+      .setDesc("v1 先固定使用 Gemini，後續可擴充其他 audio-capable provider。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -192,7 +203,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("轉錄模型")
-      .setDesc("負責 audio/video 到 transcript。建議優先選穩定的 Gemini audio-capable 模型。")
+      .setDesc("建議選穩定的 Gemini audio-capable 模型。")
       .addDropdown((dropdown) => {
         for (const option of getTranscriptionModelOptions()) {
           dropdown.addOption(option.value, option.label);
@@ -207,16 +218,25 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           });
       });
 
-    containerEl.createEl("p", {
-      text: getSelectedModelDescription(
+    addSectionNote(
+      containerEl,
+      getSelectedModelDescription(
         this.plugin.settings.transcriptionProvider,
         this.plugin.settings.transcriptionModel
       )
-    });
+    );
+  }
+
+  private renderSummarySettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h3", { text: "摘要模型設定" });
+    addSectionNote(
+      containerEl,
+      "用於網頁摘要與逐字稿摘要，只負責整理文字內容。可使用 Gemini，或切到 OpenRouter/Qwen 做 transcript-first 摘要。"
+    );
 
     new Setting(containerEl)
       .setName("摘要 Provider")
-      .setDesc("網頁摘要與逐字稿摘要使用的 provider。Gemini 為預設，OpenRouter 適合 transcript-first 路徑。")
+      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
       .addDropdown((dropdown) => {
         for (const option of SUMMARY_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -232,8 +252,30 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
+      .setName("摘要 API Key")
+      .setDesc(
+        this.plugin.settings.summaryProvider === "openrouter"
+          ? "摘要 provider 為 OpenRouter 時，這裡使用 OpenRouter API Key。"
+          : "摘要 provider 為 Gemini 時，這裡使用 Gemini API Key，與轉錄 API Key 共用。"
+      )
+      .addText((text) => {
+        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
+        text
+          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
+          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            if (isOpenRouter) {
+              this.plugin.settings.openRouterApiKey = value.trim();
+            } else {
+              this.plugin.settings.apiKey = value.trim();
+            }
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
       .setName("摘要模型")
-      .setDesc("摘要模型只負責整理文字內容，不承擔音訊轉錄。")
+      .setDesc("摘要模型只處理文字輸入；媒體逐字稿會先由轉錄模型產生。")
       .addDropdown((dropdown) => {
         for (const option of getSummaryModelOptions(this.plugin.settings.summaryProvider)) {
           dropdown.addOption(option.value, option.label);
@@ -246,27 +288,19 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         });
       });
 
-    containerEl.createEl("p", {
-      text: getSelectedModelDescription(
+    addSectionNote(
+      containerEl,
+      getSelectedModelDescription(
         this.plugin.settings.summaryProvider,
         this.plugin.settings.summaryModel
       )
-    });
+    );
+  }
 
-    if (this.plugin.settings.summaryProvider === "openrouter") {
-      new Setting(containerEl)
-        .setName("OpenRouter API Key")
-        .setDesc("只在摘要 Provider 選擇 OpenRouter 時使用。")
-        .addText((text) =>
-          text
-            .setPlaceholder("輸入 OpenRouter API Key")
-            .setValue(this.plugin.settings.openRouterApiKey)
-            .onChange(async (value) => {
-              this.plugin.settings.openRouterApiKey = value.trim();
-              await this.plugin.saveSettings();
-            })
-        );
-    }
+  private renderProviderSettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h2", { text: "AI 模型" });
+    this.renderTranscriptionSettings(containerEl);
+    this.renderSummarySettings(containerEl);
   }
 
   private renderTemplateExperience(containerEl: HTMLElement): void {
