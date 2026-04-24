@@ -1,9 +1,16 @@
-﻿{
+{
   "name": "obsidian-ai-summarizer",
-  "version": "0.0.1",
+  "version": "0.1.47-settings-diagnostics-and-version-sync",
   "description": "Obsidian plugin scaffold for AI Summarizer",
   "main": "main.js",
   "scripts": {
+    "version:sync": "node scripts/sync-version-from-dev-log.mjs",
+    "predev": "npm run version:sync",
+    "predev:vault": "npm run version:sync",
+    "predev:vault:target": "npm run version:sync",
+    "prebuild": "npm run version:sync",
+    "prebuild:vault": "npm run version:sync",
+    "prebuild:vault:target": "npm run version:sync",
     "dev": "node esbuild.config.mjs --watch",
     "dev:vault": "node esbuild.config.mjs --watch --vault \"D:\\程式開發\\Obsidian Test\"",
     "dev:vault:target": "node scripts/vault-sync.mjs --mode watch",
@@ -49,5 +56,3 @@
     "vitest": "^3.1.2"
   }
 }
-
-

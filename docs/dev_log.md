@@ -1,8 +1,33 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 16:24
+最後更新：2026-04-24 23:16
 
 ## 版本紀錄
+
+### 0.1.47-settings-diagnostics-and-version-sync - 2026-04-24 23:16
+
+範圍：
+- 收斂設定頁資訊架構與診斷 UX，並讓 plugin 版本號可跟隨 `docs/dev_log.md` 自動同步。
+
+主要變更：
+- 重寫 `src/ui/settings-tab.ts`
+- 設定頁改為分頁式結構：`AI 模型`、`輸出與媒體`、`模板與提示`、`診斷`
+- AI 模型設定改為兩段式結構：`轉錄模型  媒體轉文字` 與 `摘要模型  文字轉摘要`
+- 轉錄與摘要欄位統一為 `Provider`、`模型`、`API Key`
+- 摘要 provider 為 Gemini 時，API Key 自動共用轉錄模型的 Gemini API Key
+- 診斷頁改為先顯示使用者可讀的狀態摘要與功能可用性，再以 `詳細資訊` 收納 technical log
+- 新增 `scripts/sync-version-from-dev-log.mjs`
+- 從 `docs/dev_log.md` 最新版本條目同步 `manifest.json`、`package.json`、`package-lock.json`、`versions.json`
+- 更新 `package.json`
+- 新增 `version:sync`，並接入 `predev`、`prebuild`、`prebuild:vault` 等前置流程
+- 更新 `manifest.json`、`versions.json`、`package-lock.json`
+- plugin 顯示版本改由 dev log 最新版本驅動，現已同步為 `0.1.47-settings-diagnostics-and-version-sync`
+
+驗證：
+- `npm run typecheck`
+- `npm run test -- tests/unit/settings.test.ts`
+- `npm run build:vault`
+- `git diff`
 
 ### 0.1.46-cap-205-model-split-and-provider-routing - 2026-04-24 16:24
 

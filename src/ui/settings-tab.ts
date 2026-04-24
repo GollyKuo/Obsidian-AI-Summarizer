@@ -1,7 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import {
-  GEMINI_MODEL_OPTIONS,
-  OPENROUTER_SUMMARY_MODEL_OPTIONS,
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
   getSummaryModelOptions,
@@ -13,12 +11,14 @@ import {
   type TranscriptionModel,
   type TranscriptionProvider
 } from "@domain/settings";
-import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import type { RetentionMode, SourceType } from "@domain/types";
+import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
+import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
   formatRuntimeDiagnosticsSummary,
   type AppSurface,
+  type DiagnosticsState,
   type RuntimeDiagnosticsSummary
 } from "@services/media/runtime-diagnostics";
 import {
@@ -26,8 +26,16 @@ import {
   isBuiltinTemplateReference,
   listBuiltinTemplates
 } from "@services/obsidian/template-library";
-import { listPromptAssets } from "@services/ai/prompt-assets";
 import { getSourceGuidance } from "@ui/source-guidance";
+
+type SettingsSection = "ai_models" | "output_media" | "templates_prompts" | "diagnostics";
+
+const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
+  { id: "ai_models", label: "AI 模型" },
+  { id: "output_media", label: "輸出與媒體" },
+  { id: "templates_prompts", label: "模板與提示" },
+  { id: "diagnostics", label: "診斷" }
+];
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
 const RETENTION_OPTIONS: RetentionMode[] = ["none", "source", "all"];
@@ -38,6 +46,12 @@ const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁 URL",
   media_url: "媒體 URL",
   local_media: "本機媒體"
+};
+
+const DIAGNOSTIC_CAPABILITY_LABELS: Record<SourceType, string> = {
+  webpage_url: "網頁摘要",
+  media_url: "YouTube / 媒體網址",
+  local_media: "本機音訊 / 影片"
 };
 
 const RETENTION_LABELS: Record<RetentionMode, string> = {
@@ -76,24 +90,65 @@ function getTemplateDropdownValue(templateReference: string): string {
   return CUSTOM_TEMPLATE_OPTION;
 }
 
-function getSelectedModelDescription(
-  provider: SummaryProvider | TranscriptionProvider,
-  model: SummaryModel | TranscriptionModel
-): string {
-  const options =
-    provider === "openrouter" ? OPENROUTER_SUMMARY_MODEL_OPTIONS : GEMINI_MODEL_OPTIONS;
-  return options.find((option) => option.value === model)?.description ?? "";
+function addInlineHeading(containerEl: HTMLElement, title: string, hint: string): void {
+  const headingEl = containerEl.createEl("h3", { text: title });
+  const hintEl = headingEl.createSpan({
+    cls: "ai-summarizer-settings-heading-hint",
+    text: hint
+  });
+  hintEl.style.marginLeft = "2rem";
+  hintEl.style.color = "var(--text-muted)";
+  hintEl.style.fontSize = "0.9em";
+  hintEl.style.fontWeight = "500";
 }
 
-function addSectionNote(containerEl: HTMLElement, text: string): void {
-  containerEl.createEl("p", {
-    cls: "ai-summarizer-settings-note",
-    text
-  });
+function getDiagnosticStateLabel(state: DiagnosticsState): string {
+  if (state === "ready") {
+    return "可用";
+  }
+  if (state === "warning") {
+    return "需注意";
+  }
+  if (state === "error") {
+    return "不可用";
+  }
+  return "略過";
+}
+
+function getDiagnosticStatusText(summary: RuntimeDiagnosticsSummary): string {
+  if (summary.overallState === "ready") {
+    return "媒體處理狀態：正常";
+  }
+  if (summary.overallState === "warning") {
+    return "媒體處理狀態：需注意";
+  }
+  return "媒體處理狀態：異常";
+}
+
+function getDiagnosticUserMessage(summary: RuntimeDiagnosticsSummary): string {
+  if (summary.dependencies.state === "error" && summary.dependencies.diagnostics) {
+    const missingDependencies = summary.dependencies.diagnostics.statuses
+      .filter((status) => !status.available)
+      .map((status) => status.name)
+      .join(" / ");
+
+    return `缺少 ${missingDependencies}，音訊與影片轉錄目前無法使用。`;
+  }
+
+  if (summary.overallState === "ready") {
+    return "網頁摘要、媒體網址與本機音訊/影片功能都可以使用。";
+  }
+
+  if (summary.overallState === "warning") {
+    return "部分媒體功能需要注意，請展開詳細資訊確認環境狀態。";
+  }
+
+  return "媒體處理環境尚未準備完成，音訊與影片相關功能可能無法使用。";
 }
 
 export class AISummarizerSettingTab extends PluginSettingTab {
   private readonly plugin: AISummarizerPlugin;
+  private activeSection: SettingsSection = "ai_models";
   private runtimeDiagnostics: RuntimeDiagnosticsSummary | null = null;
   private runtimeDiagnosticsError: string | null = null;
   private diagnosticsLoading = false;
@@ -163,30 +218,31 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderSharedGeminiSettings(containerEl: HTMLElement): void {
-    new Setting(containerEl)
-      .setName("Gemini API Key")
-      .setDesc("供 Gemini 轉錄與 Gemini 摘要共用。摘要 Provider 切到 OpenRouter 時，會另外顯示 OpenRouter API Key。")
-      .addText((text) =>
-        text
-          .setPlaceholder("輸入 Gemini API Key")
-          .setValue(this.plugin.settings.apiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.apiKey = value.trim();
-            await this.plugin.saveSettings();
-          })
-      );
+  private renderSectionTabs(containerEl: HTMLElement): void {
+    const tabsEl = containerEl.createDiv({ cls: "ai-summarizer-settings-tabs" });
+    tabsEl.style.display = "flex";
+    tabsEl.style.flexWrap = "wrap";
+    tabsEl.style.gap = "0.5rem";
+    tabsEl.style.margin = "1rem 0 1.25rem";
+
+    for (const section of SETTINGS_SECTIONS) {
+      const buttonEl = tabsEl.createEl("button", {
+        cls: section.id === this.activeSection ? "mod-cta" : "",
+        text: section.label
+      });
+      buttonEl.type = "button";
+      buttonEl.onclick = () => {
+        this.activeSection = section.id;
+        this.display();
+      };
+    }
   }
 
   private renderTranscriptionSettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "轉錄模型設定" });
-    addSectionNote(
-      containerEl,
-      "用於 media URL 與本機媒體，負責把音訊或影片轉成逐字稿。Provider 保留為可擴充欄位，目前可選 Gemini。"
-    );
+    addInlineHeading(containerEl, "轉錄模型", "媒體轉文字");
 
     new Setting(containerEl)
-      .setName("轉錄 Provider")
+      .setName("Provider")
       .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
@@ -204,7 +260,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("轉錄模型")
+      .setName("模型")
       .setDesc("建議選穩定的 Gemini audio-capable 模型。")
       .addDropdown((dropdown) => {
         for (const option of getTranscriptionModelOptions()) {
@@ -220,24 +276,26 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           });
       });
 
-    addSectionNote(
-      containerEl,
-      getSelectedModelDescription(
-        this.plugin.settings.transcriptionProvider,
-        this.plugin.settings.transcriptionModel
-      )
-    );
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc("Gemini 轉錄使用的 API Key。")
+      .addText((text) =>
+        text
+          .setPlaceholder("輸入 Gemini API Key")
+          .setValue(this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.apiKey = value.trim();
+            await this.plugin.saveSettings();
+            this.display();
+          })
+      );
   }
 
   private renderSummarySettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "摘要模型設定" });
-    addSectionNote(
-      containerEl,
-      "用於網頁摘要與逐字稿摘要，只負責整理文字內容。可使用 Gemini，或切到 OpenRouter/Qwen 做 transcript-first 摘要。"
-    );
+    addInlineHeading(containerEl, "摘要模型", "文字轉摘要");
 
     new Setting(containerEl)
-      .setName("摘要 Provider")
+      .setName("Provider")
       .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
       .addDropdown((dropdown) => {
         for (const option of SUMMARY_PROVIDER_OPTIONS) {
@@ -253,25 +311,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         });
       });
 
-    if (this.plugin.settings.summaryProvider === "openrouter") {
-      new Setting(containerEl)
-        .setName("OpenRouter API Key")
-        .setDesc("摘要 Provider 選 OpenRouter 時使用。Gemini 摘要會使用上方 Gemini API Key。")
-        .addText((text) =>
-          text
-            .setPlaceholder("輸入 OpenRouter API Key")
-            .setValue(this.plugin.settings.openRouterApiKey)
-            .onChange(async (value) => {
-              this.plugin.settings.openRouterApiKey = value.trim();
-              await this.plugin.saveSettings();
-            })
-        );
-    } else {
-      addSectionNote(containerEl, "摘要 Provider 為 Gemini 時，會使用上方 Gemini API Key。");
-    }
-
     new Setting(containerEl)
-      .setName("摘要模型")
+      .setName("模型")
       .setDesc("摘要模型只處理文字輸入；媒體逐字稿會先由轉錄模型產生。")
       .addDropdown((dropdown) => {
         for (const option of getSummaryModelOptions(this.plugin.settings.summaryProvider)) {
@@ -285,20 +326,107 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         });
       });
 
-    addSectionNote(
-      containerEl,
-      getSelectedModelDescription(
-        this.plugin.settings.summaryProvider,
-        this.plugin.settings.summaryModel
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc(
+        this.plugin.settings.summaryProvider === "openrouter"
+          ? "OpenRouter 摘要使用的 API Key。"
+          : "Gemini 摘要會自動使用轉錄模型的 Gemini API Key。"
       )
-    );
+      .addText((text) => {
+        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
+        text
+          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
+          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            if (isOpenRouter) {
+              this.plugin.settings.openRouterApiKey = value.trim();
+            } else {
+              this.plugin.settings.apiKey = value.trim();
+            }
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      });
   }
 
-  private renderProviderSettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h2", { text: "AI 模型" });
-    this.renderSharedGeminiSettings(containerEl);
+  private renderAiModelSettings(containerEl: HTMLElement): void {
     this.renderTranscriptionSettings(containerEl);
     this.renderSummarySettings(containerEl);
+  }
+
+  private renderOutputAndMediaSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName("輸出資料夾")
+      .setDesc("摘要筆記寫入 vault 的相對資料夾；空值表示寫到 vault 根目錄。")
+      .addText((text) =>
+        text.setValue(this.plugin.settings.outputFolder).onChange(async (value) => {
+          this.plugin.settings.outputFolder = value.trim();
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("媒體快取資料夾")
+      .setDesc("media URL 與本機媒體流程的暫存目錄。請填入絕對路徑，避免寫進 vault。")
+      .addText((text) =>
+        text
+          .setPlaceholder("例如 D:\\AI-Summarizer\\media-cache")
+          .setValue(this.plugin.settings.mediaCacheRoot)
+          .onChange(async (value) => {
+            this.plugin.settings.mediaCacheRoot = value.trim();
+            this.runtimeDiagnostics = null;
+            await this.plugin.saveSettings();
+          })
+      )
+      .addButton((button) =>
+        button.setButtonText("選擇資料夾").onClick(() => {
+          void this.pickMediaStorageDirectory();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("產物保留模式")
+      .setDesc("控制 media pipeline 完成後保留哪些暫存產物。")
+      .addDropdown((dropdown) => {
+        for (const mode of RETENTION_OPTIONS) {
+          dropdown.addOption(mode, RETENTION_LABELS[mode]);
+        }
+
+        dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
+          this.plugin.settings.retentionMode = value as RetentionMode;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("媒體壓縮策略")
+      .setDesc("控制送進轉錄階段前的音訊壓縮品質。")
+      .addDropdown((dropdown) => {
+        for (const profile of MEDIA_COMPRESSION_OPTIONS) {
+          dropdown.addOption(profile, MEDIA_COMPRESSION_LABELS[profile]);
+        }
+
+        dropdown.setValue(this.plugin.settings.mediaCompressionProfile).onChange(async (value) => {
+          this.plugin.settings.mediaCompressionProfile = value as MediaCompressionProfile;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("預設輸入類型")
+      .setDesc("開啟 AI 摘要器時預先選中的輸入類型。")
+      .addDropdown((dropdown) => {
+        for (const sourceType of SOURCE_TYPE_OPTIONS) {
+          dropdown.addOption(sourceType, SOURCE_TYPE_LABELS[sourceType]);
+        }
+
+        dropdown.setValue(this.plugin.settings.lastSourceType).onChange(async (value) => {
+          this.plugin.settings.lastSourceType = value as SourceType;
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
   }
 
   private renderTemplateExperience(containerEl: HTMLElement): void {
@@ -391,112 +519,53 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     guidanceList.createEl("li", { text: `空值提示：${guidance.emptyValueHint}` });
   }
 
-  private renderDiagnostics(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "執行環境診斷" });
-
-    new Setting(containerEl)
-      .setName("Runtime / 依賴檢查")
-      .setDesc("檢查桌面/行動端環境、yt-dlp、ffmpeg、ffprobe、cache root 與 capability readiness。")
-      .addButton((button) =>
-        button
-          .setButtonText(this.diagnosticsLoading ? "檢查中..." : "重新檢查")
-          .setDisabled(this.diagnosticsLoading)
-          .onClick(() => {
-            void this.refreshDiagnostics();
-          })
-      );
-
-    const diagnosticsEl = containerEl.createDiv({ cls: "ai-summarizer-diagnostics" });
-    const text = this.runtimeDiagnosticsError
-      ? `Diagnostics failed: ${this.runtimeDiagnosticsError}`
-      : this.runtimeDiagnostics
-        ? formatRuntimeDiagnosticsSummary(this.runtimeDiagnostics).join("\n")
-        : this.diagnosticsLoading
-          ? "Collecting diagnostics..."
-          : "Diagnostics have not been run yet.";
-
-    diagnosticsEl.createEl("pre", { text });
+  private renderTemplateAndPromptSettings(containerEl: HTMLElement): void {
+    this.renderTemplateExperience(containerEl);
+    this.renderPromptAssets(containerEl);
+    this.renderInputGuidance(containerEl);
   }
 
-  public display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.createEl("h2", { text: "AI Summarizer 設定" });
+  private renderDiagnosticOverview(containerEl: HTMLElement): void {
+    const diagnosticsEl = containerEl.createDiv({ cls: "ai-summarizer-diagnostics" });
+    diagnosticsEl.style.marginTop = "1rem";
 
-    this.renderProviderSettings(containerEl);
+    if (this.runtimeDiagnosticsError) {
+      diagnosticsEl.createEl("h3", { text: "檢查失敗" });
+      diagnosticsEl.createEl("p", { text: this.runtimeDiagnosticsError });
+      return;
+    }
 
-    new Setting(containerEl)
-      .setName("輸出資料夾")
-      .setDesc("摘要筆記寫入 vault 的相對資料夾；空值表示寫到 vault 根目錄。")
-      .addText((text) =>
-        text.setValue(this.plugin.settings.outputFolder).onChange(async (value) => {
-          this.plugin.settings.outputFolder = value.trim();
-          await this.plugin.saveSettings();
-        })
-      );
+    if (this.diagnosticsLoading) {
+      diagnosticsEl.createEl("h3", { text: "正在檢查..." });
+      diagnosticsEl.createEl("p", { text: "正在確認外掛執行環境與媒體處理工具。" });
+      return;
+    }
 
-    new Setting(containerEl)
-      .setName("媒體快取資料夾")
-      .setDesc("media URL 與本機媒體流程的暫存目錄。請填入絕對路徑，避免寫進 vault。")
-      .addText((text) =>
-        text
-          .setPlaceholder("例如 D:\\AI-Summarizer\\media-cache")
-          .setValue(this.plugin.settings.mediaCacheRoot)
-          .onChange(async (value) => {
-            this.plugin.settings.mediaCacheRoot = value.trim();
-            this.runtimeDiagnostics = null;
-            await this.plugin.saveSettings();
-          })
-      )
-      .addButton((button) =>
-        button.setButtonText("選擇資料夾").onClick(() => {
-          void this.pickMediaStorageDirectory();
-        })
-      );
+    if (!this.runtimeDiagnostics) {
+      diagnosticsEl.createEl("h3", { text: "尚未檢查" });
+      diagnosticsEl.createEl("p", { text: "按下重新檢查後，這裡會顯示目前可用功能。" });
+      return;
+    }
 
-    new Setting(containerEl)
-      .setName("產物保留模式")
-      .setDesc("控制 media pipeline 完成後保留哪些暫存產物。")
-      .addDropdown((dropdown) => {
-        for (const mode of RETENTION_OPTIONS) {
-          dropdown.addOption(mode, RETENTION_LABELS[mode]);
-        }
+    diagnosticsEl.createEl("h3", { text: getDiagnosticStatusText(this.runtimeDiagnostics) });
+    diagnosticsEl.createEl("p", { text: getDiagnosticUserMessage(this.runtimeDiagnostics) });
 
-        dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
-          this.plugin.settings.retentionMode = value as RetentionMode;
-          await this.plugin.saveSettings();
-        });
-      });
+    const listEl = diagnosticsEl.createEl("ul");
+    for (const capability of this.runtimeDiagnostics.capabilities) {
+      const label = DIAGNOSTIC_CAPABILITY_LABELS[capability.sourceType];
+      const status = getDiagnosticStateLabel(capability.state);
+      listEl.createEl("li", { text: `${label}：${status}` });
+    }
 
-    new Setting(containerEl)
-      .setName("媒體壓縮策略")
-      .setDesc("控制送進轉錄階段前的音訊壓縮品質。")
-      .addDropdown((dropdown) => {
-        for (const profile of MEDIA_COMPRESSION_OPTIONS) {
-          dropdown.addOption(profile, MEDIA_COMPRESSION_LABELS[profile]);
-        }
+    const detailsEl = diagnosticsEl.createEl("details");
+    detailsEl.style.marginTop = "1rem";
+    detailsEl.createEl("summary", { text: "詳細資訊" });
+    detailsEl.createEl("pre", {
+      text: formatRuntimeDiagnosticsSummary(this.runtimeDiagnostics).join("\n")
+    });
+  }
 
-        dropdown.setValue(this.plugin.settings.mediaCompressionProfile).onChange(async (value) => {
-          this.plugin.settings.mediaCompressionProfile = value as MediaCompressionProfile;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("預設輸入類型")
-      .setDesc("開啟 AI 摘要器時預先選中的輸入類型。")
-      .addDropdown((dropdown) => {
-        for (const sourceType of SOURCE_TYPE_OPTIONS) {
-          dropdown.addOption(sourceType, SOURCE_TYPE_LABELS[sourceType]);
-        }
-
-        dropdown.setValue(this.plugin.settings.lastSourceType).onChange(async (value) => {
-          this.plugin.settings.lastSourceType = value as SourceType;
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
-
+  private renderDiagnostics(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("除錯模式")
       .setDesc("開啟後會輸出更多 plugin log。")
@@ -507,12 +576,52 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         })
       );
 
-    this.renderTemplateExperience(containerEl);
-    this.renderPromptAssets(containerEl);
-    this.renderInputGuidance(containerEl);
-    this.renderDiagnostics(containerEl);
+    new Setting(containerEl)
+      .setName("媒體功能檢查")
+      .setDesc("確認網頁摘要、媒體網址與本機音訊/影片是否可用。")
+      .addButton((button) =>
+        button
+          .setButtonText(this.diagnosticsLoading ? "檢查中..." : "重新檢查")
+          .setDisabled(this.diagnosticsLoading)
+          .onClick(() => {
+            void this.refreshDiagnostics();
+          })
+      );
 
-    if (!this.runtimeDiagnostics && !this.diagnosticsLoading) {
+    this.renderDiagnosticOverview(containerEl);
+  }
+
+  private renderActiveSection(containerEl: HTMLElement): void {
+    if (this.activeSection === "ai_models") {
+      this.renderAiModelSettings(containerEl);
+      return;
+    }
+
+    if (this.activeSection === "output_media") {
+      this.renderOutputAndMediaSettings(containerEl);
+      return;
+    }
+
+    if (this.activeSection === "templates_prompts") {
+      this.renderTemplateAndPromptSettings(containerEl);
+      return;
+    }
+
+    this.renderDiagnostics(containerEl);
+  }
+
+  public display(): void {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "AI Summarizer 設定" });
+    this.renderSectionTabs(containerEl);
+    this.renderActiveSection(containerEl);
+
+    if (
+      this.activeSection === "diagnostics" &&
+      !this.runtimeDiagnostics &&
+      !this.diagnosticsLoading
+    ) {
       void this.refreshDiagnostics();
     }
   }
