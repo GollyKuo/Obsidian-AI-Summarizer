@@ -67,6 +67,10 @@ npm run gate:release
 GitHub Actions: .github/workflows/release-gate.yml
 ```
 
+## Dependency Drift
+
+參考 `docs/dependency-update-strategy.md`，在 media 相關變更時確認 diagnostics 中的 `Dependency drift` 狀態。
+
 ## 使用規則
 
 - runtime / orchestration 變更：至少跑 `gate:local`

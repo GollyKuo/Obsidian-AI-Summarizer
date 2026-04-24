@@ -1,8 +1,39 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 09:26
+最後更新：2026-04-24 10:06
 
 ## 版本紀錄
+
+### 0.1.45-cap-404-dependency-drift-strategy - 2026-04-24 10:06
+
+範圍：
+- 完成 `CAP-404`，落地外部依賴 drift 檢查策略，加入非阻塞背景檢查、版本相容性規則與 release gate 文件規範。
+
+主要變更：
+- 新增 `src/services/media/dependency-drift.ts`
+- 定義 `yt-dlp` 版本老化（release date）與 `ffmpeg/ffprobe` major 相容性檢查
+- 新增 `src/plugin/dependency-drift-monitor.ts`
+- plugin 啟動後背景執行 dependency drift 檢查，含 timeout，不阻塞 onload
+- 更新 `src/plugin/AISummarizerPlugin.ts`
+- 啟動流程接入 dependency drift monitor
+- 更新 `src/services/media/runtime-diagnostics.ts`
+- diagnostics summary 新增 `Dependency drift` 狀態與明細
+- 新增單元測試：
+  - `tests/unit/dependency-drift.test.ts`
+  - `tests/unit/dependency-drift-monitor.test.ts`
+- 更新 `tests/unit/runtime-diagnostics.test.ts`
+- 新增 `docs/dependency-update-strategy.md`
+- 更新 `docs/release-gate.md` 與 `docs/test-matrix.md`
+- 定義 drift 對 smoke/release gate 的放行規則
+- 更新 `docs/commands-reference.md`、`README.md`
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-404` 四個未完成項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `git diff`
 
 ### 0.1.44-cap-403-release-build-vault-sync - 2026-04-24 09:26
 

@@ -63,6 +63,7 @@ describe("runtime diagnostics", () => {
     expect(summary.environment.appSurface).toBe("desktop");
     expect(summary.cacheRoot.state).toBe("ready");
     expect(summary.dependencies.state).toBe("ready");
+    expect(summary.dependencyDrift.state).toBe("ready");
     expect(summary.capabilities).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -100,6 +101,7 @@ describe("runtime diagnostics", () => {
     expect(summary.overallState).toBe("warning");
     expect(summary.cacheRoot.state).toBe("skipped");
     expect(summary.dependencies.state).toBe("skipped");
+    expect(summary.dependencyDrift.state).toBe("skipped");
     expect(cacheRootResolverCalled).toBe(false);
     expect(summary.capabilities).toEqual(
       expect.arrayContaining([
@@ -152,6 +154,7 @@ describe("runtime diagnostics", () => {
       expect.arrayContaining([
         "Overall: error",
         "App surface: desktop",
+        expect.stringContaining("Dependency drift: error"),
         expect.stringContaining("dependency yt-dlp: error"),
         expect.stringContaining("media_url: error")
       ])

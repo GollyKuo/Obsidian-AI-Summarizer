@@ -6,6 +6,10 @@ import {
   type MediaRuntimeDependencyDiagnostics
 } from "@services/media/dependency-readiness";
 import {
+  evaluateDependencyDrift,
+  type DependencyDriftReport
+} from "@services/media/dependency-drift";
+import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
 } from "@services/media/media-cache-root";
@@ -32,6 +36,12 @@ export interface DependencyDiagnosticsSummary {
   diagnostics?: MediaRuntimeDependencyDiagnostics;
 }
 
+export interface DependencyDriftDiagnosticsSummary {
+  state: DiagnosticsState;
+  message: string;
+  report?: DependencyDriftReport;
+}
+
 export interface RuntimeDiagnosticsSummary {
   checkedAt: string;
   overallState: Exclude<DiagnosticsState, "skipped">;
@@ -42,6 +52,7 @@ export interface RuntimeDiagnosticsSummary {
   };
   cacheRoot: CacheRootDiagnostics;
   dependencies: DependencyDiagnosticsSummary;
+  dependencyDrift: DependencyDriftDiagnosticsSummary;
   capabilities: CapabilityDiagnostics[];
 }
 
@@ -131,6 +142,32 @@ async function collectDependencyDiagnostics(
   }
 }
 
+function collectDependencyDriftDiagnostics(
+  strategy: RuntimeStrategy,
+  dependencies: DependencyDiagnosticsSummary
+): DependencyDriftDiagnosticsSummary {
+  if (strategy !== "local_bridge") {
+    return {
+      state: "skipped",
+      message: "Skipped because runtime strategy is placeholder_only."
+    };
+  }
+
+  if (!dependencies.diagnostics) {
+    return {
+      state: "skipped",
+      message: "Skipped because dependency diagnostics are unavailable."
+    };
+  }
+
+  const report = evaluateDependencyDrift(dependencies.diagnostics);
+  return {
+    state: report.state,
+    message: report.message,
+    report
+  };
+}
+
 function buildMediaCapabilityReason(
   settings: AISummarizerPluginSettings,
   cacheRoot: CacheRootDiagnostics,
@@ -170,11 +207,13 @@ function buildMediaCapabilityReason(
 function computeOverallState(
   cacheRoot: CacheRootDiagnostics,
   dependencies: DependencyDiagnosticsSummary,
+  dependencyDrift: DependencyDriftDiagnosticsSummary,
   capabilities: CapabilityDiagnostics[]
 ): Exclude<DiagnosticsState, "skipped"> {
   if (
     cacheRoot.state === "error" ||
     dependencies.state === "error" ||
+    dependencyDrift.state === "error" ||
     capabilities.some((capability) => capability.state === "error")
   ) {
     return "error";
@@ -183,6 +222,7 @@ function computeOverallState(
   if (
     cacheRoot.state === "warning" ||
     dependencies.state === "warning" ||
+    dependencyDrift.state === "warning" ||
     capabilities.some((capability) => capability.state === "warning")
   ) {
     return "warning";
@@ -199,6 +239,7 @@ export async function collectRuntimeDiagnostics(
   const dependencyChecker = options.dependencyChecker ?? runMediaDependencyReadinessCheck;
   const cacheRoot = await collectCacheRootDiagnostics(settings, cacheRootResolver);
   const dependencies = await collectDependencyDiagnostics(settings.runtimeStrategy, dependencyChecker);
+  const dependencyDrift = collectDependencyDriftDiagnostics(settings.runtimeStrategy, dependencies);
   const mediaCapability = buildMediaCapabilityReason(settings, cacheRoot, dependencies);
 
   const capabilities: CapabilityDiagnostics[] = [
@@ -220,7 +261,7 @@ export async function collectRuntimeDiagnostics(
 
   return {
     checkedAt: new Date().toISOString(),
-    overallState: computeOverallState(cacheRoot, dependencies, capabilities),
+    overallState: computeOverallState(cacheRoot, dependencies, dependencyDrift, capabilities),
     environment: {
       appSurface: options.appSurface ?? "unknown",
       platform: options.platform ?? process.platform,
@@ -228,6 +269,7 @@ export async function collectRuntimeDiagnostics(
     },
     cacheRoot,
     dependencies,
+    dependencyDrift,
     capabilities
   };
 }
@@ -253,6 +295,7 @@ export function formatRuntimeDiagnosticsSummary(summary: RuntimeDiagnosticsSumma
     `Runtime strategy: ${summary.environment.runtimeStrategy}`,
     `Cache root: ${stateLabel(summary.cacheRoot.state)} - ${summary.cacheRoot.message}`,
     `Dependencies: ${stateLabel(summary.dependencies.state)} - ${summary.dependencies.message}`,
+    `Dependency drift: ${stateLabel(summary.dependencyDrift.state)} - ${summary.dependencyDrift.message}`,
     "Capabilities:"
   ];
 
@@ -261,6 +304,12 @@ export function formatRuntimeDiagnosticsSummary(summary: RuntimeDiagnosticsSumma
       const dependencyState = status.available ? "ready" : "error";
       const detail = status.available ? status.version : status.errorMessage ?? "unavailable";
       lines.push(`  - dependency ${status.name}: ${dependencyState} - ${detail}`);
+    }
+  }
+
+  if (summary.dependencyDrift.report) {
+    for (const item of summary.dependencyDrift.report.items) {
+      lines.push(`  - drift ${item.dependency}: ${item.severity} - ${item.message}`);
     }
   }
 

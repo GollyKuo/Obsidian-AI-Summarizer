@@ -227,7 +227,7 @@ Why：
 
 Open Work：
 
-- [ ] 規劃 `yt-dlp` update strategy（版本檢查、更新提醒、未來自動更新）
-- [ ] 定義非阻塞版本檢查與更新提醒流程，要求背景執行、具 timeout，且不得阻塞 plugin 啟動
-- [ ] 規劃 `ffmpeg` / `ffprobe` 相容性與平台差異檢查
-- [ ] 定義 dependency drift 對 smoke / release gate 的影響
+- [x] 規劃 `yt-dlp` update strategy（版本檢查、更新提醒、未來自動更新）（完成：2026-04-24 10:06）
+- [x] 定義非阻塞版本檢查與更新提醒流程，要求背景執行、具 timeout，且不得阻塞 plugin 啟動（完成：2026-04-24 10:06）
+- [x] 規劃 `ffmpeg` / `ffprobe` 相容性與平台差異檢查（完成：2026-04-24 10:06）
+- [x] 定義 dependency drift 對 smoke / release gate 的影響（完成：2026-04-24 10:06）

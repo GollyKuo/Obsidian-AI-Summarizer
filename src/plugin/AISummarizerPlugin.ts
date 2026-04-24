@@ -7,6 +7,7 @@ import {
 } from "@services/diagnostics/issue-reporting";
 import { registerCommands } from "@plugin/commands";
 import { registerLifecycleHooks, type PluginLifecycleContext } from "@plugin/lifecycle";
+import { startDependencyDriftMonitor } from "@plugin/dependency-drift-monitor";
 import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
@@ -27,6 +28,7 @@ export default class AISummarizerPlugin extends Plugin {
     this.addSettingTab(new AISummarizerSettingTab(this.app, this));
     registerCommands(this);
     this.lifecycleContext = registerLifecycleHooks(this);
+    startDependencyDriftMonitor(this);
     this.notify("AI Summarizer plugin loaded.");
     this.reportInfo("plugin", "Plugin loaded.");
   }
