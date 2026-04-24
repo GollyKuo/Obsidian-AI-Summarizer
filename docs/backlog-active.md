@@ -91,6 +91,7 @@ Why嚗??桀?撌脫? typecheck/test/build嚗??Ｗ??賢?憓?敺??閬
 Open Work嚗?
 - [x] 整理 webpage / media URL / local media 的 smoke checklist（2026-04-24 01:28）
 - [x] 建立 capability-based 測試矩陣（2026-04-24 01:28）
+- [x] 定義桌面 regression gate，確保新 runtime 或新流程不破壞既有 webpage flow（2026-04-24 07:35）
 
 ### CAP-402 Diagnostics And Error Reporting 閮箸?隤文???
 Why嚗?????debug log?像?啣皜祇?胯?頛敺拍?撽??唳瑽???observability ?嗆?甇???賢?嚗??航??log??

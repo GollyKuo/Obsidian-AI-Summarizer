@@ -6,7 +6,7 @@
 
 | Capability | Surface | Automated | Manual Smoke | Gate |
 |---|---|---|---|---|
-| `webpage` | desktop | integration + unit | `npm run smoke:webpage` | `gate:local`, `gate:release` |
+| `webpage` | desktop | integration + regression + unit | `npm run smoke:webpage` | `gate:local`, `gate:regression:desktop`, `gate:release` |
 | `webpage` | mobile | none | `npm run smoke:mobile` | `gate:release` |
 | `media_url` | desktop | integration + unit | `npm run smoke:media-url` | `gate:local`, `gate:release` |
 | `local_media` | desktop | integration + unit | `npm run smoke:local-media` | `gate:local`, `gate:release` |
@@ -16,6 +16,7 @@
 
 - `gate:local`: 型別、單元測試、整合測試、production build
 - `gate:local:vault`: `gate:local` 加上同步到測試 Vault 的 build
+- `gate:regression:desktop`: 明確守住 `webpage` 主線，避免新 runtime / media 變更造成回歸
 - `gate:release`: `gate:local` 後，列出 desktop/mobile smoke checklist，作為人工 release gate
 
 ## Regression Focus

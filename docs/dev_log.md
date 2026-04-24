@@ -1,8 +1,34 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 01:28
+最後更新：2026-04-24 07:35
 
 ## 版本紀錄
+
+### 0.1.40-webpage-regression-gate - 2026-04-24 07:35
+
+範圍：
+- 完成 `CAP-401` 最後一項，建立桌面 regression gate，明確守住 `webpage` 主線。
+
+主要變更：
+- 新增 `tests/regression/webpage-flow.regression.test.ts`
+- 補 `webpage` happy path invariants 與 invalid URL fail-fast regression coverage
+- 更新 `tests/README.md`
+- 新增 `regression/` 測試層說明
+- 更新 `package.json`
+- 新增 `test:regression:webpage` 與 `gate:regression:desktop`
+- `gate:release` 改為先跑 regression gate，再跑 smoke checklist
+- 更新 `docs/test-matrix.md`
+- 將 `webpage` desktop gate 標記為 `gate:regression:desktop`
+- 更新 `docs/commands-reference.md`
+- 更新 `docs/release-gate.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run test:regression:webpage`
+- `npm run gate:regression:desktop`
+- `npm run gate:release`
 
 ### 0.1.39-smoke-checklist-and-test-matrix - 2026-04-24 01:28
 

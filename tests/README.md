@@ -1,8 +1,5 @@
 # Test Layout
 
-本資料夾保留測試。
-
-預計子目錄：
-
-1. `unit/`
-2. `integration/`
+1. `unit/`: 小範圍服務與純函式驗證
+2. `integration/`: orchestration 與 capability 主線驗證
+3. `regression/`: 針對既有主線建立固定守門測試

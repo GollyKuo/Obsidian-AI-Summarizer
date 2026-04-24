@@ -9,6 +9,7 @@ npm run build
 npm run build:vault
 npm run gate:local
 npm run gate:local:vault
+npm run gate:regression:desktop
 ```
 
 ## Smoke Checklist
@@ -30,5 +31,6 @@ npm run gate:release
 ## 使用規則
 
 - runtime / orchestration 變更：至少跑 `gate:local`
+- 影響 `webpage` 主線或共用契約時：加跑 `gate:regression:desktop`
 - UI 變更：跑 `gate:local:vault`，再依序確認 `smoke:desktop`
 - 發版前：跑 `gate:release`，並同步更新 `docs/dev_log.md`
