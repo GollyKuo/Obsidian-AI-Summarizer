@@ -1,8 +1,43 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 08:28
+最後更新：2026-04-24 08:48
 
 ## 版本紀錄
+
+### 0.1.42-cap-302-settings-and-guidance - 2026-04-24 08:48
+
+範圍：
+- 完成 `CAP-302` 剩餘三項，補齊 template v1 UX、prompt/template 資產整理，以及三種輸入的引導與錯誤提示。
+
+主要變更：
+- 重寫 `src/ui/flow-modal/SummarizerFlowModal.ts`
+- modal 改為支援 `webpage_url`、`media_url`、`local_media` 三種輸入
+- 新增輸入類型切換、來源提示、常見來源範例、source-specific error hint
+- local media 在桌面版支援檔案挑選
+- 重寫 `src/ui/settings-tab.ts`
+- 新增 template v1 UX：預設 frontmatter、內建模板、自訂模板路徑
+- 新增 prompt 資產清單與輸入引導區塊
+- 新增 `src/services/obsidian/template-library.ts`
+- 建立內建 note output template catalog
+- 新增 `src/services/ai/prompt-assets.ts`
+- 整理固定 prompt asset inventory
+- 新增 `src/ui/source-guidance.ts`
+- 收斂 `webpage / media_url / local_media` 的 label、placeholder、hint 與 error copy
+- 更新 `src/services/obsidian/note-writer.ts`
+- 讓 builtin template 經由既有安全 frontmatter 輸出，不繞過 quote/escape
+- 新增單元測試：
+  - `tests/unit/template-library.test.ts`
+  - `tests/unit/prompt-assets.test.ts`
+  - `tests/unit/source-guidance.test.ts`
+- 更新 `tests/unit/note-writer.test.ts`
+- 驗證 builtin template 解析不依賴 custom template storage
+- 更新 `docs/backlog-active.md`
+- 勾選 `CAP-302` 剩餘三項
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
 
 ### 0.1.41-harden-encoding-safety-rules - 2026-04-24 08:28
 

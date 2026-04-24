@@ -4,6 +4,7 @@ import {
   buildDefaultFrontmatter,
   type TemplateData
 } from "@services/obsidian/template-resolver";
+import { resolveBuiltinTemplate } from "@services/obsidian/template-library";
 import { normalizeNoteMetadata } from "@services/obsidian/note-output-contract";
 import { resolveUniqueNotePathWithDiagnostics } from "@services/obsidian/path-resolver";
 
@@ -99,7 +100,13 @@ export class ObsidianNoteWriter implements NoteWriter {
   }
 
   private async buildContent(data: TemplateData, bodyMarkdown: string): Promise<string> {
+    const builtinTemplateBody = resolveBuiltinTemplate(this.options.templateReference);
+    if (builtinTemplateBody) {
+      return [buildDefaultFrontmatter(data), applyTemplate(builtinTemplateBody, data), "", bodyMarkdown].join("\n");
+    }
+
     const templateBody = await this.storage.readTemplate(this.options.templateReference);
+
     if (templateBody) {
       return [applyTemplate(templateBody, data), "", bodyMarkdown].join("\n");
     }

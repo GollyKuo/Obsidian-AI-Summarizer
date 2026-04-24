@@ -42,4 +42,42 @@ describe("note writer", () => {
     expect(writtenContent).toContain("Title: \"A \\\"Quote\\\"\"");
     expect(writtenContent).toContain("Creator: \"Unknown\"");
   });
+
+  it("uses builtin template references without reading custom template storage", async () => {
+    let writtenContent = "";
+    let readTemplateCalls = 0;
+
+    const storage = {
+      async exists(): Promise<boolean> {
+        return false;
+      },
+      async write(_path: string, content: string): Promise<void> {
+        writtenContent = content;
+      },
+      async readTemplate(): Promise<string | null> {
+        readTemplateCalls += 1;
+        return null;
+      }
+    };
+
+    const writer = new ObsidianNoteWriter(storage, {
+      outputFolder: "Summaries",
+      templateReference: "builtin:webpage-brief"
+    });
+
+    await writer.writeWebpageNote({
+      metadata: {
+        title: "Article",
+        creatorOrAuthor: "Author",
+        platform: "Web",
+        source: "https://example.com/article",
+        created: "2026-04-24T08:00:00.000Z"
+      },
+      summaryMarkdown: "## Summary\n\nHello"
+    });
+
+    expect(readTemplateCalls).toBe(0);
+    expect(writtenContent).toContain("## Capture");
+    expect(writtenContent).toContain("- URL: \"https://example.com/article\"");
+  });
 });

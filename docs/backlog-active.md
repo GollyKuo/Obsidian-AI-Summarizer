@@ -174,9 +174,9 @@ Why：
 Open Work：
 
 - [x] 新增 Obsidian 左側 ribbon 按鈕，點擊後開啟 `AI 摘要器`（完成：2026-04-24 00:08）
-- [ ] 決定 template 整合的第一版 UX
-- [ ] 整理 prompt 資產與 note output 範本
-- [ ] 建立 media / webpage / local media 的輸入引導與錯誤提示文案
+- [x] 決定 template 整合的第一版 UX（完成：2026-04-24 08:48）
+- [x] 整理 prompt 資產與 note output 範本（完成：2026-04-24 08:48）
+- [x] 建立 media / webpage / local media 的輸入引導與錯誤提示文案（完成：2026-04-24 08:48）
 
 ### CAP-303 Documentation And User Manual 文件與使用手冊
 
