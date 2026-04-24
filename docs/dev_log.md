@@ -1,8 +1,28 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 07:35
+最後更新：2026-04-24 08:28
 
 ## 版本紀錄
+
+### 0.1.41-harden-encoding-safety-rules - 2026-04-24 08:28
+
+範圍：
+- 針對 `docs/backlog-active.md` 亂碼事故補強正式編碼安全規範，限制高風險修改方式。
+
+主要變更：
+- 重寫 `docs/encoding-safety.md`
+- 從單純要求 UTF-8，提升為限制允許的中文文件修改方式
+- 明確禁止 PowerShell 5.1 對中文文件做 `Get-Content` / `Set-Content` round-trip
+- 明確禁止 `Out-File`、`>`、`>>` 覆寫 repo 中文文件
+- 新增 mojibake 停損規則、驗證流程與修復 SOP
+- 在規範中記錄 `docs/backlog-active.md` 事故根因與修復方式
+- 重寫 `.codex/references/encoding-safety.md`
+- 將 Codex 執行規則收斂為可直接操作的短版摘要
+
+驗證：
+- 手動比對此次事故 root cause 與規範內容一致
+- `git diff`
+- 必要時 `Format-Hex`
 
 ### 0.1.40-webpage-regression-gate - 2026-04-24 07:35
 
