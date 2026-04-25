@@ -446,6 +446,28 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
+  private persistSelectedModelInCatalog(
+    provider: SummaryProvider | TranscriptionProvider,
+    purpose: "summary" | "transcription",
+    modelId: string
+  ): void {
+    const normalizedModelId =
+      purpose === "transcription"
+        ? normalizeTranscriptionModel(modelId)
+        : normalizeSummaryModel(provider as SummaryProvider, modelId);
+
+    this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
+      this.plugin.settings.modelCatalog,
+      {
+        provider,
+        purpose,
+        displayName: normalizedModelId,
+        modelId: normalizedModelId,
+        source: "user"
+      }
+    );
+  }
+
   private async addModelCatalogDraft(): Promise<void> {
     const entry = createModelCatalogEntry({
       provider: this.modelCatalogDraftProvider,
@@ -604,192 +626,6 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private createModelCatalogPanel(containerEl: HTMLElement): HTMLElement {
-    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-model-catalog-panel" });
-    panelEl.style.margin = "0.75rem 0";
-    panelEl.style.padding = "1rem";
-    panelEl.style.border = "1px solid var(--background-modifier-border)";
-    panelEl.style.borderRadius = "8px";
-    panelEl.style.backgroundColor = "var(--background-secondary)";
-    return panelEl;
-  }
-
-  private createModelCatalogControlsGrid(containerEl: HTMLElement): HTMLElement {
-    const gridEl = containerEl.createDiv({ cls: "ai-summarizer-model-catalog-controls" });
-    gridEl.style.display = "grid";
-    gridEl.style.gridTemplateColumns = "repeat(auto-fit, minmax(10rem, 1fr))";
-    gridEl.style.gap = "0.75rem";
-    gridEl.style.alignItems = "center";
-    gridEl.style.marginTop = "0.75rem";
-    return gridEl;
-  }
-
-  private createModelProviderSelect(
-    containerEl: HTMLElement,
-    value: ModelProvider,
-    onChange: (value: ModelProvider) => void
-  ): HTMLSelectElement {
-    const selectEl = containerEl.createEl("select");
-    for (const option of [
-      { value: "gemini", label: "Gemini" },
-      { value: "openrouter", label: "OpenRouter" }
-    ] as const) {
-      const optionEl = selectEl.createEl("option", { text: option.label });
-      optionEl.value = option.value;
-    }
-    selectEl.value = value;
-    selectEl.onchange = () => {
-      onChange(selectEl.value as ModelProvider);
-    };
-    return selectEl;
-  }
-
-  private createModelPurposeSelect(
-    containerEl: HTMLElement,
-    value: ModelPurpose,
-    onChange: (value: ModelPurpose) => void
-  ): HTMLSelectElement {
-    const selectEl = containerEl.createEl("select");
-    for (const option of [
-      { value: "summary", label: "Summary" },
-      { value: "transcription", label: "Transcription" }
-    ] as const) {
-      const optionEl = selectEl.createEl("option", { text: option.label });
-      optionEl.value = option.value;
-    }
-    selectEl.value = value;
-    selectEl.onchange = () => {
-      onChange(selectEl.value as ModelPurpose);
-    };
-    return selectEl;
-  }
-
-  private createModelTextInput(
-    containerEl: HTMLElement,
-    placeholder: string,
-    value: string,
-    onChange: (value: string) => void
-  ): HTMLInputElement {
-    const inputEl = containerEl.createEl("input");
-    inputEl.type = "text";
-    inputEl.placeholder = placeholder;
-    inputEl.value = value;
-    inputEl.onchange = () => {
-      onChange(inputEl.value);
-    };
-    return inputEl;
-  }
-
-  private createModelButton(
-    containerEl: HTMLElement,
-    text: string,
-    onClick: () => void
-  ): HTMLButtonElement {
-    const buttonEl = containerEl.createEl("button", { text });
-    buttonEl.type = "button";
-    buttonEl.onclick = onClick;
-    return buttonEl;
-  }
-
-  private renderModelCatalogSettings(containerEl: HTMLElement): void {
-    addInlineHeading(containerEl, "Model list", "User-managed provider/model catalog");
-
-    const addPanel = this.createModelCatalogPanel(containerEl);
-    addPanel.createEl("h4", { text: "Add model" });
-    addPanel.createEl("p", {
-      text: "Each model records provider, purpose, display name, and model id."
-    });
-    const addControlsEl = this.createModelCatalogControlsGrid(addPanel);
-    this.createModelProviderSelect(addControlsEl, this.modelCatalogDraftProvider, (provider) => {
-      this.modelCatalogDraftProvider = provider;
-      if (provider === "openrouter") {
-        this.modelCatalogDraftPurpose = "summary";
-      }
-      this.display();
-    });
-    this.createModelPurposeSelect(addControlsEl, this.modelCatalogDraftPurpose, (purpose) => {
-      this.modelCatalogDraftPurpose = purpose;
-      if (purpose === "transcription") {
-        this.modelCatalogDraftProvider = "gemini";
-      }
-      this.display();
-    });
-    this.createModelTextInput(
-      addControlsEl,
-      "Display name",
-      this.modelCatalogDraftDisplayName,
-      (value) => {
-        this.modelCatalogDraftDisplayName = value;
-      }
-    );
-    this.createModelTextInput(addControlsEl, "model id", this.modelCatalogDraftModelId, (value) => {
-      this.modelCatalogDraftModelId = value;
-    });
-    this.createModelButton(addControlsEl, "Add", () => {
-      void this.addModelCatalogDraft();
-    });
-
-    const refreshPanel = this.createModelCatalogPanel(containerEl);
-    const refreshContentEl = refreshPanel.createDiv();
-    refreshContentEl.style.display = "grid";
-    refreshContentEl.style.gridTemplateColumns = "minmax(0, 1fr) auto";
-    refreshContentEl.style.gap = "1rem";
-    refreshContentEl.style.alignItems = "center";
-    const refreshTextEl = refreshContentEl.createDiv();
-    refreshTextEl.createEl("h4", { text: "OpenRouter model refresh" });
-    refreshTextEl.createEl("p", {
-      text: "Fetches the official OpenRouter models API and corrects matching names or ids."
-    });
-    const refreshButtonEl = this.createModelButton(
-      refreshContentEl,
-      this.openRouterModelSyncInProgress ? "Refreshing..." : "Refresh OpenRouter",
-      () => {
-        void this.syncOpenRouterModels();
-      }
-    );
-    refreshButtonEl.disabled = this.openRouterModelSyncInProgress;
-
-    if (this.plugin.settings.modelCatalog.length === 0) {
-      containerEl.createEl("p", {
-        text: "No saved models yet. Add a Gemini transcription model and a summary model before changing selections."
-      });
-      return;
-    }
-
-    for (const entry of this.plugin.settings.modelCatalog) {
-      const warning = getGeminiTranscriptionRiskMessage(entry);
-      const entryPanel = this.createModelCatalogPanel(containerEl);
-      entryPanel.createEl("h4", {
-        text: `${entry.displayName} (${entry.provider} / ${entry.purpose})`
-      });
-      entryPanel.createEl("p", {
-        text: warning ? `${entry.modelId}. ${warning}` : entry.modelId
-      });
-      const entryControlsEl = this.createModelCatalogControlsGrid(entryPanel);
-      this.createModelProviderSelect(entryControlsEl, entry.provider, (provider) => {
-        void this.updateModelCatalogEntry(entry, {
-          provider,
-          purpose: provider === "openrouter" ? "summary" : entry.purpose
-        });
-      });
-      this.createModelPurposeSelect(entryControlsEl, entry.purpose, (purpose) => {
-        void this.updateModelCatalogEntry(entry, {
-          purpose,
-          provider: purpose === "transcription" ? "gemini" : entry.provider
-        });
-      });
-      this.createModelTextInput(entryControlsEl, "Display name", entry.displayName, (value) => {
-        void this.updateModelCatalogEntry(entry, { displayName: value });
-      });
-      this.createModelTextInput(entryControlsEl, "model id", entry.modelId, (value) => {
-        void this.updateModelCatalogEntry(entry, { modelId: value });
-      });
-      this.createModelButton(entryControlsEl, "Delete", () => {
-        void this.deleteModelCatalogEntry(entry);
-      });
-    }
-  }
-
   private renderTranscriptionSettings(containerEl: HTMLElement): void {
     addInlineHeading(containerEl, "轉錄模型", "媒體轉文字");
 
@@ -932,10 +768,155 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
   }
 
+  private renderDirectTranscriptionSettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "轉錄模型", "媒體轉文字");
+
+    new Setting(containerEl)
+      .setName("Provider")
+      .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
+      .addDropdown((dropdown) => {
+        for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
+          dropdown.addOption(option.value, option.label);
+        }
+
+        dropdown
+          .setValue(this.plugin.settings.transcriptionProvider)
+          .onChange(async (value) => {
+            this.plugin.settings.transcriptionProvider = value as TranscriptionProvider;
+            this.persistSelectedModelInCatalog(
+              this.plugin.settings.transcriptionProvider,
+              "transcription",
+              this.plugin.settings.transcriptionModel
+            );
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("模型")
+      .setDesc("建議填入穩定的 Gemini audio-capable 模型。")
+      .addText((text) =>
+        text
+          .setPlaceholder("gemini-2.5-flash")
+          .setValue(this.plugin.settings.transcriptionModel)
+          .onChange(async (value) => {
+            this.plugin.settings.transcriptionModel = normalizeTranscriptionModel(value);
+            this.persistSelectedModelInCatalog(
+              this.plugin.settings.transcriptionProvider,
+              "transcription",
+              this.plugin.settings.transcriptionModel
+            );
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc("Gemini 轉錄使用的 API Key。")
+      .addText((text) =>
+        text
+          .setPlaceholder("輸入 Gemini API Key")
+          .setValue(this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.apiKey = value.trim();
+            await this.plugin.saveSettings();
+            this.display();
+          })
+      )
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "transcription" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testTranscriptionApi();
+          })
+      );
+  }
+
+  private renderDirectSummarySettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "摘要模型", "文字轉摘要");
+
+    new Setting(containerEl)
+      .setName("Provider")
+      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
+      .addDropdown((dropdown) => {
+        for (const option of SUMMARY_PROVIDER_OPTIONS) {
+          dropdown.addOption(option.value, option.label);
+        }
+
+        dropdown.setValue(this.plugin.settings.summaryProvider).onChange(async (value) => {
+          const provider = value as SummaryProvider;
+          this.plugin.settings.summaryProvider = provider;
+          this.plugin.settings.summaryModel = normalizeSummaryModel(
+            provider,
+            this.plugin.settings.summaryModel
+          );
+          this.persistSelectedModelInCatalog(provider, "summary", this.plugin.settings.summaryModel);
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("模型")
+      .setDesc("摘要模型只處理文字輸入；媒體逐字稿會先由轉錄模型產生。")
+      .addText((text) =>
+        text
+          .setPlaceholder(
+            this.plugin.settings.summaryProvider === "openrouter"
+              ? "qwen/qwen3.6-plus"
+              : "gemini-3.1-flash-lite-preview"
+          )
+          .setValue(this.plugin.settings.summaryModel)
+          .onChange(async (value) => {
+            this.plugin.settings.summaryModel = normalizeSummaryModel(
+              this.plugin.settings.summaryProvider,
+              value
+            );
+            this.persistSelectedModelInCatalog(
+              this.plugin.settings.summaryProvider,
+              "summary",
+              this.plugin.settings.summaryModel
+            );
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc(
+        this.plugin.settings.summaryProvider === "openrouter"
+          ? "OpenRouter 摘要使用的 API Key。"
+          : "Gemini 摘要會共用 Gemini API Key。"
+      )
+      .addText((text) => {
+        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
+        text
+          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
+          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            if (isOpenRouter) {
+              this.plugin.settings.openRouterApiKey = value.trim();
+            } else {
+              this.plugin.settings.apiKey = value.trim();
+            }
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      })
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "summary" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testSummaryApi();
+          })
+      );
+  }
+
   private renderAiModelSettings(containerEl: HTMLElement): void {
-    this.renderModelCatalogSettings(containerEl);
-    this.renderTranscriptionSettings(containerEl);
-    this.renderSummarySettings(containerEl);
+    this.renderDirectTranscriptionSettings(containerEl);
+    this.renderDirectSummarySettings(containerEl);
   }
 
   private renderOutputAndMediaSettings(containerEl: HTMLElement): void {
