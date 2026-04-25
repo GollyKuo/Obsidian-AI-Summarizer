@@ -249,3 +249,7 @@ Open Work：
 - [x] 定義非阻塞版本檢查與更新提醒流程，要求背景執行、具 timeout，且不得阻塞 plugin 啟動（完成：2026-04-24 10:06）
 - [x] 規劃 `ffmpeg` / `ffprobe` 相容性與平台差異檢查（完成：2026-04-24 10:06）
 - [x] 定義 dependency drift 對 smoke / release gate 的影響（完成：2026-04-24 10:06）
+
+## Final Handoff Gate 最終交付檢查
+
+- [ ] 最終專案交付前安全重置：確認 repo 與同步到 vault 的 plugin 副本都已回復原始乾淨狀態，並清空任何使用者輸入、本機測試資料、媒體產物、產生的 cache、API key、provider key、token，以及 settings、logs、drafts、build outputs、ignored local files 中可能殘留的 secrets。

@@ -160,6 +160,7 @@
 摘要：
 已完成 build / release / vault sync SOP，並完成 release automation 規劃。
 
+說明：CAP-403 負責可重複的 release / build / vault sync 流程，不承擔隱私政策、資料保留、secret handling 或最終交付清理。
 #### CAP-404 External Dependency Update Strategy 外部依賴更新策略
 
 狀態：`completed`
@@ -217,3 +218,4 @@
 
 摘要：
 保留 API key、cache、外部媒體與未來 migration / retention 政策規劃。
+說明：CAP-507 負責安全與隱私政策工作，例如 API key handling、cache / media retention、外部資料清理與 migration safety。具體的最終專案清理 checklist 追蹤在 `backlog-active.md` 最後的 `Final Handoff Gate`。

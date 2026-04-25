@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import path from "node:path";
 import { promisify } from "node:util";
 import { App, PluginSettingTab, Setting } from "obsidian";
 import {
@@ -24,6 +25,7 @@ import {
   type DiagnosticsState,
   type RuntimeDiagnosticsSummary
 } from "@services/media/runtime-diagnostics";
+import { ensureLatestProjectFfmpegTools } from "@services/media/ffmpeg-tool-installer";
 import {
   describeTemplateReference,
   isBuiltinTemplateReference,
@@ -178,6 +180,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private runtimeDiagnosticsError: string | null = null;
   private diagnosticsLoading = false;
   private apiTestTarget: ApiTestTarget | null = null;
+  private mediaToolInstallInProgress = false;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -201,6 +204,22 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private detectAppSurface(): AppSurface {
     return this.getDesktopDialog() ? "desktop" : "mobile";
+  }
+
+  private resolvePluginDirectory(): string | null {
+    const adapter = this.app.vault.adapter as typeof this.app.vault.adapter & {
+      getBasePath?: () => string;
+    };
+    if (typeof adapter.getBasePath !== "function") {
+      return null;
+    }
+
+    const vaultBasePath = adapter.getBasePath();
+    const pluginRelativeDirectory =
+      this.plugin.manifest.dir ??
+      path.join(this.app.vault.configDir, "plugins", this.plugin.manifest.id);
+
+    return path.join(vaultBasePath, pluginRelativeDirectory);
   }
 
   private async pickMediaStorageDirectory(): Promise<void> {
@@ -281,6 +300,46 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       const message = error instanceof Error ? error.message : String(error);
       this.plugin.notify(`找不到 ${toolName}。請先安裝，或用「選擇檔案」手動指定。`);
       this.plugin.reportWarning("media_tool_detection", `${toolName}: ${message}`);
+    }
+  }
+
+  private async installOrUpdateProjectMediaTools(): Promise<void> {
+    if (this.detectAppSurface() !== "desktop") {
+      this.plugin.notify("Automatic ffmpeg/ffprobe install requires Obsidian desktop.");
+      return;
+    }
+
+    if (this.mediaToolInstallInProgress) {
+      return;
+    }
+
+    const pluginDirectory = this.resolvePluginDirectory();
+    if (!pluginDirectory) {
+      this.plugin.notify("Automatic ffmpeg/ffprobe install requires filesystem access.");
+      return;
+    }
+
+    this.mediaToolInstallInProgress = true;
+    this.display();
+
+    try {
+      const result = await ensureLatestProjectFfmpegTools(pluginDirectory);
+      this.plugin.settings.ffmpegPath = result.ffmpegPath;
+      this.plugin.settings.ffprobePath = result.ffprobePath;
+      this.runtimeDiagnostics = null;
+      await this.plugin.saveSettings();
+      this.plugin.notify(
+        result.installed
+          ? `Installed ffmpeg/ffprobe ${result.version} to ${result.binDirectory}`
+          : `ffmpeg/ffprobe ${result.version} is already current in ${result.binDirectory}`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.notify(`ffmpeg/ffprobe automatic install failed: ${message}`);
+      this.plugin.reportWarning("media_tool_detection", message);
+    } finally {
+      this.mediaToolInstallInProgress = false;
+      this.display();
     }
   }
 
@@ -766,7 +825,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       )
       .addButton((button) =>
         button.setButtonText("自動填入").onClick(() => {
-          void this.autoDetectMediaToolExecutable(settingKey, toolName);
+          void this.installOrUpdateProjectMediaTools();
         })
       );
   }

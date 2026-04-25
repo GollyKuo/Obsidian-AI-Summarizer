@@ -3,6 +3,7 @@ dist/
 build/
 coverage/
 .vite/
+tools/ffmpeg/
 main.js
 main.js.map
 *.log
