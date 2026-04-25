@@ -23,6 +23,8 @@
 2. `media URL`
 3. `local media`
 
+完整的 AI 路由與 Obsidian 寫入流程圖請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
+
 ## 需求
 
 ### 基本需求
@@ -180,6 +182,8 @@ Gemini 摘要模型目前可選：
 3. 若沒有切到 `summaryProvider = openrouter`，可以先不填 OpenRouter key。
 
 ### 為什麼拆成轉錄模型與摘要模型
+
+完整路由圖請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。簡化規則如下：
 
 拆分後的好處：
 

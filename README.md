@@ -24,7 +24,7 @@
 - [docs/Manual.md](d:\程式開發\AI Summarizer\docs\Manual.md)
   - 安裝、設定、smoke test 與 vault sync 操作手冊
 - [docs/architecture-boundary.md](d:\程式開發\AI Summarizer\docs\architecture-boundary.md)
-  - 專案分層、依賴方向與高風險區
+  - 專案分層、依賴方向、高風險區與 AI 工作流程圖
 - [docs/parity-contract.md](d:\程式開發\AI Summarizer\docs\parity-contract.md)
   - 與既有 Python app 需要對等保留的產品契約
 - [docs/backlog.md](d:\程式開發\AI Summarizer\docs\backlog.md)
@@ -68,6 +68,8 @@ docs/
 3. `docs/backlog-active.md`
 4. `docs/backlog.md`
 5. `Discussion.md`
+
+完整的 `webpage_url` / `media_url` / `local_media` 進 AI 再寫入 Obsidian 的路徑，請看 [docs/architecture-boundary.md 的 AI 工作流程圖](docs/architecture-boundary.md#ai-工作流程)。
 
 ## Backlog 導航規則
 

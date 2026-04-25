@@ -72,6 +72,8 @@ docs/
 5. `docs/backlog-archive.md`
 6. `Discussion.md`
 
+其中完整的 AI 工作流程圖維護在 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)；其他文件應引用它，而不是重複維護流程圖。
+
 ## Step 6：先完成可載入骨架
 
 第一個 milestone 不是完整功能，而是以下條件：

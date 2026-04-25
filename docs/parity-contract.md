@@ -12,6 +12,8 @@
 2. `webpage URL`
 3. `local media`
 
+三種來源進入 AI 與寫入 Obsidian 的完整路由，以 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程) 為準。
+
 ## 輸出型態
 
 - 網頁

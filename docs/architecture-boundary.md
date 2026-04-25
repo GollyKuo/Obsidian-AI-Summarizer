@@ -93,6 +93,51 @@ src/
 - `utils/`
   - 純工具函式，不承載產品流程
 
+## AI 工作流程
+
+三種輸入來源共用同一個 flow modal 入口，但進入 AI 前的 acquisition / extraction pipeline 不同。模型路徑分成兩類：
+
+1. `webpage_url`：只走摘要模型，不走轉錄模型。
+2. `media_url` / `local_media`：先走轉錄模型，再走摘要模型。
+
+```mermaid
+flowchart TD
+  Start["AI 摘要器輸入"] --> SourceKind{"sourceKind"}
+
+  SourceKind --> Webpage["webpage_url<br/>網頁 URL"]
+  SourceKind --> MediaUrl["media_url<br/>YouTube / podcast / direct media URL"]
+  SourceKind --> LocalMedia["local_media<br/>本機音訊 / 影片檔"]
+
+  Webpage --> WebValidate["validate http/https URL"]
+  WebValidate --> WebExtract["webpageExtractor.extractReadableText"]
+  WebExtract --> WebMetadata["metadataExtractor + webpageMetadataPolicy"]
+  WebMetadata --> WebSummary["summaryProvider / summaryModel<br/>summarizeWebpage"]
+  WebSummary --> WebNormalize["normalizeWebpageSummaryResult"]
+  WebNormalize --> WebWrite["NoteWriter.writeWebpageNote"]
+  WebWrite --> Vault["Obsidian 筆記"]
+
+  MediaUrl --> UrlClassify["classify media URL<br/>youtube / podcast / direct_media"]
+  UrlClassify --> Download["downloaderAdapter.prepareSession + downloadMedia<br/>uses mediaCacheRoot"]
+  Download --> MediaPrep["ffmpeg / ffprobe AI-ready processing<br/>normalize / segment / compress"]
+
+  LocalMedia --> LocalIngest["localMediaIngestionAdapter.prepareSession + ingestMedia<br/>uses mediaCacheRoot"]
+  LocalIngest --> MediaPrep
+
+  MediaPrep --> Transcribe["transcriptionProvider / transcriptionModel<br/>transcribeMedia"]
+  Transcribe --> MediaSummary["summaryProvider / summaryModel<br/>summarizeMediaWithChunking"]
+  MediaSummary --> MediaNormalize["normalizeMediaSummaryResult"]
+  MediaNormalize --> MediaWrite["NoteWriter.writeMediaNote<br/>summary + transcript"]
+  MediaWrite --> Vault
+```
+
+### 模型路由規則
+
+- 網頁來源不使用 `transcriptionProvider` / `transcriptionModel`；即使轉錄模型設定為 Gemini，網頁也只會交給 `summaryProvider` / `summaryModel`。
+- `media_url` 與 `local_media` 進入 AI 後共用同一條模型路徑：`transcriptionProvider / transcriptionModel -> summaryProvider / summaryModel`。
+- YouTube、podcast、direct media URL 的差異只在 URL 分類、下載器與 metadata；轉成 AI-ready media artifact 後，後段與本機媒體一致。
+- `summaryProvider = openrouter` 時，OpenRouter 只負責文字摘要；不負責直接讀取音訊或影片。
+- 目前 flow modal 實作仍有 mock runtime / mock AI provider / mock note writer 的銜接缺口；上圖記錄的是 orchestration contract 與 production provider 應接上的目標邊界。
+
 ## 關鍵契約
 
 ### RuntimeProvider

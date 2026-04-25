@@ -12,6 +12,8 @@
 2. podcast URL / feed episode URL
 3. direct media URL
 
+本文件只定義 media acquisition / AI-ready artifact；端到端 AI 模型路由與 Obsidian 寫入流程請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
+
 ## Local Media v1 支援範圍
 
 本機媒體流程在 v1 採「先安全匯入到 session，再共用 AI-ready 壓縮主線」。

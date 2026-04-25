@@ -96,6 +96,8 @@
 - **映射入口（webpage）**: `src/orchestration/process-webpage.ts`
 - **本檔定位**: 本文件為提示詞規範來源，若規範變更，需同步更新上述 TypeScript 實作
 
+完整的來源路由、轉錄模型、摘要模型與 Obsidian 寫入流程請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。本文件只定義提示詞與 AI 輸出格式。
+
 ---
 
 ## 網頁文章摘要 (V1.6 新增)

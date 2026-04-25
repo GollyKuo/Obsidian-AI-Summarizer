@@ -10,6 +10,8 @@
 - `media URL`
 - `local media`
 
+若需確認每個 smoke 項目對應的端到端 AI 路由，請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
+
 ## Checklist Matrix
 
 | Capability | Desktop | Mobile | Command |
