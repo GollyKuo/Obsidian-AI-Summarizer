@@ -1,6 +1,7 @@
 import { SummarizerError } from "@domain/errors";
 import type {
   LocalMediaRequest,
+  MediaProcessResult,
   MediaSummaryResult,
   MediaUrlRequest,
   WriteResult
@@ -12,6 +13,10 @@ import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 import type { TranscriptionProvider } from "@services/ai/transcription-provider";
+import {
+  createArtifactRetentionManager,
+  type ArtifactLifecycleStatus
+} from "@services/media/artifact-retention";
 
 type MediaRequest = MediaUrlRequest | LocalMediaRequest;
 
@@ -45,6 +50,8 @@ export async function processMedia(
   hooks?: JobRunHooks
 ): Promise<ProcessMediaResult> {
   const warnings: string[] = [];
+  const artifactRetentionManager = createArtifactRetentionManager();
+  let mediaInput: MediaProcessResult | null = null;
 
   await runJobStep(
     "validating",
@@ -56,89 +63,118 @@ export async function processMedia(
     hooks
   );
 
-  const mediaInput = await runJobStep(
-    "acquiring",
-    input.sourceKind === "media_url" ? "Processing media URL input" : "Processing local media input",
-    signal,
-    async () => {
-      if (input.sourceKind === "media_url") {
-        return dependencies.runtimeProvider.processMediaUrl(input, signal);
-      }
-      return dependencies.runtimeProvider.processLocalMedia(input, signal);
-    },
-    hooks
-  );
+  try {
+    mediaInput = await runJobStep(
+      "acquiring",
+      input.sourceKind === "media_url" ? "Processing media URL input" : "Processing local media input",
+      signal,
+      async () => {
+        if (input.sourceKind === "media_url") {
+          return dependencies.runtimeProvider.processMediaUrl(input, signal);
+        }
+        return dependencies.runtimeProvider.processLocalMedia(input, signal);
+      },
+      hooks
+    );
 
-  warnings.push(...mediaInput.warnings);
-  emitWarnings(mediaInput.warnings, hooks);
+    warnings.push(...mediaInput.warnings);
+    emitWarnings(mediaInput.warnings, hooks);
 
-  const transcription = await runJobStep(
-    "transcribing",
-    "Generating media transcript",
-    signal,
-    async () =>
-      dependencies.transcriptionProvider.transcribeMedia(
-        {
-          metadata: mediaInput.metadata,
-          normalizedText: mediaInput.normalizedText,
-          transcript: mediaInput.transcript,
-          transcriptionProvider: input.transcriptionProvider,
-          transcriptionModel: input.transcriptionModel
-        },
-        signal
-      ),
-    hooks
-  );
+    const transcription = await runJobStep(
+      "transcribing",
+      "Generating media transcript",
+      signal,
+      async () =>
+        dependencies.transcriptionProvider.transcribeMedia(
+          {
+            metadata: mediaInput!.metadata,
+            normalizedText: mediaInput!.normalizedText,
+            transcript: mediaInput!.transcript,
+            aiUploadArtifactPaths: mediaInput!.aiUploadArtifactPaths,
+            transcriptionProvider: input.transcriptionProvider,
+            transcriptionModel: input.transcriptionModel
+          },
+          signal
+        ),
+      hooks
+    );
 
-  warnings.push(...transcription.warnings);
-  emitWarnings(transcription.warnings, hooks);
+    warnings.push(...transcription.warnings);
+    emitWarnings(transcription.warnings, hooks);
 
-  const summaryRaw = await runJobStep(
-    "summarizing",
-    "Generating media summary",
-    signal,
-    async () =>
-      summarizeMediaWithChunking(
-        {
-          metadata: mediaInput.metadata,
-          normalizedText: mediaInput.normalizedText,
-          transcript: transcription.transcript,
-          summaryProvider: input.summaryProvider,
-          summaryModel: input.summaryModel
-        },
-        dependencies.summaryProvider,
-        signal
-      ),
-    hooks
-  );
+    const summaryRaw = await runJobStep(
+      "summarizing",
+      "Generating media summary",
+      signal,
+      async () =>
+        summarizeMediaWithChunking(
+          {
+            metadata: mediaInput!.metadata,
+            normalizedText: mediaInput!.normalizedText,
+            transcript: transcription.transcript,
+            summaryProvider: input.summaryProvider,
+            summaryModel: input.summaryModel
+          },
+          dependencies.summaryProvider,
+          signal
+        ),
+      hooks
+    );
 
-  const summary = normalizeMediaSummaryResult({
-    summaryMarkdown: summaryRaw.summaryMarkdown,
-    transcriptMarkdown: transcription.transcriptMarkdown,
-    warnings: summaryRaw.warnings
-  });
-  warnings.push(...summary.warnings);
-  emitWarnings(summary.warnings, hooks);
+    const summary = normalizeMediaSummaryResult({
+      summaryMarkdown: summaryRaw.summaryMarkdown,
+      transcriptMarkdown: transcription.transcriptMarkdown,
+      warnings: summaryRaw.warnings
+    });
+    warnings.push(...summary.warnings);
+    emitWarnings(summary.warnings, hooks);
 
-  const writeResult = await runJobStep(
-    "writing",
-    "Writing media note into vault",
-    signal,
-    async () =>
-      dependencies.noteWriter.writeMediaNote({
-        metadata: mediaInput.metadata,
-        summaryMarkdown: summary.summaryMarkdown,
-        transcriptMarkdown: summary.transcriptMarkdown
-      }),
-    hooks
-  );
+    const writeResult = await runJobStep(
+      "writing",
+      "Writing media note into vault",
+      signal,
+      async () =>
+        dependencies.noteWriter.writeMediaNote({
+          metadata: mediaInput!.metadata,
+          summaryMarkdown: summary.summaryMarkdown,
+          transcriptMarkdown: summary.transcriptMarkdown
+        }),
+      hooks
+    );
 
-  warnings.push(...writeResult.warnings);
-  emitWarnings(writeResult.warnings, hooks);
+    warnings.push(...writeResult.warnings);
+    emitWarnings(writeResult.warnings, hooks);
 
-  return {
-    summary,
-    writeResult,
-    warnings
-  };
+    if (mediaInput.artifactCleanup) {
+      const cleanupWarnings = await artifactRetentionManager.cleanup({
+        retentionMode: input.retentionMode,
+        lifecycleStatus: "completed",
+        artifacts: mediaInput.artifactCleanup,
+        aiUploadArtifactPaths: mediaInput.artifactCleanup.aiUploadArtifactPaths
+      });
+      warnings.push(...cleanupWarnings);
+      emitWarnings(cleanupWarnings, hooks);
+    }
+
+    return {
+      summary,
+      writeResult,
+      warnings
+    };
+  } catch (error) {
+    if (mediaInput?.artifactCleanup) {
+      const lifecycleStatus: ArtifactLifecycleStatus =
+        error instanceof SummarizerError && error.category === "cancellation"
+          ? "cancelled"
+          : "failed";
+      const cleanupWarnings = await artifactRetentionManager.cleanup({
+        retentionMode: input.retentionMode,
+        lifecycleStatus,
+        artifacts: mediaInput.artifactCleanup,
+        aiUploadArtifactPaths: mediaInput.artifactCleanup.aiUploadArtifactPaths
+      });
+      emitWarnings(cleanupWarnings, hooks);
+    }
+    throw error;
+  }
 }

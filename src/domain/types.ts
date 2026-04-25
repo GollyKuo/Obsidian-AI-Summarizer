@@ -63,6 +63,15 @@ export interface MediaProcessResult {
   metadata: SourceMetadata;
   normalizedText: string;
   transcript: TranscriptSegment[];
+  aiUploadArtifactPaths?: string[];
+  artifactCleanup?: {
+    downloadedPath: string;
+    normalizedAudioPath: string;
+    transcriptPath: string;
+    metadataPath: string;
+    aiUploadDirectory: string;
+    aiUploadArtifactPaths: string[];
+  };
   warnings: string[];
 }
 
@@ -76,6 +85,7 @@ export interface MediaTranscriptionInput {
   metadata: SourceMetadata;
   normalizedText: string;
   transcript: TranscriptSegment[];
+  aiUploadArtifactPaths?: string[];
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
 }

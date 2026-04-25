@@ -1,19 +1,20 @@
 import { ButtonComponent, Modal, Setting } from "obsidian";
 import { SummarizerError, type ErrorCategory } from "@domain/errors";
-import type { LocalMediaRequest, MediaProcessResult, MediaUrlRequest, SourceMetadata, SourceType, WebpageRequest } from "@domain/types";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import type { LocalMediaRequest, MediaUrlRequest, SourceType, WebpageRequest } from "@domain/types";
 import { processMedia } from "@orchestration/process-media";
 import { processWebpage } from "@orchestration/process-webpage";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
-import type { AiProvider } from "@services/ai/ai-provider";
 import {
-  formatTranscriptMarkdown,
-  type TranscriptionProvider
-} from "@services/ai/transcription-provider";
+  createConfiguredSummaryProvider,
+  createConfiguredTranscriptionProvider
+} from "@services/ai/configured-ai-provider";
 import { BasicMetadataExtractor } from "@services/web/metadata-extractor";
-import type { WebpageExtractor } from "@services/web/webpage-extractor";
+import { FetchWebpageExtractor } from "@services/web/webpage-extractor";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
+import { createRuntimeProvider } from "@runtime/runtime-factory";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import { ObsidianNoteWriter } from "@services/obsidian/note-writer";
+import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
 import { describeTemplateReference } from "@services/obsidian/template-library";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
@@ -31,52 +32,6 @@ interface DesktopDialog {
     properties: string[];
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<OpenDialogResult>;
-}
-
-function isLikelyAbsolutePath(value: string): boolean {
-  return /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith("/");
-}
-
-async function delay(ms: number, signal: AbortSignal): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => {
-      signal.removeEventListener("abort", onAbort);
-      resolve();
-    }, ms);
-
-    const onAbort = (): void => {
-      clearTimeout(timer);
-      reject(
-        new SummarizerError({
-          category: "cancellation",
-          message: "使用者已取消摘要流程。",
-          recoverable: true
-        })
-      );
-    };
-
-    signal.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
-function createMetadata(sourceType: SourceType, sourceValue: string): SourceMetadata {
-  if (sourceType === "webpage_url") {
-    return {
-      title: "Webpage Capture",
-      creatorOrAuthor: "Unknown",
-      platform: "Web",
-      source: sourceValue,
-      created: new Date().toISOString()
-    };
-  }
-
-  return {
-    title: sourceType === "media_url" ? "Media Capture" : "Local Media Capture",
-    creatorOrAuthor: "Unknown",
-    platform: sourceType === "media_url" ? "Media URL" : "Local Media",
-    source: sourceValue,
-    created: new Date().toISOString()
-  };
 }
 
 export class SummarizerFlowModal extends Modal {
@@ -156,129 +111,22 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private buildRuntimeProvider(): RuntimeProvider {
-    return {
-      strategy: "local_bridge",
-      processWebpage: async () => {
-        throw new Error("Media flow runtime should not execute webpage input.");
-      },
-      processMediaUrl: async (input: MediaUrlRequest, signal: AbortSignal): Promise<MediaProcessResult> => {
-        throwIfCancelled(signal);
-        await delay(350, signal);
-
-        if (!/^https?:\/\//.test(input.sourceValue)) {
-          throw new SummarizerError({
-            category: "validation_error",
-            message: `Invalid media URL: ${input.sourceValue}`,
-            recoverable: true
-          });
-        }
-
-        if (input.sourceValue.includes("download-fail")) {
-          throw new SummarizerError({
-            category: "download_failure",
-            message: "Media download failed during mock flow.",
-            recoverable: true
-          });
-        }
-
-        return {
-          metadata: createMetadata("media_url", input.sourceValue),
-          normalizedText: "Normalized media content prepared for AI handoff.",
-          transcript: [
-            { startMs: 0, endMs: 18000, text: "Mock transcript segment one." },
-            { startMs: 18000, endMs: 36000, text: "Mock transcript segment two." }
-          ],
-          warnings: ["Mock runtime: media URL flow uses simulated acquisition."]
-        };
-      },
-      processLocalMedia: async (input: LocalMediaRequest, signal: AbortSignal): Promise<MediaProcessResult> => {
-        throwIfCancelled(signal);
-        await delay(350, signal);
-
-        if (!isLikelyAbsolutePath(input.sourceValue)) {
-          throw new SummarizerError({
-            category: "validation_error",
-            message: `Invalid local media path: ${input.sourceValue}`,
-            recoverable: true
-          });
-        }
-
-        return {
-          metadata: createMetadata("local_media", input.sourceValue),
-          normalizedText: "Normalized local media content prepared for AI handoff.",
-          transcript: [
-            { startMs: 0, endMs: 15000, text: "Mock local media transcript segment one." },
-            { startMs: 15000, endMs: 29000, text: "Mock local media transcript segment two." }
-          ],
-          warnings: ["Mock runtime: local media flow uses simulated ingestion."]
-        };
-      }
-    };
+    return createRuntimeProvider(this.plugin.settings.runtimeStrategy);
   }
 
-  private buildAiProvider(): AiProvider {
-    return {
-      summarizeWebpage: async (input, signal) => {
-        throwIfCancelled(signal);
-        await delay(350, signal);
-        return {
-          summaryMarkdown: `# ${input.metadata.title}\n\nProvider: ${input.summaryProvider}\nModel: ${input.summaryModel}\n\n${input.webpageText.slice(0, 180)}`,
-          warnings: []
-        };
-      },
-      summarizeMedia: async (input, signal) => {
-        throwIfCancelled(signal);
-        await delay(350, signal);
-        return {
-          summaryMarkdown: `# ${input.metadata.title}\n\n## Summary\n\nProvider: ${input.summaryProvider}\nModel: ${input.summaryModel}\n\n${input.normalizedText}`,
-          warnings: []
-        };
-      }
-    };
+  private buildAiProvider(): ReturnType<typeof createConfiguredSummaryProvider> {
+    return createConfiguredSummaryProvider(this.plugin.settings);
   }
 
-  private buildTranscriptionProvider(): TranscriptionProvider {
-    return {
-      transcribeMedia: async (input, signal) => {
-        throwIfCancelled(signal);
-        await delay(350, signal);
-
-        const transcript =
-          input.transcript.length > 0
-            ? input.transcript
-            : [
-                {
-                  startMs: 0,
-                  endMs: 30000,
-                  text: `Mock transcript generated from ${input.transcriptionProvider}/${input.transcriptionModel}.`
-                }
-              ];
-
-        return {
-          transcript,
-          transcriptMarkdown: formatTranscriptMarkdown(transcript),
-          warnings:
-            input.transcript.length > 0
-              ? []
-              : ["Mock transcription provider generated placeholder transcript text."]
-        };
-      }
-    };
+  private buildTranscriptionProvider(): ReturnType<typeof createConfiguredTranscriptionProvider> {
+    return createConfiguredTranscriptionProvider(this.plugin.settings);
   }
 
   private buildNoteWriter(): NoteWriter {
-    return {
-      writeWebpageNote: async (input) => ({
-        notePath: `Mock/Webpage/${input.metadata.title}.md`,
-        createdAt: new Date().toISOString(),
-        warnings: []
-      }),
-      writeMediaNote: async (input) => ({
-        notePath: `Mock/Media/${input.metadata.title}.md`,
-        createdAt: new Date().toISOString(),
-        warnings: []
-      })
-    };
+    return new ObsidianNoteWriter(new VaultNoteStorage(this.plugin.app.vault), {
+      outputFolder: this.plugin.settings.outputFolder,
+      templateReference: this.plugin.settings.templateReference
+    });
   }
 
   private render(): void {
@@ -390,21 +238,6 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private async runWebpageFlow(signal: AbortSignal): Promise<{ notePath: string }> {
-    const webpageExtractor: WebpageExtractor = {
-      extractReadableText: async (url, innerSignal) => {
-        throwIfCancelled(innerSignal);
-        await delay(350, innerSignal);
-        if (url.includes("extract-fail")) {
-          throw new SummarizerError({
-            category: "runtime_unavailable",
-            message: "Webpage extraction failed during mock flow.",
-            recoverable: true
-          });
-        }
-        return `Mock extracted webpage content from ${url}`;
-      }
-    };
-
     const result = await processWebpage(
       {
         sourceKind: "webpage_url",
@@ -413,7 +246,7 @@ export class SummarizerFlowModal extends Modal {
         summaryModel: this.plugin.settings.summaryModel
       },
       {
-        webpageExtractor,
+        webpageExtractor: new FetchWebpageExtractor(),
         metadataExtractor: new BasicMetadataExtractor(),
         summaryProvider: this.buildAiProvider(),
         noteWriter: this.buildNoteWriter()

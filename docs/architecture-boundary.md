@@ -136,7 +136,7 @@ flowchart TD
 - `media_url` 與 `local_media` 進入 AI 後共用同一條模型路徑：`transcriptionProvider / transcriptionModel -> summaryProvider / summaryModel`。
 - YouTube、podcast、direct media URL 的差異只在 URL 分類、下載器與 metadata；轉成 AI-ready media artifact 後，後段與本機媒體一致。
 - `summaryProvider = openrouter` 時，OpenRouter 只負責文字摘要；不負責直接讀取音訊或影片。
-- 目前 flow modal 實作仍有 mock runtime / mock AI provider / mock note writer 的銜接缺口；上圖記錄的是 orchestration contract 與 production provider 應接上的目標邊界。
+- Flow modal 應接 production service wiring：webpage extraction 使用 `FetchWebpageExtractor`，摘要使用 configured Gemini/OpenRouter summary provider，媒體轉錄使用 configured Gemini transcription provider，筆記輸出使用 `ObsidianNoteWriter`。測試中仍可用 mock dependency 驗證 orchestration contract。
 
 ## 關鍵契約
 

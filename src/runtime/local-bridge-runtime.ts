@@ -99,7 +99,8 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         ffmpegPath: input.ffmpegPath,
         ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,
-        mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced"
+        mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced",
+        deferCompletedCleanup: true
       },
       {
         downloaderAdapter:
@@ -120,9 +121,18 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       metadata: processResult.transcriptReadyPayload.metadata,
       normalizedText,
       transcript: [],
+      aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
+      artifactCleanup: {
+        downloadedPath: processResult.session.artifacts.downloadedPath,
+        normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
+        transcriptPath: processResult.session.artifacts.transcriptPath,
+        metadataPath: processResult.session.artifacts.metadataPath,
+        aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
+        aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
+      },
       warnings: [
         ...processResult.warnings,
-        "Transcript generation is not implemented yet; returning AI-ready handoff payload only."
+        "AI-ready media artifacts prepared for transcription handoff."
       ]
     };
   }
@@ -145,7 +155,8 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         ffmpegPath: input.ffmpegPath,
         ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,
-        mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced"
+        mediaCompressionProfile: input.mediaCompressionProfile ?? "balanced",
+        deferCompletedCleanup: true
       },
       {
         localMediaIngestionAdapter:
@@ -167,9 +178,18 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       metadata: processResult.transcriptReadyPayload.metadata,
       normalizedText,
       transcript: [],
+      aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
+      artifactCleanup: {
+        downloadedPath: processResult.session.artifacts.downloadedPath,
+        normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
+        transcriptPath: processResult.session.artifacts.transcriptPath,
+        metadataPath: processResult.session.artifacts.metadataPath,
+        aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
+        aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
+      },
       warnings: [
         ...processResult.warnings,
-        "Transcript generation is not implemented yet; returning AI-ready handoff payload only."
+        "AI-ready media artifacts prepared for transcription handoff."
       ]
     };
   }

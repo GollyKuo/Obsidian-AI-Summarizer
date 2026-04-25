@@ -23,6 +23,7 @@ export interface ProcessMediaUrlInput extends MediaUrlRequest {
   ffprobePath?: string;
   vaultId: string;
   mediaCompressionProfile: MediaCompressionProfile;
+  deferCompletedCleanup?: boolean;
 }
 
 export interface TranscriptReadyPayload {
@@ -172,12 +173,14 @@ export async function processMediaUrl(
       hooks
     );
 
-    const cleanupWarnings = await artifactRetentionManager.cleanup({
-      retentionMode: input.retentionMode,
-      lifecycleStatus: "completed",
-      artifacts: activeSession.artifacts,
-      aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
-    });
+    const cleanupWarnings = input.deferCompletedCleanup
+      ? []
+      : await artifactRetentionManager.cleanup({
+          retentionMode: input.retentionMode,
+          lifecycleStatus: "completed",
+          artifacts: activeSession.artifacts,
+          aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
+        });
 
     const warnings = [...activeDownloadResult.warnings, ...preUploadResult.warnings, ...cleanupWarnings];
     emitWarnings(activeDownloadResult.warnings, hooks);

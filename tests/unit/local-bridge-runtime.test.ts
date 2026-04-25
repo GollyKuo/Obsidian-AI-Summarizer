@@ -112,8 +112,10 @@ describe("LocalBridgeRuntimeProvider", () => {
     expect(result.metadata.title).toBe("Demo Video");
     expect(result.normalizedText).toContain("AI-ready artifacts:");
     expect(result.transcript).toEqual([]);
+    expect(result.aiUploadArtifactPaths).toEqual([`D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\ai-upload\\ai-upload.ogg`]);
+    expect(result.artifactCleanup?.aiUploadArtifactPaths).toEqual(result.aiUploadArtifactPaths);
     expect(
-      result.warnings.some((warning) => warning.includes("Transcript generation is not implemented yet"))
+      result.warnings.some((warning) => warning.includes("AI-ready media artifacts prepared"))
     ).toBe(true);
   });
 
@@ -182,8 +184,10 @@ describe("LocalBridgeRuntimeProvider", () => {
     expect(result.normalizedText).toContain(`Source path: ${localSession.localSourcePath}`);
     expect(result.normalizedText).toContain("AI-ready artifacts:");
     expect(result.transcript).toEqual([]);
+    expect(result.aiUploadArtifactPaths).toEqual([`${localSession.artifacts.aiUploadDirectory}\\ai-upload.ogg`]);
+    expect(result.artifactCleanup?.aiUploadArtifactPaths).toEqual(result.aiUploadArtifactPaths);
     expect(
-      result.warnings.some((warning) => warning.includes("Transcript generation is not implemented yet"))
+      result.warnings.some((warning) => warning.includes("AI-ready media artifacts prepared"))
     ).toBe(true);
   });
 });

@@ -23,6 +23,7 @@ export interface ProcessLocalMediaInput extends LocalMediaRequest {
   ffprobePath?: string;
   vaultId: string;
   mediaCompressionProfile: MediaCompressionProfile;
+  deferCompletedCleanup?: boolean;
 }
 
 export interface LocalTranscriptReadyPayload {
@@ -172,12 +173,14 @@ export async function processLocalMedia(
       hooks
     );
 
-    const cleanupWarnings = await artifactRetentionManager.cleanup({
-      retentionMode: input.retentionMode,
-      lifecycleStatus: "completed",
-      artifacts: activeSession.artifacts,
-      aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
-    });
+    const cleanupWarnings = input.deferCompletedCleanup
+      ? []
+      : await artifactRetentionManager.cleanup({
+          retentionMode: input.retentionMode,
+          lifecycleStatus: "completed",
+          artifacts: activeSession.artifacts,
+          aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
+        });
 
     const warnings = [...activeIngestionResult.warnings, ...preUploadResult.warnings, ...cleanupWarnings];
     emitWarnings(activeIngestionResult.warnings, hooks);
