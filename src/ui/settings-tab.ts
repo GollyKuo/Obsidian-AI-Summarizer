@@ -208,6 +208,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private modelCatalogDraftDisplayName = "";
   private modelCatalogDraftModelId = "";
   private openRouterModelSyncInProgress = false;
+  private modelDataListRefreshInProgress = false;
   private geminiModelsCache: GeminiModelRecord[] | null = null;
   private geminiModelsFetchedAt = 0;
   private geminiModelsRequest: Promise<GeminiModelRecord[]> | null = null;
@@ -514,6 +515,94 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
+  private invalidateModelDataListCache(provider: "gemini" | "openrouter" | "all" = "all"): void {
+    if (provider === "all" || provider === "gemini") {
+      this.geminiModelsCache = null;
+      this.geminiModelsFetchedAt = 0;
+    }
+
+    if (provider === "all" || provider === "openrouter") {
+      this.openRouterModelsCache = null;
+      this.openRouterModelsFetchedAt = 0;
+    }
+  }
+
+  private async refreshModelDataList(provider: "gemini" | "openrouter"): Promise<number> {
+    if (provider === "gemini") {
+      const models = await fetchGeminiModels({
+        apiKey: this.plugin.settings.apiKey
+      });
+      this.geminiModelsCache = models;
+      this.geminiModelsFetchedAt = Date.now();
+      this.geminiModelsRequest = null;
+      return models.length;
+    }
+
+    const models = await fetchOpenRouterModels({
+      apiKey: this.plugin.settings.openRouterApiKey
+    });
+    this.openRouterModelsCache = models;
+    this.openRouterModelsFetchedAt = Date.now();
+    this.openRouterModelsRequest = null;
+    return models.length;
+  }
+
+  private async refreshManagedModelDataLists(): Promise<void> {
+    if (this.modelDataListRefreshInProgress) {
+      return;
+    }
+
+    this.modelDataListRefreshInProgress = true;
+    this.display();
+
+    try {
+      const refreshTasks: Array<Promise<string>> = [
+        this.refreshModelDataList("openrouter").then(
+          (count) => `OpenRouter ${count} models`
+        )
+      ];
+
+      if (this.plugin.settings.apiKey.trim().length > 0) {
+        refreshTasks.push(
+          this.refreshModelDataList("gemini").then((count) => `Gemini ${count} models`)
+        );
+      } else {
+        this.invalidateModelDataListCache("gemini");
+        refreshTasks.push(Promise.resolve("Gemini skipped (no API key)"));
+      }
+
+      const results = await Promise.allSettled(refreshTasks);
+      const messages: string[] = [];
+      let failed = false;
+
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          messages.push(result.value);
+          continue;
+        }
+
+        failed = true;
+        const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        messages.push(message);
+      }
+
+      if (failed) {
+        this.plugin.notify(`Model data list refresh finished with warnings: ${messages.join("; ")}`);
+        for (const result of results) {
+          if (result.status === "rejected") {
+            const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
+            this.plugin.reportWarning("model_data_list_refresh", message);
+          }
+        }
+      } else {
+        this.plugin.notify(`Model data list updated: ${messages.join(", ")}.`);
+      }
+    } finally {
+      this.modelDataListRefreshInProgress = false;
+      this.display();
+    }
+  }
+
   private attachModelAutocomplete<TModel extends { id: string; name: string }>(
     inputEl: HTMLInputElement,
     onValueChange: (value: string) => void,
@@ -564,23 +653,22 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     });
   }
 
-  private attachOpenRouterAutocomplete(
+  private attachManagedModelAutocomplete(
     inputEl: HTMLInputElement,
+    provider: "gemini" | "openrouter",
     onValueChange: (value: string) => void
   ): void {
-    this.attachModelAutocomplete(
-      inputEl,
-      onValueChange,
-      () => this.loadOpenRouterModels(),
-      (models, query) => searchOpenRouterModels(models, query),
-      "openrouter_models"
-    );
-  }
+    if (provider === "openrouter") {
+      this.attachModelAutocomplete(
+        inputEl,
+        onValueChange,
+        () => this.loadOpenRouterModels(),
+        (models, query) => searchOpenRouterModels(models, query),
+        "openrouter_models"
+      );
+      return;
+    }
 
-  private attachGeminiAutocomplete(
-    inputEl: HTMLInputElement,
-    onValueChange: (value: string) => void
-  ): void {
     this.attachModelAutocomplete(
       inputEl,
       onValueChange,
@@ -825,8 +913,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.apiKey)
           .onChange(async (value) => {
             this.plugin.settings.apiKey = value.trim();
-            this.geminiModelsCache = null;
-            this.geminiModelsFetchedAt = 0;
+            this.invalidateModelDataListCache("gemini");
             await this.plugin.saveSettings();
             this.display();
           })
@@ -897,12 +984,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             if (isOpenRouter) {
               this.plugin.settings.openRouterApiKey = value.trim();
-              this.openRouterModelsCache = null;
-              this.openRouterModelsFetchedAt = 0;
+              this.invalidateModelDataListCache("openrouter");
             } else {
               this.plugin.settings.apiKey = value.trim();
-              this.geminiModelsCache = null;
-              this.geminiModelsFetchedAt = 0;
+              this.invalidateModelDataListCache("gemini");
             }
             await this.plugin.saveSettings();
             this.display();
@@ -968,6 +1053,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.apiKey)
           .onChange(async (value) => {
             this.plugin.settings.apiKey = value.trim();
+            this.invalidateModelDataListCache("gemini");
             await this.plugin.saveSettings();
             this.display();
           })
@@ -1046,8 +1132,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             if (isOpenRouter) {
               this.plugin.settings.openRouterApiKey = value.trim();
+              this.invalidateModelDataListCache("openrouter");
             } else {
               this.plugin.settings.apiKey = value.trim();
+              this.invalidateModelDataListCache("gemini");
             }
             await this.plugin.saveSettings();
             this.display();
@@ -1088,9 +1176,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     if (provider === "openrouter") {
       try {
-        const models = await fetchOpenRouterModels({
-          apiKey: this.plugin.settings.openRouterApiKey
-        });
+        const models = await this.loadOpenRouterModels();
         const matchedModel = this.findOpenRouterModel(models, modelInput);
         if (!matchedModel) {
           this.plugin.notify("OpenRouter 查無此模型，請確認 model id 或名稱。");
@@ -1231,7 +1317,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
 
     if (manageTranscriptionModelInputEl) {
-      this.attachGeminiAutocomplete(manageTranscriptionModelInputEl, (value) => {
+      this.attachManagedModelAutocomplete(manageTranscriptionModelInputEl, "gemini", (value) => {
         newTranscriptionModel = value;
       });
     }
@@ -1337,10 +1423,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         })
       );
 
-    if (this.plugin.settings.summaryProvider === "openrouter" && manageSummaryModelInputEl) {
-      this.attachOpenRouterAutocomplete(manageSummaryModelInputEl, (value) => {
+    if (manageSummaryModelInputEl) {
+      this.attachManagedModelAutocomplete(
+        manageSummaryModelInputEl,
+        this.plugin.settings.summaryProvider,
+        (value) => {
         newSummaryModel = value;
-      });
+        }
+      );
     }
 
     new Setting(containerEl)
@@ -1376,6 +1466,18 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderAiModelSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName("Model data list")
+      .setDesc("Autocomplete 會使用 Gemini / OpenRouter 官方模型清單。按下更新可手動抓最新資料。")
+      .addButton((button) =>
+        button
+          .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新最新清單")
+          .setDisabled(this.modelDataListRefreshInProgress)
+          .onClick(() => {
+            void this.refreshManagedModelDataLists();
+          })
+      );
+
     this.renderManagedTranscriptionSettings(containerEl);
     this.renderManagedSummarySettings(containerEl);
   }
