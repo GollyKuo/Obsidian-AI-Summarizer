@@ -120,7 +120,7 @@ Gemini 目前同時用於：
 1. 媒體轉錄 provider
 2. 預設摘要 provider
 
-只要你還使用 Gemini 做轉錄或摘要，就需要填這個 key。
+只要你還使用 Gemini 做轉錄或摘要，就需要填這個 key。Gemini 的模型 autocomplete 與模型清單更新也會使用這個 key 去抓官方 models API。
 
 ### 轉錄 Provider / 轉錄模型
 
@@ -129,7 +129,7 @@ Gemini 目前同時用於：
 1. `transcriptionProvider`
 2. `transcriptionModel`
 
-v1 轉錄 provider 先固定為 `Gemini`。
+目前轉錄 provider 仍以 `Gemini` 為主，但設定結構已保留未來擴充其他 audio-capable provider 的空間。
 
 預設建議：
 
@@ -140,6 +140,24 @@ v1 轉錄 provider 先固定為 `Gemini`。
 
 1. 轉錄屬於 audio/video ingestion，優先選穩定的 audio-capable 模型。
 2. 摘要與轉錄已拆分，不需要讓摘要模型直接處理音訊。
+
+轉錄模型建議：
+
+| 任務情境 | 建議模型 | 說明 |
+| --- | --- | --- |
+| 預設轉錄、一般 YouTube / podcast / 本機音訊影片 | `gemini-2.5-flash` | 穩定主線。Google 文件標示支援 audio/video input 與 speech understanding，適合作為轉錄預設。 |
+| 大量短音訊、成本或延遲優先 | `gemini-2.5-flash-lite` | 適合較乾淨、較短、結構單純的內容；正式使用前先用自己的音訊樣本測試準確度。 |
+| 低延遲即時語音互動 | `gemini-2.5-flash-live` 或 Live 類模型 | 這類模型偏即時互動，不是目前檔案轉錄主線；除非之後要做 real-time voice flow，否則不建議放進一般轉錄下拉選單。 |
+| Preview / 新版 Flash 或 Flash-Lite | 只在 autocomplete 顯示且 API 測試通過時使用 | Preview 模型可用性、rate limit 與退場時間較容易變動；適合測試，不適合當唯一穩定轉錄設定。 |
+| Pro 類模型 | 通常不作為轉錄預設 | 成本與延遲較高；除非內容非常困難且 Flash 轉錄品質不足，否則轉錄不優先用 Pro。 |
+
+轉錄模型的實際可用性以 Gemini models API、設定頁 API 測試與一次真實轉錄請求為準；文件只提供選型建議。
+
+目前的使用方式：
+
+1. `模型` 欄位只負責從你已加入的轉錄模型下拉選單中選擇。
+2. `管理模型` 輸入框可新增或刪除下拉選單項目。
+3. `管理模型` 輸入框有 autocomplete；輸入時會依目前 provider 從共用 model datalist 帶出候選。
 
 ### 摘要 Provider / 摘要模型
 
@@ -153,23 +171,33 @@ v1 轉錄 provider 先固定為 `Gemini`。
 1. Provider：`Gemini`
 2. Model：`gemini-3.1-flash-lite-preview`
 
-Gemini 摘要模型目前可選：
+Gemini 摘要模型建議：
 
-1. `gemini-3.1-flash-lite-preview`
-2. `gemini-3-flash-preview`
-3. `gemini-2.5-flash`
-4. `gemini-2.5-flash-lite`
+| 任務情境 | 建議模型 | 說明 |
+| --- | --- | --- |
+| 預設摘要、日常筆記、高頻率使用 | `gemini-3.1-flash-lite-preview` | 目前專案預設摘要模型。適合快速整理逐字稿、網頁與一般筆記；注意 preview 模型可能變動。 |
+| 長內容、技術演講、需要較完整層級與結構 | `gemini-3-flash-preview` | 偏品質與結構化輸出；適合比日常摘要更重的內容整理。 |
+| 穩定 fallback、避免 preview 風險 | `gemini-2.5-flash` | 官方文件定位為低延遲、高流量且價格/效能平衡的模型；適合需要穩定性的摘要主線。 |
+| 很短的摘要、低成本或低延遲優先 | `gemini-2.5-flash-lite` | 適合短網頁、短逐字稿、批次草稿；若需要細緻結構或長內容推理，優先改用 Flash。 |
+| 複雜長文、研究型整理、多文件交叉推理 | Pro 類模型，例如 autocomplete 中可用的 `gemini-2.5-pro` / `gemini-3.1-pro-preview` | 品質與推理能力通常較強，但成本與延遲較高；適合少量高價值內容，不建議作為大量批次摘要預設。 |
 
-使用建議：
+摘要模型選型原則：
 
-1. `gemini-3.1-flash-lite-preview`：預設 fast/free，適合日常摘要與高頻率使用。
-2. `gemini-3-flash-preview`：偏 quality，適合較長內容、技術演講、需要更完整結構時。
-3. `gemini-2.5-flash`：穩定 fallback。
-4. `gemini-2.5-flash-lite`：低延遲測試或較輕量場景。
+1. 大量日常摘要先選 Flash-Lite 或目前預設模型。
+2. 需要穩定、不想承擔 preview 退場風險時選 `gemini-2.5-flash`。
+3. 需要更完整結構、長內容整理或較強推理時選 Flash 或 Pro 類模型。
+4. 摘要模型只處理文字輸入；媒體來源會先由轉錄模型產生逐字稿，再交給摘要模型。
+
+目前的使用方式：
+
+1. `模型` 欄位只負責從你已加入的摘要模型下拉選單中選擇。
+2. `管理模型` 輸入框與轉錄模型共用同一套 model datalist。
+3. 當 `summaryProvider = gemini` 時，autocomplete 會顯示 Gemini 官方模型候選。
+4. 當 `summaryProvider = openrouter` 時，autocomplete 會顯示 OpenRouter 官方模型候選，新增前也會再做一次官方資料校驗。
 
 ### OpenRouter API Key
 
-當 `summaryProvider = openrouter` 時，設定頁會額外顯示 `OpenRouter API Key`。
+當 `summaryProvider = openrouter` 時，設定頁會額外顯示 `OpenRouter API Key`。OpenRouter 的 autocomplete、模型清單更新與新增前校驗都會使用這個 key。
 
 第一版支援的 OpenRouter 摘要模型：
 
@@ -180,6 +208,15 @@ Gemini 摘要模型目前可選：
 1. OpenRouter/Qwen 目前只作為 transcript-first 的文字摘要路徑。
 2. 它不是 audio transcription 主路徑，不負責直接吃音訊或影片。
 3. 若沒有切到 `summaryProvider = openrouter`，可以先不填 OpenRouter key。
+
+### 模型清單更新與自動完成
+
+AI 模型頁有一個 `模型清單更新` 區塊。
+
+1. `更新` 會手動抓取 Gemini / OpenRouter 官方模型清單。
+2. 轉錄與摘要的 `管理模型` 輸入框共用同一個 datalist。
+3. 每次 focus、輸入、變更時都會即時觸發 autocomplete。
+4. 模型資料平常會快取 1 天；手動更新或 API key 變更會刷新對應資料。
 
 ### 為什麼拆成轉錄模型與摘要模型
 

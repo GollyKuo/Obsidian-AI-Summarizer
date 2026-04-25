@@ -196,7 +196,7 @@
 狀態：`completed`
 
 摘要：
-已完成 provider 分層與使用者可管理的 AI 模型清單。初始化不預載內建模型選項，模型清單改由使用者自訂新增、刪除與維護；每筆模型記錄 provider、用途（轉錄 / 摘要）、顯示名稱與 model id。OpenRouter 路徑支援從官方 models API 更新模型名稱與 model id，並偵測、校對或提示可能的名稱 / id 不一致；Gemini 轉錄模型保留 audio-capable 風險提示與 API 驗證邊界。（完成：2026-04-25）
+已完成 provider 分層與使用者可管理的 AI 模型清單。初始化不預載內建模型選項，模型清單改由使用者透過設定頁的下拉選單與管理輸入維護；每筆模型記錄 provider、用途（轉錄 / 摘要）、顯示名稱與 model id。轉錄與摘要共用同一套管理模型 autocomplete/datalist，會依目前 provider 動態切換 Gemini 或 OpenRouter 候選來源；OpenRouter 路徑支援從官方 models API 查詢、校對與驗證 model id / 名稱，Gemini 與 OpenRouter 模型清單支援手動更新，並採 1 天快取。Gemini 轉錄模型保留 audio-capable 風險提示與 API 驗證邊界。（完成：2026-04-26）
 
 #### CAP-505 Batch And Queueing 批次與佇列
 

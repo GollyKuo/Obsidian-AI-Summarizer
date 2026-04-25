@@ -132,11 +132,11 @@ flowchart TD
 
 ### 模型路由規則
 
-- 網頁來源不使用 `transcriptionProvider` / `transcriptionModel`；即使轉錄模型設定為 Gemini，網頁也只會交給 `summaryProvider` / `summaryModel`。
+- 網頁來源不使用 `transcriptionProvider` / `transcriptionModel`；即使已設定轉錄 provider / model，網頁也只會交給 `summaryProvider` / `summaryModel`。
 - `media_url` 與 `local_media` 進入 AI 後共用同一條模型路徑：`transcriptionProvider / transcriptionModel -> summaryProvider / summaryModel`。
 - YouTube、podcast、direct media URL 的差異只在 URL 分類、下載器與 metadata；轉成 AI-ready media artifact 後，後段與本機媒體一致。
 - `summaryProvider = openrouter` 時，OpenRouter 只負責文字摘要；不負責直接讀取音訊或影片。
-- Flow modal 應接 production service wiring：webpage extraction 使用 `FetchWebpageExtractor`，摘要使用 configured Gemini/OpenRouter summary provider，媒體轉錄使用 configured Gemini transcription provider，筆記輸出使用 `ObsidianNoteWriter`。測試中仍可用 mock dependency 驗證 orchestration contract。
+- Flow modal 應接 production service wiring：webpage extraction 使用 `FetchWebpageExtractor`，摘要使用 configured Gemini/OpenRouter summary provider，媒體轉錄使用 configured transcription provider（目前實作為 Gemini），筆記輸出使用 `ObsidianNoteWriter`。測試中仍可用 mock dependency 驗證 orchestration contract。
 
 ## 關鍵契約
 

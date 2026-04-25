@@ -1,10 +1,10 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-25 23:10
+最後更新：2026-04-26 02:00
 
 ## 版本紀錄
 
-### 0.1.48-cap-504-model-catalog - 2026-04-25 23:10
+### 0.1.48-cap-504-model-catalog - 2026-04-26 02:00
 
 範圍：
 - 完成 `CAP-504 Multi-Model Provider Strategy`，把模型選項改為使用者可管理的 provider/model catalog。
@@ -15,17 +15,25 @@
 - 新增 `modelCatalog` settings contract，每筆模型保存 provider、用途、顯示名稱與 model id
 - 新安裝預設不預載內建模型清單，既有設定會把已選模型 migration 進 catalog
 - 更新 `src/ui/settings-tab.ts`
-- 設定頁新增模型清單新增、刪除、編輯與 OpenRouter refresh 操作
+- AI 模型頁改為以使用者可維護的下拉選單為主，透過「管理模型」新增或刪除轉錄 / 摘要模型
+- 轉錄與摘要的管理模型輸入共用同一套 autocomplete datalist，候選依當前 provider 動態切換 Gemini / OpenRouter
+- 新增「模型清單更新」操作，可手動抓取 Gemini / OpenRouter 官方模型資料
+- 模型 autocomplete 採 1 天快取；對應 API key 變更時會清快取並在下次輸入時重抓
 - 新增 `src/services/ai/openrouter-models.ts`
 - 支援 OpenRouter official models API 讀取、名稱更新、model id 校正與找不到模型提示
+- 新增 `src/services/ai/gemini-models.ts`
+- 支援 Gemini official models API 讀取與 Gemini model autocomplete
+- OpenRouter 管理模型輸入支援輸入名稱 / model id 後自動比對官方 models API 防呆
 - Gemini 轉錄模型保留 audio-capable 風險提示，實際可用性仍以 API 測試與轉錄請求為驗證邊界
 - 更新 `tests/unit/settings.test.ts`
+- 新增 `tests/unit/gemini-models.test.ts`
 - 新增 `tests/unit/openrouter-models.test.ts`
-- 更新 `docs/backlog.md`、`docs/backlog-active.md`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`、`docs/Manual.md`
 
 驗證：
 - `npm run typecheck`
 - `npm run test`
+- `npm run build:vault`
 
 ### 0.1.47-settings-diagnostics-and-version-sync - 2026-04-24 23:16
 

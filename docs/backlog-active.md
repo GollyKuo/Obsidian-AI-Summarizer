@@ -31,7 +31,7 @@
 ## 下一個切換點
 
 - 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
-- `CAP-504` 已完成：模型清單改為使用者自訂維護，並支援 OpenRouter models API 校對。
+- `CAP-504` 已完成：模型清單改為使用者自訂維護，轉錄/摘要共用 autocomplete model datalist，並支援 Gemini / OpenRouter 官方模型清單更新與 OpenRouter models API 校對。
 - 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
 
 ## Product Flows 產品流程
