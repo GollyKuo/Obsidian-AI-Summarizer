@@ -67,7 +67,7 @@ const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_me
 const RETENTION_OPTIONS: RetentionMode[] = ["none", "source", "all"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
-const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 15 * 60 * 1000;
+const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁 URL",
@@ -557,18 +557,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     try {
       const refreshTasks: Array<Promise<string>> = [
-        this.refreshModelDataList("openrouter").then(
-          (count) => `OpenRouter ${count} models`
-        )
+        this.refreshModelDataList("openrouter").then((count) => `OpenRouter ${count} 筆`)
       ];
 
       if (this.plugin.settings.apiKey.trim().length > 0) {
-        refreshTasks.push(
-          this.refreshModelDataList("gemini").then((count) => `Gemini ${count} models`)
-        );
+        refreshTasks.push(this.refreshModelDataList("gemini").then((count) => `Gemini ${count} 筆`));
       } else {
         this.invalidateModelDataListCache("gemini");
-        refreshTasks.push(Promise.resolve("Gemini skipped (no API key)"));
+        refreshTasks.push(Promise.resolve("Gemini 略過（未填 API Key）"));
       }
 
       const results = await Promise.allSettled(refreshTasks);
@@ -587,7 +583,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       }
 
       if (failed) {
-        this.plugin.notify(`Model data list refresh finished with warnings: ${messages.join("; ")}`);
+        this.plugin.notify(`模型清單更新完成，但有警告：${messages.join("；")}`);
         for (const result of results) {
           if (result.status === "rejected") {
             const message = result.reason instanceof Error ? result.reason.message : String(result.reason);
@@ -595,12 +591,23 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           }
         }
       } else {
-        this.plugin.notify(`Model data list updated: ${messages.join(", ")}.`);
+        this.plugin.notify(`模型清單已更新：${messages.join("，")}。`);
       }
     } finally {
       this.modelDataListRefreshInProgress = false;
       this.display();
     }
+  }
+
+  private resolveManagedModelDataProvider(
+    provider: SummaryProvider | TranscriptionProvider,
+    purpose: ModelPurpose
+  ): "gemini" | "openrouter" {
+    if (purpose === "summary") {
+      return provider === "openrouter" ? "openrouter" : "gemini";
+    }
+
+    return provider === "openrouter" ? "openrouter" : "gemini";
   }
 
   private attachModelAutocomplete<TModel extends { id: string; name: string }>(
@@ -889,6 +896,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setDesc("建議選穩定的 Gemini audio-capable 模型。")
       .addDropdown((dropdown) => {
         for (const option of getTranscriptionModelOptions(
+          this.plugin.settings.transcriptionProvider,
           this.plugin.settings.modelCatalog,
           this.plugin.settings.transcriptionModel
         )) {
@@ -1223,7 +1231,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       }
     );
     if (purpose === "transcription") {
-      this.plugin.settings.transcriptionProvider = "gemini";
+      this.plugin.settings.transcriptionProvider = provider as TranscriptionProvider;
       this.plugin.settings.transcriptionModel = modelId;
     } else {
       this.plugin.settings.summaryProvider = provider as SummaryProvider;
@@ -1244,8 +1252,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     );
 
     if (purpose === "transcription") {
+      const transcriptionProvider = provider as TranscriptionProvider;
       this.plugin.settings.transcriptionModel =
-        getFirstModelIdForProvider(this.plugin.settings.modelCatalog, "gemini", "transcription") ??
+        getFirstModelIdForProvider(
+          this.plugin.settings.modelCatalog,
+          transcriptionProvider,
+          "transcription"
+        ) ??
         normalizeTranscriptionModel("");
     } else {
       const summaryProvider = provider as SummaryProvider;
@@ -1270,7 +1283,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         }
         dropdown.setValue(this.plugin.settings.transcriptionProvider).onChange(async (value) => {
           this.plugin.settings.transcriptionProvider = value as TranscriptionProvider;
+          this.plugin.settings.transcriptionModel =
+            getFirstModelIdForProvider(
+              this.plugin.settings.modelCatalog,
+              this.plugin.settings.transcriptionProvider,
+              "transcription"
+            ) ?? normalizeTranscriptionModel("");
           await this.plugin.saveSettings();
+          this.display();
         });
       });
 
@@ -1279,6 +1299,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setDesc("從你自訂的轉錄模型清單選擇。")
       .addDropdown((dropdown) => {
         for (const option of getTranscriptionModelOptions(
+          this.plugin.settings.transcriptionProvider,
           this.plugin.settings.modelCatalog,
           this.plugin.settings.transcriptionModel
         )) {
@@ -1303,7 +1324,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       })
       .addButton((button) =>
         button.setButtonText("新增").onClick(() => {
-          void this.addManagedModel("gemini", "transcription", newTranscriptionModel);
+          void this.addManagedModel(
+            this.plugin.settings.transcriptionProvider,
+            "transcription",
+            newTranscriptionModel
+          );
         })
       )
       .addButton((button) =>
@@ -1317,9 +1342,16 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
 
     if (manageTranscriptionModelInputEl) {
-      this.attachManagedModelAutocomplete(manageTranscriptionModelInputEl, "gemini", (value) => {
-        newTranscriptionModel = value;
-      });
+      this.attachManagedModelAutocomplete(
+        manageTranscriptionModelInputEl,
+        this.resolveManagedModelDataProvider(
+          this.plugin.settings.transcriptionProvider,
+          "transcription"
+        ),
+        (value) => {
+          newTranscriptionModel = value;
+        }
+      );
     }
 
     new Setting(containerEl)
@@ -1331,6 +1363,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.apiKey)
           .onChange(async (value) => {
             this.plugin.settings.apiKey = value.trim();
+            this.invalidateModelDataListCache("gemini");
             await this.plugin.saveSettings();
             this.display();
           })
@@ -1426,9 +1459,9 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (manageSummaryModelInputEl) {
       this.attachManagedModelAutocomplete(
         manageSummaryModelInputEl,
-        this.plugin.settings.summaryProvider,
+        this.resolveManagedModelDataProvider(this.plugin.settings.summaryProvider, "summary"),
         (value) => {
-        newSummaryModel = value;
+          newSummaryModel = value;
         }
       );
     }
@@ -1448,8 +1481,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             if (isOpenRouter) {
               this.plugin.settings.openRouterApiKey = value.trim();
+              this.invalidateModelDataListCache("openrouter");
             } else {
               this.plugin.settings.apiKey = value.trim();
+              this.invalidateModelDataListCache("gemini");
             }
             await this.plugin.saveSettings();
             this.display();
@@ -1467,11 +1502,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private renderAiModelSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
-      .setName("Model data list")
-      .setDesc("Autocomplete 會使用 Gemini / OpenRouter 官方模型清單。按下更新可手動抓最新資料。")
+      .setName("模型清單更新")
+      .setDesc("自動完成會使用 Gemini / OpenRouter 官方模型清單。按下更新可手動抓取最新資料。")
       .addButton((button) =>
         button
-          .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新最新清單")
+          .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新")
           .setDisabled(this.modelDataListRefreshInProgress)
           .onClick(() => {
             void this.refreshManagedModelDataLists();

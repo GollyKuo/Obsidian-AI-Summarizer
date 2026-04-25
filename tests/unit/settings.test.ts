@@ -78,7 +78,7 @@ describe("settings", () => {
       modelId: "qwen/qwen3.6-plus"
     });
 
-    expect(getTranscriptionModelOptions(catalog).map((option) => option.value)).toEqual([
+    expect(getTranscriptionModelOptions("gemini", catalog).map((option) => option.value)).toEqual([
       "gemini-audio"
     ]);
     expect(getSummaryModelOptions("openrouter", catalog).map((option) => option.label)).toEqual([

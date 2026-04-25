@@ -308,10 +308,11 @@ export function getFirstModelIdForProvider(
 }
 
 export function getTranscriptionModelOptions(
+  provider: TranscriptionProvider = DEFAULT_TRANSCRIPTION_PROVIDER,
   catalog: readonly AiModelCatalogEntry[] = DEFAULT_MODEL_CATALOG,
   selectedModel?: string
 ): readonly ModelOption<TranscriptionModel>[] {
-  return getModelCatalogOptions(catalog, "gemini", "transcription", selectedModel);
+  return getModelCatalogOptions(catalog, provider, "transcription", selectedModel);
 }
 
 export function getSummaryModelOptions(
