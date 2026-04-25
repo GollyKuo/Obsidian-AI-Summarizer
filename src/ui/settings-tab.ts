@@ -914,9 +914,305 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
   }
 
+  private findOpenRouterModel(
+    models: Awaited<ReturnType<typeof fetchOpenRouterModels>>,
+    query: string
+  ): Awaited<ReturnType<typeof fetchOpenRouterModels>>[number] | null {
+    const normalizedQuery = query.trim().toLowerCase().replace(/\s+/g, " ");
+    return (
+      models.find((model) => model.id.toLowerCase() === normalizedQuery) ??
+      models.find((model) => model.name.trim().toLowerCase().replace(/\s+/g, " ") === normalizedQuery) ??
+      null
+    );
+  }
+
+  private async addManagedModel(
+    provider: SummaryProvider | TranscriptionProvider,
+    purpose: "summary" | "transcription",
+    rawModelInput: string
+  ): Promise<void> {
+    const modelInput = rawModelInput.trim();
+    if (modelInput.length === 0) {
+      this.plugin.notify("請先輸入模型 ID 或模型名稱。");
+      return;
+    }
+
+    if (provider === "openrouter") {
+      try {
+        const models = await fetchOpenRouterModels({
+          apiKey: this.plugin.settings.openRouterApiKey
+        });
+        const matchedModel = this.findOpenRouterModel(models, modelInput);
+        if (!matchedModel) {
+          this.plugin.notify("OpenRouter 查無此模型，請確認 model id 或名稱。");
+          return;
+        }
+
+        this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
+          this.plugin.settings.modelCatalog,
+          {
+            provider,
+            purpose,
+            displayName: matchedModel.name,
+            modelId: matchedModel.id,
+            source: "openrouter",
+            updatedAt: new Date().toISOString()
+          }
+        );
+        this.plugin.settings.summaryProvider = "openrouter";
+        this.plugin.settings.summaryModel = matchedModel.id;
+        await this.plugin.saveSettings();
+        this.plugin.notify(`已加入 OpenRouter 模型：${matchedModel.name}`);
+        this.display();
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.plugin.notify(`OpenRouter 模型查詢失敗：${message}`);
+        this.plugin.reportWarning("openrouter_models", message);
+        return;
+      }
+    }
+
+    const modelId =
+      purpose === "transcription"
+        ? normalizeTranscriptionModel(modelInput)
+        : normalizeSummaryModel(provider as SummaryProvider, modelInput);
+    this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
+      this.plugin.settings.modelCatalog,
+      {
+        provider,
+        purpose,
+        displayName: modelId,
+        modelId,
+        source: "user"
+      }
+    );
+    if (purpose === "transcription") {
+      this.plugin.settings.transcriptionProvider = "gemini";
+      this.plugin.settings.transcriptionModel = modelId;
+    } else {
+      this.plugin.settings.summaryProvider = provider as SummaryProvider;
+      this.plugin.settings.summaryModel = modelId;
+    }
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private async deleteManagedModel(
+    provider: SummaryProvider | TranscriptionProvider,
+    purpose: "summary" | "transcription",
+    modelId: string
+  ): Promise<void> {
+    this.plugin.settings.modelCatalog = removeModelCatalogEntry(
+      this.plugin.settings.modelCatalog,
+      { provider, purpose, modelId }
+    );
+
+    if (purpose === "transcription") {
+      this.plugin.settings.transcriptionModel =
+        getFirstModelIdForProvider(this.plugin.settings.modelCatalog, "gemini", "transcription") ??
+        normalizeTranscriptionModel("");
+    } else {
+      const summaryProvider = provider as SummaryProvider;
+      this.plugin.settings.summaryModel =
+        getFirstModelIdForProvider(this.plugin.settings.modelCatalog, summaryProvider, "summary") ??
+        normalizeSummaryModel(summaryProvider, "");
+    }
+
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private renderManagedTranscriptionSettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "轉錄模型", "媒體轉文字");
+
+    new Setting(containerEl)
+      .setName("Provider")
+      .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
+      .addDropdown((dropdown) => {
+        for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
+          dropdown.addOption(option.value, option.label);
+        }
+        dropdown.setValue(this.plugin.settings.transcriptionProvider).onChange(async (value) => {
+          this.plugin.settings.transcriptionProvider = value as TranscriptionProvider;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("模型")
+      .setDesc("從你自訂的轉錄模型清單選擇。")
+      .addDropdown((dropdown) => {
+        for (const option of getTranscriptionModelOptions(
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.transcriptionModel
+        )) {
+          dropdown.addOption(option.value, option.label);
+        }
+        dropdown.setValue(this.plugin.settings.transcriptionModel).onChange(async (value) => {
+          this.plugin.settings.transcriptionModel = value as TranscriptionModel;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    let newTranscriptionModel = "";
+    new Setting(containerEl)
+      .setName("管理模型")
+      .setDesc("新增或刪除轉錄模型下拉選單中的項目。")
+      .addText((text) =>
+        text.setPlaceholder("gemini-2.5-flash").onChange((value) => {
+          newTranscriptionModel = value;
+        })
+      )
+      .addButton((button) =>
+        button.setButtonText("新增").onClick(() => {
+          void this.addManagedModel("gemini", "transcription", newTranscriptionModel);
+        })
+      )
+      .addButton((button) =>
+        button.setButtonText("刪除目前模型").onClick(() => {
+          void this.deleteManagedModel(
+            this.plugin.settings.transcriptionProvider,
+            "transcription",
+            this.plugin.settings.transcriptionModel
+          );
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc("Gemini 轉錄使用的 API Key。")
+      .addText((text) =>
+        text
+          .setPlaceholder("輸入 Gemini API Key")
+          .setValue(this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            this.plugin.settings.apiKey = value.trim();
+            await this.plugin.saveSettings();
+            this.display();
+          })
+      )
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "transcription" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testTranscriptionApi();
+          })
+      );
+  }
+
+  private renderManagedSummarySettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "摘要模型", "文字轉摘要");
+
+    new Setting(containerEl)
+      .setName("Provider")
+      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
+      .addDropdown((dropdown) => {
+        for (const option of SUMMARY_PROVIDER_OPTIONS) {
+          dropdown.addOption(option.value, option.label);
+        }
+        dropdown.setValue(this.plugin.settings.summaryProvider).onChange(async (value) => {
+          const provider = value as SummaryProvider;
+          this.plugin.settings.summaryProvider = provider;
+          this.plugin.settings.summaryModel =
+            getFirstModelIdForProvider(this.plugin.settings.modelCatalog, provider, "summary") ??
+            normalizeSummaryModel(provider, "");
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("模型")
+      .setDesc("從你自訂的摘要模型清單選擇。")
+      .addDropdown((dropdown) => {
+        for (const option of getSummaryModelOptions(
+          this.plugin.settings.summaryProvider,
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.summaryModel
+        )) {
+          dropdown.addOption(option.value, option.label);
+        }
+        dropdown.setValue(this.plugin.settings.summaryModel).onChange(async (value) => {
+          this.plugin.settings.summaryModel = value as SummaryModel;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    let newSummaryModel = "";
+    new Setting(containerEl)
+      .setName("管理模型")
+      .setDesc(
+        this.plugin.settings.summaryProvider === "openrouter"
+          ? "輸入 OpenRouter model id 或名稱；新增前會先查官方 models API 防呆。"
+          : "新增或刪除摘要模型下拉選單中的項目。"
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder(
+            this.plugin.settings.summaryProvider === "openrouter"
+              ? "qwen/qwen3.6-plus"
+              : "gemini-3.1-flash-lite-preview"
+          )
+          .onChange((value) => {
+            newSummaryModel = value;
+          })
+      )
+      .addButton((button) =>
+        button.setButtonText("新增").onClick(() => {
+          void this.addManagedModel(
+            this.plugin.settings.summaryProvider,
+            "summary",
+            newSummaryModel
+          );
+        })
+      )
+      .addButton((button) =>
+        button.setButtonText("刪除目前模型").onClick(() => {
+          void this.deleteManagedModel(
+            this.plugin.settings.summaryProvider,
+            "summary",
+            this.plugin.settings.summaryModel
+          );
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("API Key")
+      .setDesc(
+        this.plugin.settings.summaryProvider === "openrouter"
+          ? "OpenRouter 摘要使用的 API Key。"
+          : "Gemini 摘要會共用 Gemini API Key。"
+      )
+      .addText((text) => {
+        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
+        text
+          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
+          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .onChange(async (value) => {
+            if (isOpenRouter) {
+              this.plugin.settings.openRouterApiKey = value.trim();
+            } else {
+              this.plugin.settings.apiKey = value.trim();
+            }
+            await this.plugin.saveSettings();
+            this.display();
+          });
+      })
+      .addButton((button) =>
+        button
+          .setButtonText(this.apiTestTarget === "summary" ? "測試中..." : "測試")
+          .setDisabled(this.apiTestTarget !== null)
+          .onClick(() => {
+            void this.testSummaryApi();
+          })
+      );
+  }
+
   private renderAiModelSettings(containerEl: HTMLElement): void {
-    this.renderDirectTranscriptionSettings(containerEl);
-    this.renderDirectSummarySettings(containerEl);
+    this.renderManagedTranscriptionSettings(containerEl);
+    this.renderManagedSummarySettings(containerEl);
   }
 
   private renderOutputAndMediaSettings(containerEl: HTMLElement): void {
