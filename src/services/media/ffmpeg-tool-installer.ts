@@ -13,6 +13,7 @@ const execFileAsync = promisify(execFile);
 const GYAN_RELEASE_BASE_URL = "https://www.gyan.dev/ffmpeg/builds";
 const RELEASE_PACKAGE_NAME = "ffmpeg-release-essentials.zip";
 const METADATA_FILE_NAME = "install-metadata.json";
+const REQUEST_TIMEOUT_MS = 120_000;
 
 export interface FfmpegToolInstallPaths {
   installRoot: string;
@@ -118,6 +119,9 @@ function requestUrl(url: string): Promise<NodeJS.ReadableStream> {
       resolve(response);
     });
 
+    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${url}`));
+    });
     request.on("error", reject);
   });
 }

@@ -222,6 +222,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return path.join(vaultBasePath, pluginRelativeDirectory);
   }
 
+  private hasVaultFilesystemAccess(): boolean {
+    return this.resolvePluginDirectory() !== null;
+  }
+
   private async pickMediaStorageDirectory(): Promise<void> {
     const dialog = this.getDesktopDialog();
     if (!dialog) {
@@ -304,22 +308,18 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private async installOrUpdateProjectMediaTools(): Promise<void> {
-    if (this.detectAppSurface() !== "desktop") {
-      this.plugin.notify("Automatic ffmpeg/ffprobe install requires Obsidian desktop.");
-      return;
-    }
-
     if (this.mediaToolInstallInProgress) {
       return;
     }
 
     const pluginDirectory = this.resolvePluginDirectory();
     if (!pluginDirectory) {
-      this.plugin.notify("Automatic ffmpeg/ffprobe install requires filesystem access.");
+      this.plugin.notify("自動安裝 ffmpeg/ffprobe 需要 Obsidian 桌面版的檔案系統存取。");
       return;
     }
 
     this.mediaToolInstallInProgress = true;
+    this.plugin.notify("正在檢查並安裝 ffmpeg/ffprobe，第一次下載可能需要一些時間。");
     this.display();
 
     try {
@@ -330,12 +330,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       await this.plugin.saveSettings();
       this.plugin.notify(
         result.installed
-          ? `Installed ffmpeg/ffprobe ${result.version} to ${result.binDirectory}`
-          : `ffmpeg/ffprobe ${result.version} is already current in ${result.binDirectory}`
+          ? `已安裝 ffmpeg/ffprobe ${result.version}: ${result.binDirectory}`
+          : `ffmpeg/ffprobe ${result.version} 已是最新版: ${result.binDirectory}`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.plugin.notify(`ffmpeg/ffprobe automatic install failed: ${message}`);
+      this.plugin.notify(`ffmpeg/ffprobe 自動安裝失敗：${message}`);
       this.plugin.reportWarning("media_tool_detection", message);
     } finally {
       this.mediaToolInstallInProgress = false;
@@ -807,7 +807,9 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   ): void {
     new Setting(containerEl)
       .setName(toolName)
-      .setDesc(`可留空使用系統 PATH；按「自動填入」會搜尋 PATH 並寫入偵測到的 ${toolName} 路徑。`)
+      .setDesc(
+        `可留空使用系統 PATH；按「自動填入」會在外掛資料夾的 tools/ffmpeg 中檢查、下載或更新 ffmpeg/ffprobe，並寫入路徑。`
+      )
       .addText((text) =>
         text
           .setPlaceholder(process.platform === "win32" ? `例如 C:\\ffmpeg\\bin\\${toolName}.exe` : `例如 /usr/local/bin/${toolName}`)
@@ -824,9 +826,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         })
       )
       .addButton((button) =>
-        button.setButtonText("自動填入").onClick(() => {
-          void this.installOrUpdateProjectMediaTools();
-        })
+        button
+          .setButtonText(this.mediaToolInstallInProgress ? "安裝中..." : "自動填入")
+          .setDisabled(this.mediaToolInstallInProgress || !this.hasVaultFilesystemAccess())
+          .onClick(() => {
+            void this.installOrUpdateProjectMediaTools();
+          })
       );
   }
 
