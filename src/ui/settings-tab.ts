@@ -28,8 +28,10 @@ import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { testAiApiAvailability } from "@services/ai/api-health-check";
 import {
   fetchOpenRouterModels,
+  searchOpenRouterModels,
   syncOpenRouterModelCatalog
 } from "@services/ai/openrouter-models";
+import type { OpenRouterModelRecord } from "@services/ai/openrouter-models";
 import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
@@ -200,6 +202,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private modelCatalogDraftDisplayName = "";
   private modelCatalogDraftModelId = "";
   private openRouterModelSyncInProgress = false;
+  private openRouterModelsCache: OpenRouterModelRecord[] | null = null;
+  private openRouterModelsRequest: Promise<OpenRouterModelRecord[]> | null = null;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -444,6 +448,76 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       this.apiTestTarget = null;
       this.display();
     }
+  }
+
+  private async loadOpenRouterModels(): Promise<OpenRouterModelRecord[]> {
+    if (this.openRouterModelsCache) {
+      return this.openRouterModelsCache;
+    }
+
+    if (this.openRouterModelsRequest) {
+      return this.openRouterModelsRequest;
+    }
+
+    this.openRouterModelsRequest = fetchOpenRouterModels({
+      apiKey: this.plugin.settings.openRouterApiKey
+    }).then((models) => {
+      this.openRouterModelsCache = models;
+      return models;
+    });
+
+    try {
+      return await this.openRouterModelsRequest;
+    } finally {
+      this.openRouterModelsRequest = null;
+    }
+  }
+
+  private attachOpenRouterAutocomplete(
+    inputEl: HTMLInputElement,
+    onValueChange: (value: string) => void
+  ): void {
+    const inputId = `ai-summarizer-openrouter-suggest-${Date.now()}-${Math.random()
+      .toString(16)
+      .slice(2)}`;
+    const dataListEl = document.createElement("datalist");
+    dataListEl.id = inputId;
+    inputEl.setAttribute("list", inputId);
+    inputEl.setAttribute("autocomplete", "off");
+    inputEl.parentElement?.appendChild(dataListEl);
+
+    const updateSuggestions = async (): Promise<void> => {
+      const query = inputEl.value.trim();
+      dataListEl.replaceChildren();
+      if (query.length === 0) {
+        return;
+      }
+
+      try {
+        const models = await this.loadOpenRouterModels();
+        const suggestions = searchOpenRouterModels(models, query);
+        for (const suggestion of suggestions) {
+          const optionEl = document.createElement("option");
+          optionEl.value = suggestion.id;
+          optionEl.label = suggestion.name;
+          dataListEl.appendChild(optionEl);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.plugin.reportWarning("openrouter_models", message);
+      }
+    };
+
+    inputEl.addEventListener("input", () => {
+      onValueChange(inputEl.value);
+      void updateSuggestions();
+    });
+    inputEl.addEventListener("change", () => {
+      onValueChange(inputEl.value);
+    });
+    inputEl.addEventListener("focus", () => {
+      void updateSuggestions();
+    });
   }
 
   private persistSelectedModelInCatalog(
@@ -751,6 +825,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             if (isOpenRouter) {
               this.plugin.settings.openRouterApiKey = value.trim();
+              this.openRouterModelsCache = null;
             } else {
               this.plugin.settings.apiKey = value.trim();
             }
@@ -1141,6 +1216,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       });
 
     let newSummaryModel = "";
+    let manageSummaryModelInputEl: HTMLInputElement | null = null;
     new Setting(containerEl)
       .setName("管理模型")
       .setDesc(
@@ -1148,8 +1224,9 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           ? "輸入 OpenRouter model id 或名稱；新增前會先查官方 models API 防呆。"
           : "新增或刪除摘要模型下拉選單中的項目。"
       )
-      .addText((text) =>
-        text
+      .addText((text) => {
+        manageSummaryModelInputEl = text.inputEl;
+        return text
           .setPlaceholder(
             this.plugin.settings.summaryProvider === "openrouter"
               ? "qwen/qwen3.6-plus"
@@ -1157,8 +1234,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           )
           .onChange((value) => {
             newSummaryModel = value;
-          })
-      )
+          });
+      })
       .addButton((button) =>
         button.setButtonText("新增").onClick(() => {
           void this.addManagedModel(
@@ -1177,6 +1254,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           );
         })
       );
+
+    if (this.plugin.settings.summaryProvider === "openrouter" && manageSummaryModelInputEl) {
+      this.attachOpenRouterAutocomplete(manageSummaryModelInputEl, (value) => {
+        newSummaryModel = value;
+      });
+    }
 
     new Setting(containerEl)
       .setName("API Key")

@@ -120,6 +120,49 @@ export async function fetchOpenRouterModels(
   return normalizeOpenRouterModels(await response.json());
 }
 
+export function searchOpenRouterModels(
+  models: readonly OpenRouterModelRecord[],
+  query: string,
+  limit = 8
+): OpenRouterModelRecord[] {
+  const normalizedQuery = normalizeComparable(query);
+  if (normalizedQuery.length === 0) {
+    return [];
+  }
+
+  return [...models]
+    .map((model) => {
+      const normalizedId = normalizeComparable(model.id);
+      const normalizedName = normalizeComparable(model.name);
+
+      let rank = 99;
+      if (normalizedId === normalizedQuery) {
+        rank = 0;
+      } else if (normalizedName === normalizedQuery) {
+        rank = 1;
+      } else if (normalizedId.startsWith(normalizedQuery)) {
+        rank = 2;
+      } else if (normalizedName.startsWith(normalizedQuery)) {
+        rank = 3;
+      } else if (normalizedId.includes(normalizedQuery)) {
+        rank = 4;
+      } else if (normalizedName.includes(normalizedQuery)) {
+        rank = 5;
+      }
+
+      return { model, rank };
+    })
+    .filter((candidate) => candidate.rank < 99)
+    .sort((left, right) => {
+      if (left.rank !== right.rank) {
+        return left.rank - right.rank;
+      }
+      return left.model.id.localeCompare(right.model.id);
+    })
+    .slice(0, limit)
+    .map((candidate) => candidate.model);
+}
+
 export function syncOpenRouterModelCatalog(
   catalog: readonly AiModelCatalogEntry[],
   models: readonly OpenRouterModelRecord[],

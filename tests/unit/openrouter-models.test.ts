@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   fetchOpenRouterModels,
   normalizeOpenRouterModels,
+  searchOpenRouterModels,
   syncOpenRouterModelCatalog
 } from "@services/ai/openrouter-models";
 import type { AiModelCatalogEntry } from "@domain/settings";
@@ -53,6 +54,19 @@ describe("openrouter models", () => {
       Accept: "application/json",
       Authorization: "Bearer openrouter-key"
     });
+  });
+
+  it("returns ranked autocomplete matches for ids and names", () => {
+    expect(
+      searchOpenRouterModels(
+        [
+          { id: "nvidia/nemotron-3-super:free", name: "NVIDIA Nemotron 3 Super Free" },
+          { id: "meta/llama-3", name: "Llama 3" },
+          { id: "openai/gpt-4.1", name: "GPT-4.1" }
+        ],
+        "nvid"
+      )
+    ).toEqual([{ id: "nvidia/nemotron-3-super:free", name: "NVIDIA Nemotron 3 Super Free" }]);
   });
 
   it("updates stale OpenRouter display names by model id", () => {
