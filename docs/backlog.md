@@ -196,7 +196,7 @@
 狀態：`queued`
 
 摘要：
-規劃 provider 分層：音訊轉錄可使用 Gemini 等 audio-capable 模型，文字摘要可使用 Gemini、OpenRouter/Qwen 或其他 text model。
+規劃 provider 分層與使用者可管理的 AI 模型清單。初始化不預載內建模型選項，模型清單改由使用者自訂新增、刪除與維護；每筆模型需記錄 provider、用途（轉錄 / 摘要）、顯示名稱與 model id。OpenRouter 路徑需支援從官方 models API 更新模型名稱與 model id，並在使用者輸入時偵測、校對或提示可能的名稱 / id 不一致；Gemini 轉錄模型需保留 audio-capable 風險提示與驗證邊界。
 
 #### CAP-505 Batch And Queueing 批次與佇列
 
