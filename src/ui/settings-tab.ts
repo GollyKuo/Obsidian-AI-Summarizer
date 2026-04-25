@@ -604,71 +604,150 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
+  private createModelCatalogPanel(containerEl: HTMLElement): HTMLElement {
+    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-model-catalog-panel" });
+    panelEl.style.margin = "0.75rem 0";
+    panelEl.style.padding = "1rem";
+    panelEl.style.border = "1px solid var(--background-modifier-border)";
+    panelEl.style.borderRadius = "8px";
+    panelEl.style.backgroundColor = "var(--background-secondary)";
+    return panelEl;
+  }
+
+  private createModelCatalogControlsGrid(containerEl: HTMLElement): HTMLElement {
+    const gridEl = containerEl.createDiv({ cls: "ai-summarizer-model-catalog-controls" });
+    gridEl.style.display = "grid";
+    gridEl.style.gridTemplateColumns = "repeat(auto-fit, minmax(10rem, 1fr))";
+    gridEl.style.gap = "0.75rem";
+    gridEl.style.alignItems = "center";
+    gridEl.style.marginTop = "0.75rem";
+    return gridEl;
+  }
+
+  private createModelProviderSelect(
+    containerEl: HTMLElement,
+    value: ModelProvider,
+    onChange: (value: ModelProvider) => void
+  ): HTMLSelectElement {
+    const selectEl = containerEl.createEl("select");
+    for (const option of [
+      { value: "gemini", label: "Gemini" },
+      { value: "openrouter", label: "OpenRouter" }
+    ] as const) {
+      const optionEl = selectEl.createEl("option", { text: option.label });
+      optionEl.value = option.value;
+    }
+    selectEl.value = value;
+    selectEl.onchange = () => {
+      onChange(selectEl.value as ModelProvider);
+    };
+    return selectEl;
+  }
+
+  private createModelPurposeSelect(
+    containerEl: HTMLElement,
+    value: ModelPurpose,
+    onChange: (value: ModelPurpose) => void
+  ): HTMLSelectElement {
+    const selectEl = containerEl.createEl("select");
+    for (const option of [
+      { value: "summary", label: "Summary" },
+      { value: "transcription", label: "Transcription" }
+    ] as const) {
+      const optionEl = selectEl.createEl("option", { text: option.label });
+      optionEl.value = option.value;
+    }
+    selectEl.value = value;
+    selectEl.onchange = () => {
+      onChange(selectEl.value as ModelPurpose);
+    };
+    return selectEl;
+  }
+
+  private createModelTextInput(
+    containerEl: HTMLElement,
+    placeholder: string,
+    value: string,
+    onChange: (value: string) => void
+  ): HTMLInputElement {
+    const inputEl = containerEl.createEl("input");
+    inputEl.type = "text";
+    inputEl.placeholder = placeholder;
+    inputEl.value = value;
+    inputEl.onchange = () => {
+      onChange(inputEl.value);
+    };
+    return inputEl;
+  }
+
+  private createModelButton(
+    containerEl: HTMLElement,
+    text: string,
+    onClick: () => void
+  ): HTMLButtonElement {
+    const buttonEl = containerEl.createEl("button", { text });
+    buttonEl.type = "button";
+    buttonEl.onclick = onClick;
+    return buttonEl;
+  }
+
   private renderModelCatalogSettings(containerEl: HTMLElement): void {
     addInlineHeading(containerEl, "Model list", "User-managed provider/model catalog");
 
-    new Setting(containerEl)
-      .setName("Add model")
-      .setDesc("Each model records provider, purpose, display name, and model id.")
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("gemini", "Gemini")
-          .addOption("openrouter", "OpenRouter")
-          .setValue(this.modelCatalogDraftProvider)
-          .onChange((value) => {
-            this.modelCatalogDraftProvider = value as ModelProvider;
-            if (this.modelCatalogDraftProvider === "openrouter") {
-              this.modelCatalogDraftPurpose = "summary";
-            }
-            this.display();
-          });
-      })
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("summary", "Summary")
-          .addOption("transcription", "Transcription")
-          .setValue(this.modelCatalogDraftPurpose)
-          .onChange((value) => {
-            this.modelCatalogDraftPurpose = value as ModelPurpose;
-            if (this.modelCatalogDraftPurpose === "transcription") {
-              this.modelCatalogDraftProvider = "gemini";
-            }
-            this.display();
-          });
-      })
-      .addText((text) =>
-        text
-          .setPlaceholder("Display name")
-          .setValue(this.modelCatalogDraftDisplayName)
-          .onChange((value) => {
-            this.modelCatalogDraftDisplayName = value;
-          })
-      )
-      .addText((text) =>
-        text
-          .setPlaceholder("model id")
-          .setValue(this.modelCatalogDraftModelId)
-          .onChange((value) => {
-            this.modelCatalogDraftModelId = value;
-          })
-      )
-      .addButton((button) =>
-        button.setButtonText("Add").onClick(() => {
-          void this.addModelCatalogDraft();
-        })
-      );
+    const addPanel = this.createModelCatalogPanel(containerEl);
+    addPanel.createEl("h4", { text: "Add model" });
+    addPanel.createEl("p", {
+      text: "Each model records provider, purpose, display name, and model id."
+    });
+    const addControlsEl = this.createModelCatalogControlsGrid(addPanel);
+    this.createModelProviderSelect(addControlsEl, this.modelCatalogDraftProvider, (provider) => {
+      this.modelCatalogDraftProvider = provider;
+      if (provider === "openrouter") {
+        this.modelCatalogDraftPurpose = "summary";
+      }
+      this.display();
+    });
+    this.createModelPurposeSelect(addControlsEl, this.modelCatalogDraftPurpose, (purpose) => {
+      this.modelCatalogDraftPurpose = purpose;
+      if (purpose === "transcription") {
+        this.modelCatalogDraftProvider = "gemini";
+      }
+      this.display();
+    });
+    this.createModelTextInput(
+      addControlsEl,
+      "Display name",
+      this.modelCatalogDraftDisplayName,
+      (value) => {
+        this.modelCatalogDraftDisplayName = value;
+      }
+    );
+    this.createModelTextInput(addControlsEl, "model id", this.modelCatalogDraftModelId, (value) => {
+      this.modelCatalogDraftModelId = value;
+    });
+    this.createModelButton(addControlsEl, "Add", () => {
+      void this.addModelCatalogDraft();
+    });
 
-    new Setting(containerEl)
-      .setName("OpenRouter model refresh")
-      .setDesc("Fetches the official OpenRouter models API and corrects matching names or ids.")
-      .addButton((button) =>
-        button
-          .setButtonText(this.openRouterModelSyncInProgress ? "Refreshing..." : "Refresh OpenRouter")
-          .setDisabled(this.openRouterModelSyncInProgress)
-          .onClick(() => {
-            void this.syncOpenRouterModels();
-          })
-      );
+    const refreshPanel = this.createModelCatalogPanel(containerEl);
+    const refreshContentEl = refreshPanel.createDiv();
+    refreshContentEl.style.display = "grid";
+    refreshContentEl.style.gridTemplateColumns = "minmax(0, 1fr) auto";
+    refreshContentEl.style.gap = "1rem";
+    refreshContentEl.style.alignItems = "center";
+    const refreshTextEl = refreshContentEl.createDiv();
+    refreshTextEl.createEl("h4", { text: "OpenRouter model refresh" });
+    refreshTextEl.createEl("p", {
+      text: "Fetches the official OpenRouter models API and corrects matching names or ids."
+    });
+    const refreshButtonEl = this.createModelButton(
+      refreshContentEl,
+      this.openRouterModelSyncInProgress ? "Refreshing..." : "Refresh OpenRouter",
+      () => {
+        void this.syncOpenRouterModels();
+      }
+    );
+    refreshButtonEl.disabled = this.openRouterModelSyncInProgress;
 
     if (this.plugin.settings.modelCatalog.length === 0) {
       containerEl.createEl("p", {
@@ -679,50 +758,35 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     for (const entry of this.plugin.settings.modelCatalog) {
       const warning = getGeminiTranscriptionRiskMessage(entry);
-      new Setting(containerEl)
-        .setName(`${entry.displayName} (${entry.provider} / ${entry.purpose})`)
-        .setDesc(warning ? `${entry.modelId}. ${warning}` : entry.modelId)
-        .addDropdown((dropdown) => {
-          dropdown
-            .addOption("gemini", "Gemini")
-            .addOption("openrouter", "OpenRouter")
-            .setValue(entry.provider)
-            .onChange((value) => {
-              const provider = value as ModelProvider;
-              void this.updateModelCatalogEntry(entry, {
-                provider,
-                purpose: provider === "openrouter" ? "summary" : entry.purpose
-              });
-            });
-        })
-        .addDropdown((dropdown) => {
-          dropdown
-            .addOption("summary", "Summary")
-            .addOption("transcription", "Transcription")
-            .setValue(entry.purpose)
-            .onChange((value) => {
-              const purpose = value as ModelPurpose;
-              void this.updateModelCatalogEntry(entry, {
-                purpose,
-                provider: purpose === "transcription" ? "gemini" : entry.provider
-              });
-            });
-        })
-        .addText((text) =>
-          text.setPlaceholder("Display name").setValue(entry.displayName).onChange((value) => {
-            void this.updateModelCatalogEntry(entry, { displayName: value });
-          })
-        )
-        .addText((text) =>
-          text.setPlaceholder("model id").setValue(entry.modelId).onChange((value) => {
-            void this.updateModelCatalogEntry(entry, { modelId: value });
-          })
-        )
-        .addButton((button) =>
-          button.setButtonText("Delete").onClick(() => {
-            void this.deleteModelCatalogEntry(entry);
-          })
-        );
+      const entryPanel = this.createModelCatalogPanel(containerEl);
+      entryPanel.createEl("h4", {
+        text: `${entry.displayName} (${entry.provider} / ${entry.purpose})`
+      });
+      entryPanel.createEl("p", {
+        text: warning ? `${entry.modelId}. ${warning}` : entry.modelId
+      });
+      const entryControlsEl = this.createModelCatalogControlsGrid(entryPanel);
+      this.createModelProviderSelect(entryControlsEl, entry.provider, (provider) => {
+        void this.updateModelCatalogEntry(entry, {
+          provider,
+          purpose: provider === "openrouter" ? "summary" : entry.purpose
+        });
+      });
+      this.createModelPurposeSelect(entryControlsEl, entry.purpose, (purpose) => {
+        void this.updateModelCatalogEntry(entry, {
+          purpose,
+          provider: purpose === "transcription" ? "gemini" : entry.provider
+        });
+      });
+      this.createModelTextInput(entryControlsEl, "Display name", entry.displayName, (value) => {
+        void this.updateModelCatalogEntry(entry, { displayName: value });
+      });
+      this.createModelTextInput(entryControlsEl, "model id", entry.modelId, (value) => {
+        void this.updateModelCatalogEntry(entry, { modelId: value });
+      });
+      this.createModelButton(entryControlsEl, "Delete", () => {
+        void this.deleteModelCatalogEntry(entry);
+      });
     }
   }
 
