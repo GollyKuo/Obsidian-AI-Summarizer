@@ -209,6 +209,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private modelCatalogDraftModelId = "";
   private openRouterModelSyncInProgress = false;
   private modelDataListRefreshInProgress = false;
+  private managedModelDataListEl: HTMLDataListElement | null = null;
   private geminiModelsCache: GeminiModelRecord[] | null = null;
   private geminiModelsFetchedAt = 0;
   private geminiModelsRequest: Promise<GeminiModelRecord[]> | null = null;
@@ -610,79 +611,79 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return provider === "openrouter" ? "openrouter" : "gemini";
   }
 
-  private attachModelAutocomplete<TModel extends { id: string; name: string }>(
-    inputEl: HTMLInputElement,
-    onValueChange: (value: string) => void,
-    loadModels: () => Promise<TModel[]>,
-    searchModels: (models: readonly TModel[], query: string) => TModel[],
-    warningContext: string
-  ): void {
-    const inputId = `ai-summarizer-openrouter-suggest-${Date.now()}-${Math.random()
-      .toString(16)
-      .slice(2)}`;
+  private getManagedModelDataListEl(): HTMLDataListElement {
+    if (this.managedModelDataListEl?.isConnected) {
+      return this.managedModelDataListEl;
+    }
+
+    const existing = document.getElementById(
+      "ai-summarizer-managed-model-suggest"
+    ) as HTMLDataListElement | null;
+    if (existing) {
+      this.managedModelDataListEl = existing;
+      return existing;
+    }
+
     const dataListEl = document.createElement("datalist");
-    dataListEl.id = inputId;
-    inputEl.setAttribute("list", inputId);
-    inputEl.setAttribute("autocomplete", "off");
-    inputEl.parentElement?.appendChild(dataListEl);
+    dataListEl.id = "ai-summarizer-managed-model-suggest";
+    document.body.appendChild(dataListEl);
+    this.managedModelDataListEl = dataListEl;
+    return dataListEl;
+  }
 
-    const updateSuggestions = async (): Promise<void> => {
-      const query = inputEl.value.trim();
-      dataListEl.replaceChildren();
-      if (query.length === 0) {
-        return;
+  private async updateManagedModelAutocomplete(
+    query: string,
+    provider: "gemini" | "openrouter"
+  ): Promise<void> {
+    const dataListEl = this.getManagedModelDataListEl();
+    dataListEl.replaceChildren();
+
+    if (query.trim().length === 0) {
+      return;
+    }
+
+    try {
+      const suggestions =
+        provider === "openrouter"
+          ? searchOpenRouterModels(await this.loadOpenRouterModels(), query)
+          : searchGeminiModels(await this.loadGeminiModels(), query);
+
+      for (const suggestion of suggestions) {
+        const optionEl = document.createElement("option");
+        optionEl.value = suggestion.id;
+        optionEl.label = suggestion.name;
+        dataListEl.appendChild(optionEl);
       }
-
-      try {
-        const models = await loadModels();
-        const suggestions = searchModels(models, query);
-        for (const suggestion of suggestions) {
-          const optionEl = document.createElement("option");
-          optionEl.value = suggestion.id;
-          optionEl.label = suggestion.name;
-          dataListEl.appendChild(optionEl);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.plugin.reportWarning(warningContext, message);
-      }
-    };
-
-    inputEl.addEventListener("input", () => {
-      onValueChange(inputEl.value);
-      void updateSuggestions();
-    });
-    inputEl.addEventListener("change", () => {
-      onValueChange(inputEl.value);
-    });
-    inputEl.addEventListener("focus", () => {
-      void updateSuggestions();
-    });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.reportWarning(
+        provider === "openrouter" ? "openrouter_models" : "gemini_models",
+        message
+      );
+    }
   }
 
   private attachManagedModelAutocomplete(
     inputEl: HTMLInputElement,
-    provider: "gemini" | "openrouter",
+    resolveProvider: () => "gemini" | "openrouter",
     onValueChange: (value: string) => void
   ): void {
-    if (provider === "openrouter") {
-      this.attachModelAutocomplete(
-        inputEl,
-        onValueChange,
-        () => this.loadOpenRouterModels(),
-        (models, query) => searchOpenRouterModels(models, query),
-        "openrouter_models"
-      );
-      return;
-    }
+    inputEl.setAttribute("list", this.getManagedModelDataListEl().id);
+    inputEl.setAttribute("autocomplete", "off");
 
-    this.attachModelAutocomplete(
-      inputEl,
-      onValueChange,
-      () => this.loadGeminiModels(),
-      (models, query) => searchGeminiModels(models, query),
-      "gemini_models"
-    );
+    const updateSuggestions = (): void => {
+      void this.updateManagedModelAutocomplete(inputEl.value, resolveProvider());
+    };
+
+    inputEl.addEventListener("input", () => {
+      onValueChange(inputEl.value);
+      updateSuggestions();
+    });
+    inputEl.addEventListener("change", () => {
+      onValueChange(inputEl.value);
+      updateSuggestions();
+    });
+    inputEl.addEventListener("focus", updateSuggestions);
   }
 
   private persistSelectedModelInCatalog(
@@ -941,7 +942,6 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
       .addDropdown((dropdown) => {
         for (const option of SUMMARY_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1081,7 +1081,6 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
       .addDropdown((dropdown) => {
         for (const option of SUMMARY_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1344,10 +1343,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (manageTranscriptionModelInputEl) {
       this.attachManagedModelAutocomplete(
         manageTranscriptionModelInputEl,
-        this.resolveManagedModelDataProvider(
+        () =>
+          this.resolveManagedModelDataProvider(
           this.plugin.settings.transcriptionProvider,
           "transcription"
-        ),
+          ),
         (value) => {
           newTranscriptionModel = value;
         }
@@ -1459,7 +1459,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (manageSummaryModelInputEl) {
       this.attachManagedModelAutocomplete(
         manageSummaryModelInputEl,
-        this.resolveManagedModelDataProvider(this.plugin.settings.summaryProvider, "summary"),
+        () => this.resolveManagedModelDataProvider(this.plugin.settings.summaryProvider, "summary"),
         (value) => {
           newSummaryModel = value;
         }
