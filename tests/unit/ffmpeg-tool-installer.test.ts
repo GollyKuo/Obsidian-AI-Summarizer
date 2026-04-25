@@ -20,12 +20,14 @@ describe("ffmpeg tool installer", () => {
   it("downloads and installs project-local ffmpeg and ffprobe when missing", async () => {
     const tempDirectory = await makeTempDirectory();
     const archiveBody = "fake-archive";
+    const downloadAttempts: string[] = [];
 
     try {
       const result = await ensureLatestProjectFfmpegTools(tempDirectory, {
         platform: "win32",
         fetchText: async (url) => (url.endsWith(".sha256") ? sha256(archiveBody) : "8.1"),
-        downloadFile: async (_url, destinationPath) => {
+        downloadFile: async (source, destinationPath) => {
+          downloadAttempts.push(source.name);
           await writeFile(destinationPath, archiveBody, "utf8");
         },
         extractZip: async (_archivePath, destinationDirectory) => {
@@ -39,13 +41,17 @@ describe("ffmpeg tool installer", () => {
 
       expect(result.installed).toBe(true);
       expect(result.version).toBe("8.1");
+      expect(result.sourceName).toBe("GitHub mirror");
+      expect(result.sourceUrl).toContain("github.com/GyanD/codexffmpeg");
+      expect(downloadAttempts).toEqual(["GitHub mirror"]);
       expect(await readFile(result.ffmpegPath, "utf8")).toBe("ffmpeg");
       expect(await readFile(result.ffprobePath, "utf8")).toBe("ffprobe");
 
       const metadata = JSON.parse(
         await readFile(path.join(result.installRoot, "install-metadata.json"), "utf8")
-      ) as { version: string; sha256: string; installedAt: string };
+      ) as { source: string; version: string; sha256: string; installedAt: string };
       expect(metadata).toMatchObject({
+        source: result.sourceUrl,
         version: "8.1",
         sha256: sha256(archiveBody),
         installedAt: "2026-04-25T00:00:00.000Z"
@@ -53,6 +59,90 @@ describe("ffmpeg tool installer", () => {
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
+  });
+
+  it("falls back to the gyan.dev archive when the GitHub mirror fails", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const archiveBody = "fallback-archive";
+    const downloadAttempts: string[] = [];
+
+    try {
+      const result = await ensureLatestProjectFfmpegTools(tempDirectory, {
+        platform: "win32",
+        fetchText: async (url) => (url.endsWith(".sha256") ? sha256(archiveBody) : "8.1"),
+        downloadFile: async (source, destinationPath) => {
+          downloadAttempts.push(source.name);
+          if (source.name === "GitHub mirror") {
+            throw new Error("mirror unavailable");
+          }
+          await writeFile(destinationPath, archiveBody, "utf8");
+        },
+        extractZip: async (_archivePath, destinationDirectory) => {
+          const binDirectory = path.join(destinationDirectory, "ffmpeg-8.1-essentials_build", "bin");
+          await mkdir(binDirectory, { recursive: true });
+          await writeFile(path.join(binDirectory, "ffmpeg.exe"), "ffmpeg", "utf8");
+          await writeFile(path.join(binDirectory, "ffprobe.exe"), "ffprobe", "utf8");
+        }
+      });
+
+      expect(result.installed).toBe(true);
+      expect(result.sourceName).toBe("gyan.dev");
+      expect(result.sourceUrl).toBe("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip");
+      expect(downloadAttempts).toEqual(["GitHub mirror", "gyan.dev"]);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back when a downloaded archive fails SHA-256 verification", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const verifiedArchiveBody = "verified-archive";
+    const downloadAttempts: string[] = [];
+
+    try {
+      const result = await ensureLatestProjectFfmpegTools(tempDirectory, {
+        platform: "win32",
+        fetchText: async (url) => (url.endsWith(".sha256") ? sha256(verifiedArchiveBody) : "8.1"),
+        downloadFile: async (source, destinationPath) => {
+          downloadAttempts.push(source.name);
+          await writeFile(
+            destinationPath,
+            source.name === "GitHub mirror" ? "wrong-archive" : verifiedArchiveBody,
+            "utf8"
+          );
+        },
+        extractZip: async (_archivePath, destinationDirectory) => {
+          const binDirectory = path.join(destinationDirectory, "ffmpeg-8.1-essentials_build", "bin");
+          await mkdir(binDirectory, { recursive: true });
+          await writeFile(path.join(binDirectory, "ffmpeg.exe"), "ffmpeg", "utf8");
+          await writeFile(path.join(binDirectory, "ffprobe.exe"), "ffprobe", "utf8");
+        }
+      });
+
+      expect(result.installed).toBe(true);
+      expect(result.sourceName).toBe("gyan.dev");
+      expect(downloadAttempts).toEqual(["GitHub mirror", "gyan.dev"]);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("stops before download when the install is cancelled", async () => {
+    const abortController = new AbortController();
+    abortController.abort();
+
+    await expect(
+      ensureLatestProjectFfmpegTools("unused", {
+        platform: "win32",
+        signal: abortController.signal,
+        fetchText: async () => {
+          throw new Error("fetch should not be called");
+        },
+        downloadFile: async () => {
+          throw new Error("download should not be called");
+        }
+      })
+    ).rejects.toThrow(/cancelled/);
   });
 
   it("skips download when project-local tools already match latest metadata", async () => {
@@ -84,6 +174,7 @@ describe("ffmpeg tool installer", () => {
       });
 
       expect(result.installed).toBe(false);
+      expect(result.sourceName).toBe("existing install");
       expect(result.ffmpegPath).toBe(paths.ffmpegPath);
       expect(result.ffprobePath).toBe(paths.ffprobePath);
     } finally {

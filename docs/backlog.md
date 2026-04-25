@@ -112,7 +112,7 @@
 狀態：`active`
 
 摘要：
-定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle。
+定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；需涵蓋逐字稿雙輸出，讓完成版逐字稿同時寫入 Obsidian 筆記並保留於下載媒體的 session 資料夾。
 
 ### User Experience 使用體驗
 
@@ -166,7 +166,7 @@
 狀態：`completed`
 
 摘要：
-已完成 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性與 drift gate 策略。
+已完成 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate 策略，以及 `ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程。
 
 ### Expansion 擴充能力
 

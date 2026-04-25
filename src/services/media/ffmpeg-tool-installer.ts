@@ -25,6 +25,13 @@ export interface FfmpegToolInstallPaths {
 export interface FfmpegToolInstallResult extends FfmpegToolInstallPaths {
   installed: boolean;
   version: string;
+  sourceName: string;
+  sourceUrl: string;
+}
+
+export interface FfmpegDownloadSource {
+  name: string;
+  url: string;
 }
 
 interface InstallMetadata {
@@ -36,10 +43,16 @@ interface InstallMetadata {
 
 interface FfmpegToolInstallerOptions {
   platform?: NodeJS.Platform;
-  fetchText?: (url: string) => Promise<string>;
-  downloadFile?: (url: string, destinationPath: string) => Promise<void>;
+  signal?: AbortSignal;
+  fetchText?: (url: string, signal?: AbortSignal) => Promise<string>;
+  downloadFile?: (
+    source: FfmpegDownloadSource,
+    destinationPath: string,
+    signal?: AbortSignal
+  ) => Promise<void>;
   extractZip?: (archivePath: string, destinationDirectory: string) => Promise<void>;
   now?: () => Date;
+  onDownloadAttempt?: (source: FfmpegDownloadSource) => void;
 }
 
 function getReleaseUrls(): { version: string; sha256: string; archive: string } {
@@ -48,6 +61,19 @@ function getReleaseUrls(): { version: string; sha256: string; archive: string } 
     sha256: `${GYAN_RELEASE_BASE_URL}/${RELEASE_PACKAGE_NAME}.sha256`,
     archive: `${GYAN_RELEASE_BASE_URL}/${RELEASE_PACKAGE_NAME}`
   };
+}
+
+function getArchiveSources(version: string): FfmpegDownloadSource[] {
+  return [
+    {
+      name: "GitHub mirror",
+      url: `https://github.com/GyanD/codexffmpeg/releases/download/${version}/ffmpeg-${version}-essentials_build.zip`
+    },
+    {
+      name: "gyan.dev",
+      url: `${GYAN_RELEASE_BASE_URL}/${RELEASE_PACKAGE_NAME}`
+    }
+  ];
 }
 
 export function getProjectFfmpegToolPaths(
@@ -98,15 +124,26 @@ async function writeInstallMetadata(
   await writeFile(path.join(installRoot, METADATA_FILE_NAME), JSON.stringify(metadata, null, 2), "utf8");
 }
 
-function requestUrl(url: string): Promise<NodeJS.ReadableStream> {
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new Error("ffmpeg/ffprobe install cancelled by user.");
+  }
+}
+
+function requestUrl(url: string, signal?: AbortSignal): Promise<NodeJS.ReadableStream> {
   return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("ffmpeg/ffprobe install cancelled by user."));
+      return;
+    }
+
     const request = (url.startsWith("https:") ? httpsGet : httpGet)(url, (response) => {
       const statusCode = response.statusCode ?? 0;
       const redirectUrl = response.headers.location;
 
       if (statusCode >= 300 && statusCode < 400 && redirectUrl) {
         response.resume();
-        requestUrl(new URL(redirectUrl, url).toString()).then(resolve, reject);
+        requestUrl(new URL(redirectUrl, url).toString(), signal).then(resolve, reject);
         return;
       }
 
@@ -122,23 +159,32 @@ function requestUrl(url: string): Promise<NodeJS.ReadableStream> {
     request.setTimeout(REQUEST_TIMEOUT_MS, () => {
       request.destroy(new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${url}`));
     });
+    const abortRequest = () => {
+      request.destroy(new Error("ffmpeg/ffprobe install cancelled by user."));
+    };
+    signal?.addEventListener("abort", abortRequest, { once: true });
     request.on("error", reject);
   });
 }
 
-async function defaultFetchText(url: string): Promise<string> {
-  const response = await requestUrl(url);
+async function defaultFetchText(url: string, signal?: AbortSignal): Promise<string> {
+  const response = await requestUrl(url, signal);
   const chunks: Buffer[] = [];
   for await (const chunk of response) {
+    throwIfAborted(signal);
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
   return Buffer.concat(chunks).toString("utf8").trim();
 }
 
-async function defaultDownloadFile(url: string, destinationPath: string): Promise<void> {
+async function defaultDownloadFile(
+  source: FfmpegDownloadSource,
+  destinationPath: string,
+  signal?: AbortSignal
+): Promise<void> {
   await mkdir(path.dirname(destinationPath), { recursive: true });
-  const response = await requestUrl(url);
-  await pipeline(response, createWriteStream(destinationPath));
+  const response = await requestUrl(source.url, signal);
+  await pipeline(response, createWriteStream(destinationPath), { signal });
 }
 
 async function defaultExtractZip(archivePath: string, destinationDirectory: string): Promise<void> {
@@ -230,10 +276,52 @@ async function hasCurrentInstall(
   );
 }
 
+async function downloadVerifiedArchive(
+  sources: FfmpegDownloadSource[],
+  archivePath: string,
+  expectedSha256: string,
+  downloadFile: NonNullable<FfmpegToolInstallerOptions["downloadFile"]>,
+  signal: AbortSignal | undefined,
+  onDownloadAttempt: FfmpegToolInstallerOptions["onDownloadAttempt"]
+): Promise<FfmpegDownloadSource> {
+  const failures: string[] = [];
+
+  for (const source of sources) {
+    throwIfAborted(signal);
+    onDownloadAttempt?.(source);
+
+    try {
+      await rm(archivePath, { force: true });
+      await downloadFile(source, archivePath, signal);
+      throwIfAborted(signal);
+
+      const archiveSha256 = await hashFileSha256(archivePath);
+      if (archiveSha256 !== expectedSha256) {
+        throw new Error(
+          `SHA-256 mismatch for ${source.name}: expected ${expectedSha256}, got ${archiveSha256}.`
+        );
+      }
+
+      return source;
+    } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push(`${source.name}: ${message}`);
+    }
+  }
+
+  throw new Error(`Unable to download verified ffmpeg package. ${failures.join(" | ")}`);
+}
+
 export async function ensureLatestProjectFfmpegTools(
   pluginDirectory: string,
   options: FfmpegToolInstallerOptions = {}
 ): Promise<FfmpegToolInstallResult> {
+  const signal = options.signal;
+  throwIfAborted(signal);
+
   const platform = options.platform ?? process.platform;
   if (platform !== "win32") {
     throw new Error("Automatic ffmpeg/ffprobe download is currently supported on Windows desktop only.");
@@ -244,8 +332,8 @@ export async function ensureLatestProjectFfmpegTools(
   const extractZip = options.extractZip ?? defaultExtractZip;
   const now = options.now ?? (() => new Date());
   const urls = getReleaseUrls();
-  const latestVersion = (await fetchText(urls.version)).trim();
-  const latestSha256 = normalizeSha256(await fetchText(urls.sha256));
+  const latestVersion = (await fetchText(urls.version, signal)).trim();
+  const latestSha256 = normalizeSha256(await fetchText(urls.sha256, signal));
   if (!latestVersion || !latestSha256) {
     throw new Error("Unable to read latest ffmpeg release metadata.");
   }
@@ -257,7 +345,9 @@ export async function ensureLatestProjectFfmpegTools(
     return {
       ...paths,
       installed: false,
-      version: latestVersion
+      version: latestVersion,
+      sourceName: "existing install",
+      sourceUrl: ""
     };
   }
 
@@ -268,12 +358,16 @@ export async function ensureLatestProjectFfmpegTools(
   await mkdir(stagingDirectory, { recursive: true });
 
   try {
-    await downloadFile(urls.archive, archivePath);
-    const archiveSha256 = await hashFileSha256(archivePath);
-    if (archiveSha256 !== latestSha256) {
-      throw new Error("Downloaded ffmpeg package failed SHA-256 verification.");
-    }
+    const selectedSource = await downloadVerifiedArchive(
+      getArchiveSources(latestVersion),
+      archivePath,
+      latestSha256,
+      downloadFile,
+      signal,
+      options.onDownloadAttempt
+    );
 
+    throwIfAborted(signal);
     await extractZip(archivePath, stagingDirectory);
     const ffmpegSource = await findFileByName(stagingDirectory, "ffmpeg.exe");
     const ffprobeSource = await findFileByName(stagingDirectory, "ffprobe.exe");
@@ -285,7 +379,7 @@ export async function ensureLatestProjectFfmpegTools(
     await copyFile(ffmpegSource, paths.ffmpegPath);
     await copyFile(ffprobeSource, paths.ffprobePath);
     await writeInstallMetadata(paths.installRoot, {
-      source: urls.archive,
+      source: selectedSource.url,
       version: latestVersion,
       sha256: latestSha256,
       installedAt: now().toISOString()
@@ -294,7 +388,9 @@ export async function ensureLatestProjectFfmpegTools(
     return {
       ...paths,
       installed: true,
-      version: latestVersion
+      version: latestVersion,
+      sourceName: selectedSource.name,
+      sourceUrl: selectedSource.url
     };
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });

@@ -181,6 +181,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private diagnosticsLoading = false;
   private apiTestTarget: ApiTestTarget | null = null;
   private mediaToolInstallInProgress = false;
+  private mediaToolInstallAbortController: AbortController | null = null;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -318,29 +319,50 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       return;
     }
 
+    const abortController = new AbortController();
+    this.mediaToolInstallAbortController = abortController;
     this.mediaToolInstallInProgress = true;
     this.plugin.notify("正在檢查並安裝 ffmpeg/ffprobe，第一次下載可能需要一些時間。");
     this.display();
 
     try {
-      const result = await ensureLatestProjectFfmpegTools(pluginDirectory);
+      const result = await ensureLatestProjectFfmpegTools(pluginDirectory, {
+        signal: abortController.signal,
+        onDownloadAttempt: (source) => {
+          this.plugin.notify(`正在從 ${source.name} 下載 ffmpeg/ffprobe。`);
+        }
+      });
       this.plugin.settings.ffmpegPath = result.ffmpegPath;
       this.plugin.settings.ffprobePath = result.ffprobePath;
       this.runtimeDiagnostics = null;
       await this.plugin.saveSettings();
       this.plugin.notify(
         result.installed
-          ? `已安裝 ffmpeg/ffprobe ${result.version}: ${result.binDirectory}`
+          ? `已安裝 ffmpeg/ffprobe ${result.version} (${result.sourceName}): ${result.binDirectory}`
           : `ffmpeg/ffprobe ${result.version} 已是最新版: ${result.binDirectory}`
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.plugin.notify(`ffmpeg/ffprobe 自動安裝失敗：${message}`);
-      this.plugin.reportWarning("media_tool_detection", message);
+      if (abortController.signal.aborted) {
+        this.plugin.notify("已取消 ffmpeg/ffprobe 下載。");
+      } else {
+        this.plugin.notify(`ffmpeg/ffprobe 自動安裝失敗：${message}`);
+        this.plugin.reportWarning("media_tool_detection", message);
+      }
     } finally {
+      this.mediaToolInstallAbortController = null;
       this.mediaToolInstallInProgress = false;
       this.display();
     }
+  }
+
+  private cancelProjectMediaToolInstall(): void {
+    if (!this.mediaToolInstallInProgress) {
+      return;
+    }
+
+    this.mediaToolInstallAbortController?.abort();
+    this.plugin.notify("正在取消 ffmpeg/ffprobe 下載。");
   }
 
   private async refreshDiagnostics(): Promise<void> {
@@ -827,9 +849,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       )
       .addButton((button) =>
         button
-          .setButtonText(this.mediaToolInstallInProgress ? "安裝中..." : "自動填入")
-          .setDisabled(this.mediaToolInstallInProgress || !this.hasVaultFilesystemAccess())
+          .setButtonText(this.mediaToolInstallInProgress ? "取消下載" : "自動填入")
+          .setDisabled(!this.mediaToolInstallInProgress && !this.hasVaultFilesystemAccess())
           .onClick(() => {
+            if (this.mediaToolInstallInProgress) {
+              this.cancelProjectMediaToolInstall();
+              return;
+            }
             void this.installOrUpdateProjectMediaTools();
           })
       );

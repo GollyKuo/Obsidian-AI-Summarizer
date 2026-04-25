@@ -174,6 +174,7 @@ Open Work：
 - [x] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`（完成：2026-04-24 00:00）
 - [x] 定義 cleanup/recovery 在成功、失敗、取消三種狀態的責任分界（完成：2026-04-23 20:38）
 - [ ] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle
+- [ ] 完成逐字稿雙輸出：逐字稿除依規則寫入 Obsidian 筆記外，也需在下載媒體的 session 資料夾中保留一份完成版逐字稿檔案；此保留不應被 `retentionMode: none/source` 成功清理移除，並需納入 cleanup / final handoff 安全檢查。
 - [ ] 定義字幕產線是否納入 v1/vNext，包含 `.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略
 
 ## User Experience 使用體驗
@@ -249,6 +250,7 @@ Open Work：
 - [x] 定義非阻塞版本檢查與更新提醒流程，要求背景執行、具 timeout，且不得阻塞 plugin 啟動（完成：2026-04-24 10:06）
 - [x] 規劃 `ffmpeg` / `ffprobe` 相容性與平台差異檢查（完成：2026-04-24 10:06）
 - [x] 定義 dependency drift 對 smoke / release gate 的影響（完成：2026-04-24 10:06）
+- [x] 實作 `ffmpeg` / `ffprobe` 多來源下載、SHA-256 驗證、失敗 fallback 與下載取消流程（完成：2026-04-25 13:53）
 
 ## Final Handoff Gate 最終交付檢查
 
