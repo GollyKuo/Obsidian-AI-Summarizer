@@ -1,8 +1,31 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-24 23:16
+最後更新：2026-04-25 23:10
 
 ## 版本紀錄
+
+### 0.1.48-cap-504-model-catalog - 2026-04-25 23:10
+
+範圍：
+- 完成 `CAP-504 Multi-Model Provider Strategy`，把模型選項改為使用者可管理的 provider/model catalog。
+
+主要變更：
+- 更新 `src/domain/model-selection.ts`
+- 模型型別改為可保存任意使用者自訂 model id
+- 新增 `modelCatalog` settings contract，每筆模型保存 provider、用途、顯示名稱與 model id
+- 新安裝預設不預載內建模型清單，既有設定會把已選模型 migration 進 catalog
+- 更新 `src/ui/settings-tab.ts`
+- 設定頁新增模型清單新增、刪除、編輯與 OpenRouter refresh 操作
+- 新增 `src/services/ai/openrouter-models.ts`
+- 支援 OpenRouter official models API 讀取、名稱更新、model id 校正與找不到模型提示
+- Gemini 轉錄模型保留 audio-capable 風險提示，實際可用性仍以 API 測試與轉錄請求為驗證邊界
+- 更新 `tests/unit/settings.test.ts`
+- 新增 `tests/unit/openrouter-models.test.ts`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
 
 ### 0.1.47-settings-diagnostics-and-version-sync - 2026-04-24 23:16
 

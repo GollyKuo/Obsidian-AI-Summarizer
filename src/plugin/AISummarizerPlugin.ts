@@ -15,6 +15,8 @@ import {
 import { AISummarizerSettingTab } from "@ui/settings-tab";
 import {
   DEFAULT_SETTINGS,
+  ensureSelectedModelsInCatalog,
+  normalizeModelCatalog,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
@@ -57,19 +59,32 @@ export default class AISummarizerPlugin extends Plugin {
     const summaryProvider = normalizeSummaryProvider(
       String(loadedSettings?.summaryProvider ?? DEFAULT_SETTINGS.summaryProvider)
     );
+    const transcriptionModel = normalizeTranscriptionModel(
+      String(loadedSettings?.transcriptionModel ?? legacyModel ?? DEFAULT_SETTINGS.transcriptionModel)
+    );
+    const summaryModel = normalizeSummaryModel(
+      summaryProvider,
+      String(loadedSettings?.summaryModel ?? legacyModel ?? DEFAULT_SETTINGS.summaryModel)
+    );
+    const modelCatalog = ensureSelectedModelsInCatalog(
+      normalizeModelCatalog(loadedSettings?.modelCatalog),
+      {
+        transcriptionProvider,
+        transcriptionModel,
+        summaryProvider,
+        summaryModel
+      },
+      { includeDefaults: loadedSettings !== null && loadedSettings !== undefined }
+    );
 
     this.settings = {
       ...DEFAULT_SETTINGS,
       ...loadedSettings,
       transcriptionProvider,
-      transcriptionModel: normalizeTranscriptionModel(
-        String(loadedSettings?.transcriptionModel ?? legacyModel ?? DEFAULT_SETTINGS.transcriptionModel)
-      ),
+      transcriptionModel,
       summaryProvider,
-      summaryModel: normalizeSummaryModel(
-        summaryProvider,
-        String(loadedSettings?.summaryModel ?? legacyModel ?? DEFAULT_SETTINGS.summaryModel)
-      ),
+      summaryModel,
+      modelCatalog,
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
       ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
       ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)

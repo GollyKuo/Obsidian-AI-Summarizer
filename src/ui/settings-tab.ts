@@ -5,10 +5,19 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
+  createModelCatalogEntry,
+  getFirstModelIdForProvider,
   getSummaryModelOptions,
   getTranscriptionModelOptions,
+  getGeminiTranscriptionRiskMessage,
   normalizeSummaryModel,
+  normalizeTranscriptionModel,
+  removeModelCatalogEntry,
+  upsertModelCatalogEntry,
+  type AiModelCatalogEntry,
   type MediaCompressionProfile,
+  type ModelProvider,
+  type ModelPurpose,
   type SummaryModel,
   type SummaryProvider,
   type TranscriptionModel,
@@ -17,6 +26,10 @@ import {
 import type { RetentionMode, SourceType } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { testAiApiAvailability } from "@services/ai/api-health-check";
+import {
+  fetchOpenRouterModels,
+  syncOpenRouterModelCatalog
+} from "@services/ai/openrouter-models";
 import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
@@ -182,6 +195,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private apiTestTarget: ApiTestTarget | null = null;
   private mediaToolInstallInProgress = false;
   private mediaToolInstallAbortController: AbortController | null = null;
+  private modelCatalogDraftProvider: ModelProvider = "gemini";
+  private modelCatalogDraftPurpose: ModelPurpose = "summary";
+  private modelCatalogDraftDisplayName = "";
+  private modelCatalogDraftModelId = "";
+  private openRouterModelSyncInProgress = false;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -428,6 +446,144 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
+  private async addModelCatalogDraft(): Promise<void> {
+    const entry = createModelCatalogEntry({
+      provider: this.modelCatalogDraftProvider,
+      purpose: this.modelCatalogDraftPurpose,
+      displayName: this.modelCatalogDraftDisplayName,
+      modelId: this.modelCatalogDraftModelId
+    });
+
+    if (!entry) {
+      this.plugin.notify("Model id is required, and OpenRouter is summary-only.");
+      return;
+    }
+
+    this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
+      this.plugin.settings.modelCatalog,
+      entry
+    );
+    if (entry.purpose === "transcription") {
+      this.plugin.settings.transcriptionProvider = "gemini";
+      this.plugin.settings.transcriptionModel = entry.modelId;
+    } else if (entry.provider === this.plugin.settings.summaryProvider) {
+      this.plugin.settings.summaryModel = entry.modelId;
+    }
+
+    this.modelCatalogDraftDisplayName = "";
+    this.modelCatalogDraftModelId = "";
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private reconcileSelectedModelsWithCatalog(): void {
+    const hasSelectedTranscriptionModel = this.plugin.settings.modelCatalog.some(
+      (entry) =>
+        entry.provider === this.plugin.settings.transcriptionProvider &&
+        entry.purpose === "transcription" &&
+        entry.modelId === this.plugin.settings.transcriptionModel
+    );
+    if (!hasSelectedTranscriptionModel) {
+      this.plugin.settings.transcriptionModel =
+        getFirstModelIdForProvider(
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.transcriptionProvider,
+          "transcription"
+        ) ?? normalizeTranscriptionModel("");
+    }
+
+    const hasSelectedSummaryModel = this.plugin.settings.modelCatalog.some(
+      (entry) =>
+        entry.provider === this.plugin.settings.summaryProvider &&
+        entry.purpose === "summary" &&
+        entry.modelId === this.plugin.settings.summaryModel
+    );
+    if (!hasSelectedSummaryModel) {
+      this.plugin.settings.summaryModel =
+        getFirstModelIdForProvider(
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.summaryProvider,
+          "summary"
+        ) ?? normalizeSummaryModel(this.plugin.settings.summaryProvider, "");
+    }
+  }
+
+  private async updateModelCatalogEntry(
+    original: AiModelCatalogEntry,
+    patch: Partial<AiModelCatalogEntry>
+  ): Promise<void> {
+    const nextEntry = createModelCatalogEntry({
+      ...original,
+      ...patch,
+      source: "user"
+    });
+    if (!nextEntry) {
+      this.plugin.notify("Invalid model catalog entry.");
+      return;
+    }
+
+    const withoutOriginal = removeModelCatalogEntry(this.plugin.settings.modelCatalog, original);
+    this.plugin.settings.modelCatalog = upsertModelCatalogEntry(withoutOriginal, nextEntry);
+
+    if (this.plugin.settings.transcriptionModel === original.modelId) {
+      this.plugin.settings.transcriptionProvider = nextEntry.provider === "gemini"
+        ? "gemini"
+        : this.plugin.settings.transcriptionProvider;
+      this.plugin.settings.transcriptionModel = nextEntry.purpose === "transcription"
+        ? nextEntry.modelId
+        : this.plugin.settings.transcriptionModel;
+    }
+    if (this.plugin.settings.summaryModel === original.modelId && nextEntry.purpose === "summary") {
+      this.plugin.settings.summaryProvider = nextEntry.provider as SummaryProvider;
+      this.plugin.settings.summaryModel = nextEntry.modelId;
+    }
+    this.reconcileSelectedModelsWithCatalog();
+
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private async deleteModelCatalogEntry(entry: AiModelCatalogEntry): Promise<void> {
+    this.plugin.settings.modelCatalog = removeModelCatalogEntry(
+      this.plugin.settings.modelCatalog,
+      entry
+    );
+    this.reconcileSelectedModelsWithCatalog();
+    await this.plugin.saveSettings();
+    this.display();
+  }
+
+  private async syncOpenRouterModels(): Promise<void> {
+    if (this.openRouterModelSyncInProgress) {
+      return;
+    }
+
+    this.openRouterModelSyncInProgress = true;
+    this.display();
+
+    try {
+      const models = await fetchOpenRouterModels({
+        apiKey: this.plugin.settings.openRouterApiKey
+      });
+      const result = syncOpenRouterModelCatalog(this.plugin.settings.modelCatalog, models);
+      this.plugin.settings.modelCatalog = result.catalog;
+      this.reconcileSelectedModelsWithCatalog();
+      await this.plugin.saveSettings();
+      this.plugin.notify(
+        result.messages.length > 0
+          ? result.messages.slice(0, 3).join(" ")
+          : `OpenRouter models checked: ${models.length} available models.`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.notify(`OpenRouter model refresh failed: ${message}`);
+      this.plugin.reportWarning("openrouter_models", message);
+    } finally {
+      this.openRouterModelSyncInProgress = false;
+      this.display();
+    }
+  }
+
   private renderSectionTabs(containerEl: HTMLElement): void {
     const tabsEl = containerEl.createDiv({ cls: "ai-summarizer-settings-tabs" });
     tabsEl.style.display = "flex";
@@ -448,6 +604,128 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
+  private renderModelCatalogSettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "Model list", "User-managed provider/model catalog");
+
+    new Setting(containerEl)
+      .setName("Add model")
+      .setDesc("Each model records provider, purpose, display name, and model id.")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("gemini", "Gemini")
+          .addOption("openrouter", "OpenRouter")
+          .setValue(this.modelCatalogDraftProvider)
+          .onChange((value) => {
+            this.modelCatalogDraftProvider = value as ModelProvider;
+            if (this.modelCatalogDraftProvider === "openrouter") {
+              this.modelCatalogDraftPurpose = "summary";
+            }
+            this.display();
+          });
+      })
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("summary", "Summary")
+          .addOption("transcription", "Transcription")
+          .setValue(this.modelCatalogDraftPurpose)
+          .onChange((value) => {
+            this.modelCatalogDraftPurpose = value as ModelPurpose;
+            if (this.modelCatalogDraftPurpose === "transcription") {
+              this.modelCatalogDraftProvider = "gemini";
+            }
+            this.display();
+          });
+      })
+      .addText((text) =>
+        text
+          .setPlaceholder("Display name")
+          .setValue(this.modelCatalogDraftDisplayName)
+          .onChange((value) => {
+            this.modelCatalogDraftDisplayName = value;
+          })
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("model id")
+          .setValue(this.modelCatalogDraftModelId)
+          .onChange((value) => {
+            this.modelCatalogDraftModelId = value;
+          })
+      )
+      .addButton((button) =>
+        button.setButtonText("Add").onClick(() => {
+          void this.addModelCatalogDraft();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("OpenRouter model refresh")
+      .setDesc("Fetches the official OpenRouter models API and corrects matching names or ids.")
+      .addButton((button) =>
+        button
+          .setButtonText(this.openRouterModelSyncInProgress ? "Refreshing..." : "Refresh OpenRouter")
+          .setDisabled(this.openRouterModelSyncInProgress)
+          .onClick(() => {
+            void this.syncOpenRouterModels();
+          })
+      );
+
+    if (this.plugin.settings.modelCatalog.length === 0) {
+      containerEl.createEl("p", {
+        text: "No saved models yet. Add a Gemini transcription model and a summary model before changing selections."
+      });
+      return;
+    }
+
+    for (const entry of this.plugin.settings.modelCatalog) {
+      const warning = getGeminiTranscriptionRiskMessage(entry);
+      new Setting(containerEl)
+        .setName(`${entry.displayName} (${entry.provider} / ${entry.purpose})`)
+        .setDesc(warning ? `${entry.modelId}. ${warning}` : entry.modelId)
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption("gemini", "Gemini")
+            .addOption("openrouter", "OpenRouter")
+            .setValue(entry.provider)
+            .onChange((value) => {
+              const provider = value as ModelProvider;
+              void this.updateModelCatalogEntry(entry, {
+                provider,
+                purpose: provider === "openrouter" ? "summary" : entry.purpose
+              });
+            });
+        })
+        .addDropdown((dropdown) => {
+          dropdown
+            .addOption("summary", "Summary")
+            .addOption("transcription", "Transcription")
+            .setValue(entry.purpose)
+            .onChange((value) => {
+              const purpose = value as ModelPurpose;
+              void this.updateModelCatalogEntry(entry, {
+                purpose,
+                provider: purpose === "transcription" ? "gemini" : entry.provider
+              });
+            });
+        })
+        .addText((text) =>
+          text.setPlaceholder("Display name").setValue(entry.displayName).onChange((value) => {
+            void this.updateModelCatalogEntry(entry, { displayName: value });
+          })
+        )
+        .addText((text) =>
+          text.setPlaceholder("model id").setValue(entry.modelId).onChange((value) => {
+            void this.updateModelCatalogEntry(entry, { modelId: value });
+          })
+        )
+        .addButton((button) =>
+          button.setButtonText("Delete").onClick(() => {
+            void this.deleteModelCatalogEntry(entry);
+          })
+        );
+    }
+  }
+
   private renderTranscriptionSettings(containerEl: HTMLElement): void {
     addInlineHeading(containerEl, "轉錄模型", "媒體轉文字");
 
@@ -463,7 +741,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.transcriptionProvider)
           .onChange(async (value) => {
             this.plugin.settings.transcriptionProvider = value as TranscriptionProvider;
-            this.plugin.settings.transcriptionModel = getTranscriptionModelOptions()[0].value;
+            this.plugin.settings.transcriptionModel =
+              getFirstModelIdForProvider(
+                this.plugin.settings.modelCatalog,
+                this.plugin.settings.transcriptionProvider,
+                "transcription"
+              ) ?? this.plugin.settings.transcriptionModel;
             await this.plugin.saveSettings();
             this.display();
           });
@@ -473,7 +756,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setName("模型")
       .setDesc("建議選穩定的 Gemini audio-capable 模型。")
       .addDropdown((dropdown) => {
-        for (const option of getTranscriptionModelOptions()) {
+        for (const option of getTranscriptionModelOptions(
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.transcriptionModel
+        )) {
           dropdown.addOption(option.value, option.label);
         }
 
@@ -523,7 +809,9 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         dropdown.setValue(this.plugin.settings.summaryProvider).onChange(async (value) => {
           const provider = value as SummaryProvider;
           this.plugin.settings.summaryProvider = provider;
-          this.plugin.settings.summaryModel = normalizeSummaryModel(provider, "");
+          this.plugin.settings.summaryModel =
+            getFirstModelIdForProvider(this.plugin.settings.modelCatalog, provider, "summary") ??
+            normalizeSummaryModel(provider, "");
           await this.plugin.saveSettings();
           this.display();
         });
@@ -533,7 +821,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setName("模型")
       .setDesc("摘要模型只處理文字輸入；媒體逐字稿會先由轉錄模型產生。")
       .addDropdown((dropdown) => {
-        for (const option of getSummaryModelOptions(this.plugin.settings.summaryProvider)) {
+        for (const option of getSummaryModelOptions(
+          this.plugin.settings.summaryProvider,
+          this.plugin.settings.modelCatalog,
+          this.plugin.settings.summaryModel
+        )) {
           dropdown.addOption(option.value, option.label);
         }
 
@@ -577,6 +869,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderAiModelSettings(containerEl: HTMLElement): void {
+    this.renderModelCatalogSettings(containerEl);
     this.renderTranscriptionSettings(containerEl);
     this.renderSummarySettings(containerEl);
   }

@@ -1,6 +1,7 @@
 import type { RetentionMode, SourceType } from "@domain/types";
 import {
   DEFAULT_GEMINI_SUMMARY_MODEL,
+  DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
   DEFAULT_TRANSCRIPTION_MODEL,
@@ -9,14 +10,24 @@ import {
   OPENROUTER_SUMMARY_MODEL_OPTIONS,
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
+  createModelCatalogEntry,
+  ensureSelectedModelsInCatalog,
+  getFirstModelIdForProvider,
   getSummaryModelOptions,
   getTranscriptionModelOptions,
+  getGeminiTranscriptionRiskMessage,
   isSupportedGeminiModel,
+  normalizeModelCatalog,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
   normalizeTranscriptionProvider,
+  removeModelCatalogEntry,
+  upsertModelCatalogEntry,
+  type AiModelCatalogEntry,
   type GeminiModel,
+  type ModelProvider,
+  type ModelPurpose,
   type OpenRouterSummaryModel,
   type SummaryModel,
   type SummaryProvider,
@@ -34,6 +45,7 @@ export interface AISummarizerPluginSettings {
   transcriptionModel: TranscriptionModel;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
+  modelCatalog: AiModelCatalogEntry[];
   outputFolder: string;
   mediaCacheRoot: string;
   ffmpegPath: string;
@@ -53,6 +65,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
   summaryProvider: DEFAULT_SUMMARY_PROVIDER,
   summaryModel: DEFAULT_SUMMARY_MODEL,
+  modelCatalog: [...DEFAULT_MODEL_CATALOG],
   outputFolder: "",
   mediaCacheRoot: "",
   ffmpegPath: "",
@@ -67,6 +80,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
 
 export {
   DEFAULT_GEMINI_SUMMARY_MODEL as DEFAULT_GEMINI_MODEL,
+  DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
   DEFAULT_TRANSCRIPTION_MODEL,
@@ -75,17 +89,27 @@ export {
   OPENROUTER_SUMMARY_MODEL_OPTIONS,
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
+  createModelCatalogEntry,
+  ensureSelectedModelsInCatalog,
+  getFirstModelIdForProvider,
   getSummaryModelOptions,
   getTranscriptionModelOptions,
+  getGeminiTranscriptionRiskMessage,
   isSupportedGeminiModel,
+  normalizeModelCatalog,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
-  normalizeTranscriptionProvider
+  normalizeTranscriptionProvider,
+  removeModelCatalogEntry,
+  upsertModelCatalogEntry
 };
 
 export type {
+  AiModelCatalogEntry,
   GeminiModel,
+  ModelProvider,
+  ModelPurpose,
   OpenRouterSummaryModel,
   SummaryModel,
   SummaryProvider,
