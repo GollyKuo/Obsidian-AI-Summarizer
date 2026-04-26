@@ -63,30 +63,25 @@ function defaultRemover(target: CleanupTarget): Promise<void> {
   });
 }
 
-function keepAllPaths(input: ArtifactRetentionInput): string[] {
-  return uniqueNonEmpty([
-    input.artifacts.downloadedPath,
-    input.artifacts.normalizedAudioPath,
-    input.artifacts.transcriptPath,
-    input.artifacts.metadataPath,
-    input.artifacts.aiUploadDirectory,
-    ...input.aiUploadArtifactPaths
-  ]);
-}
-
 function keepPathsForCompleted(input: ArtifactRetentionInput): string[] {
-  if (input.retentionMode === "all") {
-    return keepAllPaths(input);
-  }
-  if (input.retentionMode === "source") {
-    return uniqueNonEmpty([input.artifacts.downloadedPath, input.artifacts.metadataPath]);
+  if (input.retentionMode === "keep_temp") {
+    return uniqueNonEmpty([
+      input.artifacts.downloadedPath,
+      input.artifacts.normalizedAudioPath,
+      input.artifacts.transcriptPath
+    ]);
   }
   return [];
 }
 
 function keepPathsForIncomplete(input: ArtifactRetentionInput): string[] {
-  if (input.retentionMode === "all") {
-    return keepAllPaths(input);
+  if (input.retentionMode === "keep_temp") {
+    return uniqueNonEmpty([
+      input.artifacts.downloadedPath,
+      input.artifacts.normalizedAudioPath,
+      input.artifacts.transcriptPath,
+      input.artifacts.metadataPath
+    ]);
   }
 
   // For failed/cancelled runs, keep source + metadata for recovery diagnostics.
@@ -149,7 +144,7 @@ export function createArtifactRetentionManager(
         }
       }
 
-      if (input.lifecycleStatus !== "completed" && input.retentionMode === "none") {
+      if (input.lifecycleStatus !== "completed" && input.retentionMode === "delete_temp") {
         warnings.push("Retention recovery boundary: preserved source and metadata after non-completed run.");
       }
 

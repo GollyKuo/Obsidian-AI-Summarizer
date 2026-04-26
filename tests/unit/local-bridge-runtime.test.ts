@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { LocalBridgeRuntimeProvider } from "@runtime/local-bridge-runtime";
 import type {
   MediaDownloadResult,
@@ -103,7 +103,7 @@ describe("LocalBridgeRuntimeProvider", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none"
+        retentionMode: "delete_temp"
       },
       new AbortController().signal
     );
@@ -174,7 +174,7 @@ describe("LocalBridgeRuntimeProvider", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none"
+        retentionMode: "delete_temp"
       },
       new AbortController().signal
     );

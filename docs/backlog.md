@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-04-24 16:24
+最後更新：2026-04-26 02:40
 
 ## 用途
 
@@ -219,3 +219,44 @@
 摘要：
 保留 API key、cache、外部媒體與未來 migration / retention 政策規劃。
 說明：CAP-507 負責安全與隱私政策工作，例如 API key handling、cache / media retention、外部資料清理與 migration safety。具體的最終專案清理 checklist 追蹤在 `backlog-active.md` 最後的 `Final Handoff Gate`。
+
+#### CAP-508 Input Source Expansion Strategy 輸入來源擴充策略
+
+狀態：`parking`
+
+摘要：
+保留未來擴增 AI input 來源類型的能力規劃。新增來源時不得直接塞進既有 `webpage_url` / `media_url` / `local_media` 分支，而應先定義輸入分類、抽取器、AI payload contract、模型能力需求、metadata / citation 規則、retention 策略與測試矩陣。
+
+執行策略：
+目前不先做完整架構重構。`SourceDescriptor`、generic acquisition result、共用 text pipeline、generic note output contract、vision / OCR / connector routing 等前置調整，等 CAP-508 正式進入 active backlog 並選定第一批來源後再實作。近期只保留文件規則與邊界提醒：不要把新來源特殊判斷混進既有三條流程，後續修改 `SourceType`、`source-guidance`、runtime diagnostics 時也不要假設來源永遠只有目前三種。
+
+候選來源：
+
+- 容易優先：`transcript_file`（`.srt` / `.vtt` / `.txt` 逐字稿，跳過轉錄直接摘要）
+- 容易優先：`text_file` / `markdown_file`（`.txt` / `.md`，抽文字後直接摘要）
+- 容易優先：`clipboard_text`（貼上文字後直接摘要）
+- 容易優先：`obsidian_note`（目前筆記或指定筆記摘要）
+- 容易優先：`folder_notes`（多篇 Obsidian notes 彙整摘要）
+- 中等成本：`pdf_file` / `pdf_url`（先限定可選取文字的 PDF；掃描 PDF 需另走 OCR / vision）
+- 中等成本：`rss_feed`（feed entry 內容抽取後走 webpage / text summary）
+- 中等成本：Office 文件（`.docx` / `.pptx` / `.xlsx`，需要文件 parser 與表格/投影片輸出規則）
+- 高成本：`image_file`（需要 vision-capable provider、OCR 或 multimodal prompt contract）
+- 高成本：動態網站、登入網站、付費牆內容（需要 browser/session/cookie 策略與隱私邊界）
+- 高成本：多檔案專案摘要（需要 chunking、排序、來源引用、去重與批次排程）
+- 高成本：Email / Notion / Google Drive 等 connector（需要 OAuth/connector 權限、同步範圍、隱私與資料保留政策）
+
+架構前置調整：
+
+- 定義 generic `SourceDescriptor` / `SourceAcquisitionResult`，讓每種來源都能描述 `sourceKind`、原始位置、可引用 metadata、輸入大小、需要的 runtime 能力與 cleanup policy。
+- 將現有 `process-webpage`、`process-media-url`、`process-local-media` 的共同階段抽成可重用 use-case building blocks：validate、acquire/extract、normalize、summarize/transcribe、write note、cleanup。
+- 建立文字型輸入的共用 pipeline：`TextExtractionResult -> TextAiInput -> summarizeTextWithChunking -> TextNoteInput`，避免每種非媒體來源各自複製 webpage flow。
+- 將模型能力從 provider 名稱拆出：`text_summary`、`audio_transcription`、`vision_understanding`、`ocr`、`long_context` 等 capability，用來決定 UI 提示、驗證與 routing。
+- 擴充 `NoteWriter` / note output contract，支援 generic source note，同時保留 media transcript 與 webpage metadata 的專屬欄位。
+- 擴充 diagnostics 與 smoke matrix，讓每個 source kind 都能有自己的 readiness、錯誤提示、範例輸入與 regression gate。
+- 與 `CAP-505 Batch And Queueing` 協調多來源/多檔案排程；與 `CAP-507 Security, Privacy, And Migration` 協調 connector、cookie、OAuth、cache retention 與 secret handling。
+
+Done When：
+
+- 已產出 vNext input source matrix，列出每種來源的輸入格式、抽取方式、AI 模型需求、metadata contract、retention policy、錯誤分類與測試策略。
+- 已挑選第一批低風險來源（建議 `transcript_file`、`text_file` / `markdown_file`、`clipboard_text`）進入 active backlog。
+- 架構上已有可重用的 text input pipeline 與 source descriptor contract，新增來源不需要複製整條 orchestration。

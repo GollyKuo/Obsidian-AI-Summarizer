@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { SummarizerError } from "@domain/errors";
 import {
   processMediaUrl,
@@ -89,7 +89,7 @@ describe("processMediaUrl integration", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none",
+        retentionMode: "delete_temp",
         mediaCacheRoot: "D:\\media-cache",
         vaultId: "vault-a",
         mediaCompressionProfile: "balanced"
@@ -150,7 +150,7 @@ describe("processMediaUrl integration", () => {
       transcriptionModel: "gemini-2.5-flash",
       summaryProvider: "gemini",
       summaryModel: "gemini-2.5-flash",
-      retentionMode: "none",
+      retentionMode: "delete_temp",
       mediaCacheRoot: "D:\\media-cache",
       vaultId: "vault-a"
     } as unknown as ProcessMediaUrlInput;
@@ -188,7 +188,7 @@ describe("processMediaUrl integration", () => {
           transcriptionModel: "gemini-2.5-flash",
           summaryProvider: "gemini",
           summaryModel: "gemini-2.5-flash",
-          retentionMode: "none",
+          retentionMode: "delete_temp",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
           mediaCompressionProfile: "balanced"
@@ -231,7 +231,7 @@ describe("processMediaUrl integration", () => {
           transcriptionModel: "gemini-2.5-flash",
           summaryProvider: "gemini",
           summaryModel: "gemini-2.5-flash",
-          retentionMode: "none",
+          retentionMode: "delete_temp",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
           mediaCompressionProfile: "balanced"

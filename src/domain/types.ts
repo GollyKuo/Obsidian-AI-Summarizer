@@ -6,7 +6,7 @@ import type {
 } from "@domain/model-selection";
 
 export type SourceType = "media_url" | "webpage_url" | "local_media";
-export type RetentionMode = "none" | "source" | "all";
+export type RetentionMode = "delete_temp" | "keep_temp";
 
 export interface SourceMetadata {
   title: string;

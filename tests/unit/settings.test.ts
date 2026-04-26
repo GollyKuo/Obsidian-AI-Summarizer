@@ -16,6 +16,7 @@ import {
   getTranscriptionModelOptions,
   isSupportedGeminiModel,
   normalizeModelCatalog,
+  normalizeRetentionMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
@@ -45,6 +46,15 @@ describe("settings", () => {
     expect(normalizeSummaryModel("gemini", "custom-summary")).toBe("custom-summary");
     expect(normalizeSummaryModel("openrouter", "vendor/model")).toBe("vendor/model");
     expect(normalizeSummaryModel("openrouter", " ")).toBe("qwen/qwen3.6-plus");
+  });
+
+  it("normalizes legacy retention settings into the two current choices", () => {
+    expect(DEFAULT_SETTINGS.retentionMode).toBe("delete_temp");
+    expect(normalizeRetentionMode("delete_temp")).toBe("delete_temp");
+    expect(normalizeRetentionMode("keep_temp")).toBe("keep_temp");
+    expect(normalizeRetentionMode("source")).toBe("keep_temp");
+    expect(normalizeRetentionMode("all")).toBe("keep_temp");
+    expect(normalizeRetentionMode("none")).toBe("delete_temp");
   });
 
   it("normalizes, upserts, removes, and exposes catalog options", () => {

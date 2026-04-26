@@ -72,11 +72,19 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   ffprobePath: "",
   mediaCompressionProfile: "balanced",
   templateReference: "",
-  retentionMode: "none",
+  retentionMode: "delete_temp",
   runtimeStrategy: "local_bridge",
   debugMode: false,
   lastSourceType: "webpage_url"
 };
+
+export function normalizeRetentionMode(rawMode: unknown): RetentionMode {
+  const mode = String(rawMode ?? "").trim();
+  if (mode === "keep_temp" || mode === "source" || mode === "all") {
+    return "keep_temp";
+  }
+  return "delete_temp";
+}
 
 export {
   DEFAULT_GEMINI_SUMMARY_MODEL as DEFAULT_GEMINI_MODEL,

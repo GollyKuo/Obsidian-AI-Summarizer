@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { SummarizerError } from "@domain/errors";
 import {
   processLocalMedia,
@@ -90,7 +90,7 @@ describe("processLocalMedia integration", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none",
+        retentionMode: "delete_temp",
         mediaCacheRoot: "D:\\media-cache",
         vaultId: "vault-a",
         mediaCompressionProfile: "balanced"
@@ -153,7 +153,7 @@ describe("processLocalMedia integration", () => {
       transcriptionModel: "gemini-2.5-flash",
       summaryProvider: "gemini",
       summaryModel: "gemini-2.5-flash",
-      retentionMode: "none",
+      retentionMode: "delete_temp",
       mediaCacheRoot: "D:\\media-cache",
       vaultId: "vault-a"
     } as unknown as ProcessLocalMediaInput;
@@ -195,7 +195,7 @@ describe("processLocalMedia integration", () => {
           transcriptionModel: "gemini-2.5-flash",
           summaryProvider: "gemini",
           summaryModel: "gemini-2.5-flash",
-          retentionMode: "none",
+          retentionMode: "delete_temp",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
           mediaCompressionProfile: "balanced"
@@ -238,7 +238,7 @@ describe("processLocalMedia integration", () => {
           transcriptionModel: "gemini-2.5-flash",
           summaryProvider: "gemini",
           summaryModel: "gemini-2.5-flash",
-          retentionMode: "none",
+          retentionMode: "delete_temp",
           mediaCacheRoot: "D:\\media-cache",
           vaultId: "vault-a",
           mediaCompressionProfile: "balanced"

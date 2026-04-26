@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import { processMedia } from "@orchestration/process-media";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { SummaryProvider } from "@services/ai/ai-provider";
@@ -81,7 +81,7 @@ describe("processMedia integration", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none",
+        retentionMode: "delete_temp",
         mediaCompressionProfile: "balanced"
       },
       {
@@ -195,7 +195,7 @@ describe("processMedia integration", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none",
+        retentionMode: "delete_temp",
         mediaCompressionProfile: "balanced"
       },
       {
@@ -291,7 +291,7 @@ describe("processMedia integration", () => {
         transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
-        retentionMode: "none"
+        retentionMode: "delete_temp"
       },
       {
         runtimeProvider,
@@ -330,7 +330,7 @@ describe("processMedia integration", () => {
           transcriptionModel: "gemini-2.5-flash",
           summaryProvider: "gemini",
           summaryModel: "gemini-2.5-flash",
-          retentionMode: "none"
+          retentionMode: "delete_temp"
         },
         {
           runtimeProvider,

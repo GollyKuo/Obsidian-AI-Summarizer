@@ -6,7 +6,7 @@ import {
 
 function makeInput(overrides: Partial<ArtifactRetentionInput> = {}): ArtifactRetentionInput {
   return {
-    retentionMode: "none",
+    retentionMode: "delete_temp",
     lifecycleStatus: "completed",
     artifacts: {
       downloadedPath: "D:\\cache\\session\\downloaded.mp4",
@@ -24,7 +24,7 @@ function makeInput(overrides: Partial<ArtifactRetentionInput> = {}): ArtifactRet
 }
 
 describe("artifact retention manager", () => {
-  it("removes all intermediate artifacts when retention mode is none on completed run", async () => {
+  it("removes temporary files when retention mode deletes temp files on completed run", async () => {
     const removed: string[] = [];
     const manager = createArtifactRetentionManager({
       remover: async (target) => {
@@ -42,24 +42,27 @@ describe("artifact retention manager", () => {
     expect(removed).toContain("D:\\cache\\session\\ai-upload");
   });
 
-  it("keeps source and metadata when retention mode is source on completed run", () => {
+  it("keeps original download, converted audio, and transcript when retention mode keeps temp files", () => {
     const manager = createArtifactRetentionManager();
     const plan = manager.buildPlan(
       makeInput({
-        retentionMode: "source"
+        retentionMode: "keep_temp"
       })
     );
 
     expect(plan.keepPaths).toEqual([
       "D:\\cache\\session\\downloaded.mp4",
-      "D:\\cache\\session\\metadata.json"
+      "D:\\cache\\session\\normalized.wav",
+      "D:\\cache\\session\\transcript.srt"
     ]);
     expect(plan.removeTargets.some((target) => target.path.endsWith("downloaded.mp4"))).toBe(false);
-    expect(plan.removeTargets.some((target) => target.path.endsWith("metadata.json"))).toBe(false);
-    expect(plan.removeTargets.some((target) => target.path.endsWith("normalized.wav"))).toBe(true);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("normalized.wav"))).toBe(false);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("transcript.srt"))).toBe(false);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("metadata.json"))).toBe(true);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("ai-upload"))).toBe(true);
   });
 
-  it("preserves source and metadata for recovery on failed run even with retention none", async () => {
+  it("preserves source and metadata for recovery on failed run even when deleting temp files", async () => {
     const removed: string[] = [];
     const manager = createArtifactRetentionManager({
       remover: async (target) => {
@@ -70,7 +73,7 @@ describe("artifact retention manager", () => {
     const warnings = await manager.cleanup(
       makeInput({
         lifecycleStatus: "failed",
-        retentionMode: "none"
+        retentionMode: "delete_temp"
       })
     );
 

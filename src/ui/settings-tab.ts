@@ -64,7 +64,7 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
 ];
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
-const RETENTION_OPTIONS: RetentionMode[] = ["none", "source", "all"];
+const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -82,9 +82,8 @@ const DIAGNOSTIC_CAPABILITY_LABELS: Record<SourceType, string> = {
 };
 
 const RETENTION_LABELS: Record<RetentionMode, string> = {
-  none: "流程完成後刪除暫存產物",
-  source: "保留來源檔與 metadata",
-  all: "保留全部暫存產物"
+  delete_temp: "刪除暫存檔",
+  keep_temp: "保留暫存檔"
 };
 
 const MEDIA_COMPRESSION_LABELS: Record<MediaCompressionProfile, string> = {
@@ -1548,8 +1547,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("產物保留模式")
-      .setDesc("控制 media pipeline 完成後保留哪些暫存產物。")
+      .setName("媒體暫存檔")
+      .setDesc("控制媒體流程完成後，是否保留原始下載、轉檔音訊與逐字稿。")
       .addDropdown((dropdown) => {
         for (const mode of RETENTION_OPTIONS) {
           dropdown.addOption(mode, RETENTION_LABELS[mode]);

@@ -17,6 +17,7 @@ import {
   DEFAULT_SETTINGS,
   ensureSelectedModelsInCatalog,
   normalizeModelCatalog,
+  normalizeRetentionMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
@@ -85,6 +86,7 @@ export default class AISummarizerPlugin extends Plugin {
       summaryProvider,
       summaryModel,
       modelCatalog,
+      retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
       ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
       ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)

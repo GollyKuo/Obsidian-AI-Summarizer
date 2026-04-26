@@ -174,7 +174,7 @@ Open Work：
 - [x] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`（完成：2026-04-24 00:00）
 - [x] 定義 cleanup/recovery 在成功、失敗、取消三種狀態的責任分界（完成：2026-04-23 20:38）
 - [ ] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle
-- [ ] 完成逐字稿雙輸出：逐字稿除依規則寫入 Obsidian 筆記外，也需在下載媒體的 session 資料夾中保留一份完成版逐字稿檔案；此保留不應被 `retentionMode: none/source` 成功清理移除，並需納入 cleanup / final handoff 安全檢查。
+- [ ] 完成逐字稿雙輸出：逐字稿除依規則寫入 Obsidian 筆記外，也需在下載媒體的 session 資料夾中保留一份完成版逐字稿檔案；此保留不應被 `retentionMode: delete_temp` 成功清理移除，並需納入 cleanup / final handoff 安全檢查。
 - [ ] 定義字幕產線是否納入 v1/vNext，包含 `.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略
 
 ## User Experience 使用體驗
