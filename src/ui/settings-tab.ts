@@ -1528,8 +1528,22 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("媒體快取資料夾")
-      .setDesc("media URL 與本機媒體流程的暫存目錄。請填入絕對路徑，避免寫進 vault。")
+      .setName("媒體暫存檔保留")
+      .setDesc("控制媒體流程完成後，是否保留原始下載、轉檔音訊與逐字稿。")
+      .addDropdown((dropdown) => {
+        for (const mode of RETENTION_OPTIONS) {
+          dropdown.addOption(mode, RETENTION_LABELS[mode]);
+        }
+
+        dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
+          this.plugin.settings.retentionMode = value as RetentionMode;
+          await this.plugin.saveSettings();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("媒體暫存資料夾")
+      .setDesc("媒體流程的暫存目錄。請填入絕對路徑，避免寫進 vault。")
       .addText((text) =>
         text
           .setPlaceholder("例如 D:\\AI-Summarizer\\media-cache")
@@ -1545,20 +1559,6 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           void this.pickMediaStorageDirectory();
         })
       );
-
-    new Setting(containerEl)
-      .setName("媒體暫存檔")
-      .setDesc("控制媒體流程完成後，是否保留原始下載、轉檔音訊與逐字稿。")
-      .addDropdown((dropdown) => {
-        for (const mode of RETENTION_OPTIONS) {
-          dropdown.addOption(mode, RETENTION_LABELS[mode]);
-        }
-
-        dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
-          this.plugin.settings.retentionMode = value as RetentionMode;
-          await this.plugin.saveSettings();
-        });
-      });
 
     new Setting(containerEl)
       .setName("媒體壓縮策略")
