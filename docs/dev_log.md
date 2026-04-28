@@ -1,8 +1,27 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-26 02:00
+最後更新：2026-04-29 00:04
 
 ## 版本紀錄
+
+### 0.1.49-transcription-node-import-fix - 2026-04-29 00:04
+
+範圍：
+- 修正 media transcription 階段在 Obsidian renderer 內讀取 AI-ready audio artifact 時，誤以 dynamic import 載入 Node 模組造成失敗的問題。
+
+主要變更：
+- 更新 `src/services/ai/configured-ai-provider.ts`
+- 將 `node:fs/promises` 與 `node:buffer` 改為靜態 import，避免 Electron renderer 將 `import("node:fs/promises")` 當成瀏覽器 dynamic module fetch
+- 保留原本 Gemini inline audio payload 組裝行為
+- 更新 `tests/unit/configured-ai-provider.test.ts`
+- 新增 AI upload artifact 讀檔與 Gemini `inline_data` payload 測試
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/configured-ai-provider.test.ts --passWithNoTests`
+- `npm run test`
+- `npm run build`
+- `npm run build:vault`
 
 ### 0.1.48-cap-504-model-catalog - 2026-04-26 02:00
 

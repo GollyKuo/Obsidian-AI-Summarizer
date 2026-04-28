@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+import { readFile } from "node:fs/promises";
 import { SummarizerError } from "@domain/errors";
 import type { AISummarizerPluginSettings } from "@domain/settings";
 import type {
@@ -250,10 +252,6 @@ function guessAudioMimeType(filePath: string): string {
 }
 
 async function readAudioPart(filePath: string): Promise<GeminiPart> {
-  const [{ readFile }, { Buffer }] = await Promise.all([
-    import("node:fs/promises"),
-    import("node:buffer")
-  ]);
   const content = await readFile(filePath);
   return {
     inline_data: {

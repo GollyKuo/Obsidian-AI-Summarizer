@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_SETTINGS } from "@domain/settings";
 import {
@@ -151,5 +154,60 @@ describe("configured AI providers", () => {
         new AbortController().signal
       )
     ).rejects.toThrow(/AI-ready audio artifacts/);
+  });
+
+  it("transcribes AI upload artifacts as Gemini inline audio data", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+        jsonResponse({
+          candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} hello" }] } }]
+        })
+      );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key"
+        },
+        { fetchImpl }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: audioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [audioPath],
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.transcriptMarkdown).toContain("hello");
+      const [, init] = fetchImpl.mock.calls[0];
+      const body = JSON.parse(String(init?.body));
+      expect(body.contents[0].parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            inline_data: {
+              mime_type: "audio/ogg",
+              data: Buffer.from("audio").toString("base64")
+            }
+          })
+        ])
+      );
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 });
