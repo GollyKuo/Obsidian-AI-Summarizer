@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { SummarizerError } from "@domain/errors";
 import { DEFAULT_SETTINGS } from "@domain/settings";
 import {
   createConfiguredSummaryProvider,
@@ -97,6 +98,51 @@ describe("configured AI providers", () => {
     expect(JSON.parse(String(init?.body))).toMatchObject({
       model: "qwen/qwen3.6-plus"
     });
+  });
+
+  it("reports OpenRouter empty output with response diagnostics", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse({
+        choices: [{ message: { role: "assistant" } }]
+      })
+    );
+    const provider = createConfiguredSummaryProvider(
+      {
+        ...DEFAULT_SETTINGS,
+        openRouterApiKey: "openrouter-key"
+      },
+      { fetchImpl }
+    );
+
+    await expect(
+      provider.summarizeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "YouTube",
+            source: "https://youtube.example/demo",
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "normalized",
+          transcript: [{ startMs: 0, endMs: 1000, text: "hello" }],
+          summaryProvider: "openrouter",
+          summaryModel: "qwen/qwen3.6-plus"
+        },
+        new AbortController().signal
+      )
+    ).rejects.toMatchObject({
+      category: "ai_failure",
+      message: expect.stringContaining("OpenRouter response did not include text output"),
+      causeValue: expect.objectContaining({
+        provider: "OpenRouter",
+        failureKind: "empty_output",
+        responseShape: expect.objectContaining({
+          choiceCount: 1,
+          contentType: "undefined"
+        })
+      })
+    } satisfies Partial<SummarizerError>);
   });
 
   it("uses existing transcript segments without calling Gemini transcription", async () => {

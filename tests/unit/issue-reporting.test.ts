@@ -36,6 +36,26 @@ describe("issue reporting", () => {
     );
   });
 
+  it("adds summarizer error diagnostics to developer-facing log fields", () => {
+    const report = createIssueReport(
+      "Media Flow",
+      new SummarizerError({
+        category: "ai_failure",
+        message: "OpenRouter response did not include text output.",
+        recoverable: true,
+        cause: {
+          provider: "OpenRouter",
+          failureKind: "empty_output"
+        }
+      })
+    );
+
+    expect(report.modalMessage).toContain("OpenRouter response did not include text output.");
+    expect(report.logMessage).toContain("diagnostics:");
+    expect(report.logMessage).toContain("OpenRouter");
+    expect(report.assertionMessage).toContain("empty_output");
+  });
+
   it("creates deterministic reports for unknown errors", () => {
     const report = createIssueReport("AI Pipeline", new Error("socket closed"));
 

@@ -48,6 +48,30 @@ function sanitizeMessage(message: string): string {
   return message.trim().replace(/\s+/g, " ");
 }
 
+function serializeCause(cause: unknown): string {
+  if (cause === undefined) {
+    return "";
+  }
+
+  if (cause instanceof Error) {
+    return sanitizeMessage(cause.message).slice(0, 1000);
+  }
+
+  try {
+    return sanitizeMessage(JSON.stringify(cause)).slice(0, 1000);
+  } catch {
+    return sanitizeMessage(String(cause)).slice(0, 1000);
+  }
+}
+
+function appendDiagnostics(message: string, cause: unknown): string {
+  const serializedCause = serializeCause(cause);
+  if (!serializedCause) {
+    return message;
+  }
+  return `${message} | diagnostics: ${serializedCause}`;
+}
+
 function normalizeContext(context: string): string {
   return context.trim().replace(/\s+/g, "_").toLowerCase();
 }
@@ -73,8 +97,14 @@ export function createIssueReport(context: string, error: unknown): IssueReport 
       level: template.level,
       noticeMessage: `${template.title}：${detail}`,
       modalMessage: `${template.title}：${detail}`,
-      logMessage: `[${normalizedContext}] ${error.category}: ${detail}`,
-      assertionMessage: `${normalizedContext} | ${error.category} | ${detail}`
+      logMessage: appendDiagnostics(
+        `[${normalizedContext}] ${error.category}: ${detail}`,
+        error.causeValue
+      ),
+      assertionMessage: appendDiagnostics(
+        `${normalizedContext} | ${error.category} | ${detail}`,
+        error.causeValue
+      )
     };
   }
 

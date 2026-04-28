@@ -62,7 +62,7 @@ describe("artifact retention manager", () => {
     expect(plan.removeTargets.some((target) => target.path.endsWith("ai-upload"))).toBe(true);
   });
 
-  it("preserves source and metadata for recovery on failed run even when deleting temp files", async () => {
+  it("preserves source, transcript, and metadata for recovery on failed run even when deleting temp files", async () => {
     const removed: string[] = [];
     const manager = createArtifactRetentionManager({
       remover: async (target) => {
@@ -78,10 +78,11 @@ describe("artifact retention manager", () => {
     );
 
     expect(removed.some((target) => target.endsWith("downloaded.mp4"))).toBe(false);
+    expect(removed.some((target) => target.endsWith("transcript.srt"))).toBe(false);
     expect(removed.some((target) => target.endsWith("metadata.json"))).toBe(false);
     expect(removed.some((target) => target.endsWith("normalized.wav"))).toBe(true);
     expect(
-      warnings.some((warning) => warning.includes("Retention recovery boundary: preserved source and metadata"))
+      warnings.some((warning) => warning.includes("Retention recovery boundary: preserved source, transcript, and metadata"))
     ).toBe(true);
   });
 

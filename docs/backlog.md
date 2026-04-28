@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-04-29 00:12
+最後更新：2026-04-29 00:36
 
 ## 用途
 
@@ -105,7 +105,7 @@
 狀態：`active`
 
 摘要：
-收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分與 provider routing，剩 OpenRouter 空回應診斷、摘要 fallback / retry 與轉錄成功後只重跑摘要收尾。
+收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分、provider routing、OpenRouter 空回應診斷、Gemini 摘要 fallback 與失敗 transcript recovery；剩更完整的手動只重跑摘要 UX 收尾。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
@@ -148,10 +148,10 @@
 
 #### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已完成 logging policy、diagnostics summary 與錯誤呈現層級收斂；新增 AI provider response diagnostics，讓 OpenRouter / Gemini 失敗時可分辨 transport error、provider error payload、empty output 與 unexpected response shape。
+已完成 logging policy、diagnostics summary、錯誤呈現層級收斂與 AI provider response diagnostics；OpenRouter / Gemini 失敗時可從 debug log 分辨 transport error、provider error payload、empty output 與 unexpected response shape。
 
 #### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
 

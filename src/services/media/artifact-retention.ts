@@ -84,8 +84,12 @@ function keepPathsForIncomplete(input: ArtifactRetentionInput): string[] {
     ]);
   }
 
-  // For failed/cancelled runs, keep source + metadata for recovery diagnostics.
-  return uniqueNonEmpty([input.artifacts.downloadedPath, input.artifacts.metadataPath]);
+  // For failed/cancelled runs, keep source + metadata + transcript for recovery diagnostics.
+  return uniqueNonEmpty([
+    input.artifacts.downloadedPath,
+    input.artifacts.transcriptPath,
+    input.artifacts.metadataPath
+  ]);
 }
 
 function buildRemoveTargets(input: ArtifactRetentionInput, keepPaths: string[]): CleanupTarget[] {
@@ -145,7 +149,7 @@ export function createArtifactRetentionManager(
       }
 
       if (input.lifecycleStatus !== "completed" && input.retentionMode === "delete_temp") {
-        warnings.push("Retention recovery boundary: preserved source and metadata after non-completed run.");
+        warnings.push("Retention recovery boundary: preserved source, transcript, and metadata after non-completed run.");
       }
 
       return warnings;

@@ -1,8 +1,12 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { SummarizerError } from "@domain/errors";
+import { DEFAULT_GEMINI_SUMMARY_MODEL } from "@domain/model-selection";
 import type {
   LocalMediaRequest,
   MediaProcessResult,
   MediaSummaryResult,
+  MediaTranscriptionResult,
   MediaUrlRequest,
   WriteResult
 } from "@domain/types";
@@ -43,6 +47,33 @@ function validateMediaInput(input: MediaRequest): void {
   }
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isAiFailure(error: unknown): boolean {
+  return error instanceof SummarizerError && error.category === "ai_failure";
+}
+
+async function persistTranscriptForRecovery(
+  mediaInput: MediaProcessResult | null,
+  transcription: MediaTranscriptionResult | null
+): Promise<string[]> {
+  const transcriptPath = mediaInput?.artifactCleanup?.transcriptPath;
+  const transcriptMarkdown = transcription?.transcriptMarkdown.trim();
+  if (!transcriptPath || !transcriptMarkdown) {
+    return [];
+  }
+
+  try {
+    await mkdir(path.dirname(transcriptPath), { recursive: true });
+    await writeFile(transcriptPath, `${transcriptMarkdown}\n`, "utf8");
+    return [`Recovery transcript preserved for summary retry: ${transcriptPath}`];
+  } catch (error) {
+    return [`Recovery transcript preservation failed for ${transcriptPath}: ${getErrorMessage(error)}`];
+  }
+}
+
 export async function processMedia(
   input: MediaRequest,
   dependencies: ProcessMediaDependencies,
@@ -52,6 +83,7 @@ export async function processMedia(
   const warnings: string[] = [];
   const artifactRetentionManager = createArtifactRetentionManager();
   let mediaInput: MediaProcessResult | null = null;
+  let transcriptionResult: MediaTranscriptionResult | null = null;
 
   await runJobStep(
     "validating",
@@ -98,6 +130,7 @@ export async function processMedia(
         ),
       hooks
     );
+    transcriptionResult = transcription;
 
     warnings.push(...transcription.warnings);
     emitWarnings(transcription.warnings, hooks);
@@ -106,18 +139,65 @@ export async function processMedia(
       "summarizing",
       "Generating media summary",
       signal,
-      async () =>
-        summarizeMediaWithChunking(
-          {
-            metadata: mediaInput!.metadata,
-            normalizedText: mediaInput!.normalizedText,
-            transcript: transcription.transcript,
-            summaryProvider: input.summaryProvider,
-            summaryModel: input.summaryModel
-          },
-          dependencies.summaryProvider,
-          signal
-        ),
+      async () => {
+        const summaryInput = {
+          metadata: mediaInput!.metadata,
+          normalizedText: mediaInput!.normalizedText,
+          transcript: transcription.transcript,
+          summaryProvider: input.summaryProvider,
+          summaryModel: input.summaryModel
+        };
+
+        try {
+          return await summarizeMediaWithChunking(
+            summaryInput,
+            dependencies.summaryProvider,
+            signal
+          );
+        } catch (error) {
+          if (input.summaryProvider !== "openrouter" || !isAiFailure(error)) {
+            throw error;
+          }
+
+          const fallbackWarning =
+            `OpenRouter summary failed; retrying with Gemini summary provider. Reason: ${getErrorMessage(error)}`;
+          warnings.push(fallbackWarning);
+          emitWarnings([fallbackWarning], hooks);
+
+          try {
+            const fallbackSummary = await summarizeMediaWithChunking(
+              {
+                ...summaryInput,
+                summaryProvider: "gemini",
+                summaryModel: DEFAULT_GEMINI_SUMMARY_MODEL
+              },
+              dependencies.summaryProvider,
+              signal
+            );
+            return {
+              ...fallbackSummary,
+              warnings: [
+                `OpenRouter summary fallback used Gemini model ${DEFAULT_GEMINI_SUMMARY_MODEL}.`,
+                ...fallbackSummary.warnings
+              ]
+            };
+          } catch (fallbackError) {
+            throw new SummarizerError({
+              category: "ai_failure",
+              message:
+                `OpenRouter summary failed and Gemini fallback also failed. ` +
+                `OpenRouter: ${getErrorMessage(error)}; ` +
+                `Gemini fallback: ${getErrorMessage(fallbackError)}`,
+              recoverable: true,
+              cause: {
+                failureKind: "summary_fallback_failed",
+                originalSummaryError: getErrorMessage(error),
+                fallbackSummaryError: getErrorMessage(fallbackError)
+              }
+            });
+          }
+        }
+      },
       hooks
     );
 
@@ -162,6 +242,9 @@ export async function processMedia(
       warnings
     };
   } catch (error) {
+    const recoveryWarnings = await persistTranscriptForRecovery(mediaInput, transcriptionResult);
+    emitWarnings(recoveryWarnings, hooks);
+
     if (mediaInput?.artifactCleanup) {
       const lifecycleStatus: ArtifactLifecycleStatus =
         error instanceof SummarizerError && error.category === "cancellation"

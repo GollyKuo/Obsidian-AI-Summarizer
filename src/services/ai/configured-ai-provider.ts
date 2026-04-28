@@ -47,6 +47,72 @@ interface OpenRouterResponse {
   };
 }
 
+interface AiErrorDetail {
+  message: string;
+  payload?: unknown;
+  bodyExcerpt?: string;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getKeys(value: unknown): string[] {
+  return isRecord(value) ? Object.keys(value).sort() : [];
+}
+
+function getValueType(value: unknown): string {
+  if (Array.isArray(value)) {
+    return "array";
+  }
+  return value === null ? "null" : typeof value;
+}
+
+function describeGeminiResponseShape(payload: GeminiResponse): Record<string, unknown> {
+  return {
+    rootKeys: getKeys(payload),
+    candidateCount: payload.candidates?.length ?? 0,
+    firstCandidateKeys: getKeys(payload.candidates?.[0]),
+    firstContentKeys: getKeys(payload.candidates?.[0]?.content),
+    firstPartsCount: payload.candidates?.[0]?.content?.parts?.length ?? 0,
+    firstPartKeys: getKeys(payload.candidates?.[0]?.content?.parts?.[0]),
+    errorKeys: getKeys(payload.error)
+  };
+}
+
+function describeOpenRouterResponseShape(payload: OpenRouterResponse): Record<string, unknown> {
+  const firstChoice = payload.choices?.[0];
+  const content = firstChoice?.message?.content;
+  return {
+    rootKeys: getKeys(payload),
+    choiceCount: payload.choices?.length ?? 0,
+    firstChoiceKeys: getKeys(firstChoice),
+    firstMessageKeys: getKeys(firstChoice?.message),
+    contentType: getValueType(content),
+    contentArrayLength: Array.isArray(content) ? content.length : null,
+    errorKeys: getKeys(payload.error)
+  };
+}
+
+function buildProviderDiagnostics(input: {
+  provider: "Gemini" | "OpenRouter";
+  failureKind: string;
+  model?: string;
+  status?: number;
+  providerError?: string;
+  responseShape?: Record<string, unknown>;
+  bodyExcerpt?: string;
+  errorMessage?: string;
+}): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined && value !== "")
+  );
+}
+
 function getFetchImplementation(fetchImpl?: typeof fetch): typeof fetch {
   const resolvedFetch = fetchImpl ?? globalThis.fetch;
   if (!resolvedFetch) {
@@ -105,13 +171,25 @@ async function fetchWithTimeout(
   }
 }
 
-async function readErrorDetail(response: Response): Promise<string> {
+async function readErrorDetail(response: Response): Promise<AiErrorDetail> {
+  const body = await response.text();
+  if (body.trim().length === 0) {
+    return { message: "" };
+  }
+
   try {
-    const payload = (await response.json()) as { error?: { message?: unknown }; message?: unknown };
+    const payload = JSON.parse(body) as { error?: { message?: unknown }; message?: unknown };
     const detail = payload.error?.message ?? payload.message;
-    return typeof detail === "string" ? detail : "";
+    return {
+      message: typeof detail === "string" ? detail : "",
+      payload,
+      bodyExcerpt: body.slice(0, 500)
+    };
   } catch {
-    return "";
+    return {
+      message: body.trim(),
+      bodyExcerpt: body.slice(0, 500)
+    };
   }
 }
 
@@ -125,8 +203,15 @@ function extractGeminiText(payload: GeminiResponse): string {
   if (!text) {
     throw new SummarizerError({
       category: "ai_failure",
-      message: "Gemini response did not include text output.",
-      recoverable: true
+      message:
+        "Gemini response did not include text output. Check model support, safety blocks, quota, or empty output details in debug logs.",
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "Gemini",
+        failureKind: "empty_output",
+        providerError: payload.error?.message,
+        responseShape: describeGeminiResponseShape(payload)
+      })
     });
   }
   return text;
@@ -142,8 +227,15 @@ function extractOpenRouterText(payload: OpenRouterResponse): string {
   if (!trimmed) {
     throw new SummarizerError({
       category: "ai_failure",
-      message: "OpenRouter response did not include text output.",
-      recoverable: true
+      message:
+        "OpenRouter response did not include text output. Check provider quota, rate limits, selected model support, or provider-side empty output details in debug logs.",
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "OpenRouter",
+        failureKind: "empty_output",
+        providerError: payload.error?.message,
+        responseShape: describeOpenRouterResponseShape(payload)
+      })
     });
   }
   return trimmed;
@@ -159,30 +251,56 @@ async function generateGeminiText(input: {
   const apiKey = requireApiKey(input.apiKey, "Gemini");
   const fetchImpl = getFetchImplementation(input.fetchImpl);
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const response = await fetchWithTimeout(
-    fetchImpl,
-    endpoint,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: input.parts }],
-        generationConfig: {
-          temperature: 0.2
-        }
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      fetchImpl,
+      endpoint,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: input.parts }],
+          generationConfig: {
+            temperature: 0.2
+          }
+        })
+      },
+      input.signal
+    );
+  } catch (error) {
+    if (error instanceof SummarizerError) {
+      throw error;
+    }
+    throw new SummarizerError({
+      category: "ai_failure",
+      message: `Gemini request failed before receiving a response: ${getErrorMessage(error)}`,
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "Gemini",
+        failureKind: "transport_error",
+        model: input.model,
+        errorMessage: getErrorMessage(error)
       })
-    },
-    input.signal
-  );
+    });
+  }
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
-      message: detail
-        ? `Gemini request failed (HTTP ${response.status}): ${detail}`
+      message: detail.message
+        ? `Gemini request failed (HTTP ${response.status}): ${detail.message}`
         : `Gemini request failed (HTTP ${response.status}).`,
-      recoverable: true
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "Gemini",
+        failureKind: "provider_error",
+        model: input.model,
+        status: response.status,
+        providerError: detail.message,
+        bodyExcerpt: detail.bodyExcerpt
+      })
     });
   }
 
@@ -198,33 +316,59 @@ async function generateOpenRouterText(input: {
 }): Promise<string> {
   const apiKey = requireApiKey(input.apiKey, "OpenRouter");
   const fetchImpl = getFetchImplementation(input.fetchImpl);
-  const response = await fetchWithTimeout(
-    fetchImpl,
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "X-Title": "Obsidian AI Summarizer"
+  let response: Response;
+  try {
+    response = await fetchWithTimeout(
+      fetchImpl,
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "X-Title": "Obsidian AI Summarizer"
+        },
+        body: JSON.stringify({
+          model: input.model,
+          messages: [{ role: "user", content: input.prompt }],
+          temperature: 0.2
+        })
       },
-      body: JSON.stringify({
+      input.signal
+    );
+  } catch (error) {
+    if (error instanceof SummarizerError) {
+      throw error;
+    }
+    throw new SummarizerError({
+      category: "ai_failure",
+      message: `OpenRouter request failed before receiving a response: ${getErrorMessage(error)}`,
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "OpenRouter",
+        failureKind: "transport_error",
         model: input.model,
-        messages: [{ role: "user", content: input.prompt }],
-        temperature: 0.2
+        errorMessage: getErrorMessage(error)
       })
-    },
-    input.signal
-  );
+    });
+  }
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
-      message: detail
-        ? `OpenRouter request failed (HTTP ${response.status}): ${detail}`
+      message: detail.message
+        ? `OpenRouter request failed (HTTP ${response.status}): ${detail.message}`
         : `OpenRouter request failed (HTTP ${response.status}).`,
-      recoverable: true
+      recoverable: true,
+      cause: buildProviderDiagnostics({
+        provider: "OpenRouter",
+        failureKind: "provider_error",
+        model: input.model,
+        status: response.status,
+        providerError: detail.message,
+        bodyExcerpt: detail.bodyExcerpt
+      })
     });
   }
 

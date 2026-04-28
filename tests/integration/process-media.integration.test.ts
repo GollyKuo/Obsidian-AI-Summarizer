@@ -1,4 +1,8 @@
 ﻿import { describe, expect, it } from "vitest";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { SummarizerError } from "@domain/errors";
 import { processMedia } from "@orchestration/process-media";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { SummaryProvider } from "@services/ai/ai-provider";
@@ -305,6 +309,205 @@ describe("processMedia integration", () => {
     expect(summarizeMediaCalls).toBeGreaterThan(1);
     expect(capturedSummaryMarkdown).toContain("## Chunk 1");
     expect(result.warnings.some((warning) => warning.includes("Chunked media summary into"))).toBe(true);
+  });
+
+  it("falls back to Gemini summary when OpenRouter summary returns an AI failure", async () => {
+    const summaryProviders: string[] = [];
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        return {
+          metadata: {
+            title: "Fallback Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=fallback",
+            created: "2026-04-29T00:00:00.000Z"
+          },
+          normalizedText: "normalized-context",
+          transcript: [],
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const transcriptionProvider: TranscriptionProvider = {
+      async transcribeMedia() {
+        return {
+          transcript: [{ startMs: 0, endMs: 1000, text: "hello transcript" }],
+          transcriptMarkdown: "{0m0s - 0m1s} hello transcript",
+          warnings: []
+        };
+      }
+    };
+
+    const summaryProvider: SummaryProvider = {
+      async summarizeMedia(input) {
+        summaryProviders.push(input.summaryProvider);
+        if (input.summaryProvider === "openrouter") {
+          throw new SummarizerError({
+            category: "ai_failure",
+            message: "OpenRouter response did not include text output.",
+            recoverable: true
+          });
+        }
+
+        return {
+          summaryMarkdown: "## Summary\n\nGemini fallback summary",
+          warnings: []
+        };
+      },
+      async summarizeWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const noteWriter: NoteWriter = {
+      async writeMediaNote() {
+        return {
+          notePath: "Summaries/Fallback Demo.md",
+          createdAt: "2026-04-29T00:00:00.000Z",
+          warnings: []
+        };
+      },
+      async writeWebpageNote() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await processMedia(
+      {
+        sourceKind: "media_url",
+        sourceValue: "https://www.youtube.com/watch?v=fallback",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "openrouter",
+        summaryModel: "qwen/qwen3.6-plus",
+        retentionMode: "delete_temp"
+      },
+      {
+        runtimeProvider,
+        transcriptionProvider,
+        summaryProvider,
+        noteWriter
+      },
+      new AbortController().signal
+    );
+
+    expect(summaryProviders).toEqual(["openrouter", "gemini"]);
+    expect(result.summary.summaryMarkdown).toContain("Gemini fallback summary");
+    expect(result.warnings.some((warning) => warning.includes("retrying with Gemini"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("fallback used Gemini"))).toBe(true);
+  });
+
+  it("preserves transcript artifact when summary and fallback both fail", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "process-media-recovery-"));
+    const transcriptPath = path.join(tempDirectory, "transcript.srt");
+    const warnings: string[] = [];
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        return {
+          metadata: {
+            title: "Recovery Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=recovery",
+            created: "2026-04-29T00:00:00.000Z"
+          },
+          normalizedText: "normalized-context",
+          transcript: [],
+          artifactCleanup: {
+            downloadedPath: path.join(tempDirectory, "downloaded.mp4"),
+            normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+            transcriptPath,
+            metadataPath: path.join(tempDirectory, "metadata.json"),
+            aiUploadDirectory: path.join(tempDirectory, "ai-upload"),
+            aiUploadArtifactPaths: [path.join(tempDirectory, "ai-upload", "ai-upload.ogg")]
+          },
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    try {
+      await expect(
+        processMedia(
+          {
+            sourceKind: "media_url",
+            sourceValue: "https://www.youtube.com/watch?v=recovery",
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash",
+            summaryProvider: "openrouter",
+            summaryModel: "qwen/qwen3.6-plus",
+            retentionMode: "delete_temp"
+          },
+          {
+            runtimeProvider,
+            transcriptionProvider: {
+              async transcribeMedia() {
+                return {
+                  transcript: [{ startMs: 0, endMs: 1000, text: "recovered transcript" }],
+                  transcriptMarkdown: "{0m0s - 0m1s} recovered transcript",
+                  warnings: []
+                };
+              }
+            },
+            summaryProvider: {
+              async summarizeMedia(input) {
+                throw new SummarizerError({
+                  category: "ai_failure",
+                  message: `${input.summaryProvider} summary failed`,
+                  recoverable: true
+                });
+              },
+              async summarizeWebpage() {
+                throw new Error("should not execute");
+              }
+            },
+            noteWriter: {
+              async writeMediaNote() {
+                throw new Error("should not execute");
+              },
+              async writeWebpageNote() {
+                throw new Error("should not execute");
+              }
+            }
+          },
+          new AbortController().signal,
+          {
+            onWarning: (warning) => {
+              warnings.push(warning);
+            }
+          }
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: expect.stringContaining("Gemini fallback also failed")
+      });
+
+      expect(await readFile(transcriptPath, "utf8")).toContain("recovered transcript");
+      expect(warnings.some((warning) => warning.includes("Recovery transcript preserved"))).toBe(true);
+      expect(
+        warnings.some((warning) => warning.includes("preserved source, transcript, and metadata"))
+      ).toBe(true);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 
   it("throws validation_error when media source value is empty", async () => {
