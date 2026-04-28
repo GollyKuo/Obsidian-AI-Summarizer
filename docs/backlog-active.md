@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-24 16:24
+最後更新：2026-04-29 00:12
 
 ## 使用規則
 
@@ -157,6 +157,9 @@ Open Work：
 - [x] 支援預設組合：Gemini audio-capable model 轉錄，Gemini summary model 摘要（完成：2026-04-24 16:24）
 - [x] 支援 OpenRouter summary provider，第一版可用 `qwen/qwen3.6-plus` 處理已有逐字稿的文字摘要（完成：2026-04-24 16:24）
 - [ ] 定義 fallback / retry：轉錄成功但摘要失敗時，可保留 transcript 並只重跑摘要
+- [ ] 強化 OpenRouter 摘要空回應處理：當 response 沒有 `message.content` 時，保留 HTTP status、provider error detail 與 response shape 到 debug log，modal 顯示可行診斷方向（quota / rate limit / model unsupported / empty output）
+- [ ] 補摘要階段 fallback / retry：轉錄成功但 OpenRouter 摘要失敗時，保留 transcript 與 media artifacts 狀態，支援只重跑摘要或 fallback 到 Gemini summary provider
+- [ ] 補長逐字稿 + OpenRouter 空輸出 regression test，覆蓋 chunked transcript summary request 與使用者可讀錯誤訊息
 - [x] 補上 unit / integration tests，覆蓋轉錄模型與摘要模型不同 provider 的 routing 行為（完成：2026-04-24 16:24）
 
 ### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
@@ -227,6 +230,7 @@ Open Work：
 - [x] 定義 debug logging policy（user-facing、developer-facing、runtime-facing）（2026-04-24 01:18）
 - [x] 建立 capability detection / diagnostics summary（desktop/mobile/runtime availability）（2026-04-24 01:00）
 - [x] 統一錯誤訊息層級：notice、modal、log、test assertion（2026-04-24 01:18）
+- [ ] 補 AI provider response diagnostics：OpenRouter / Gemini 失敗時需能從 debug log 分辨 transport error、provider error payload、empty output、unexpected response shape
 
 ### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
 
