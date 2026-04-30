@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-04-29 00:36
+最後更新：2026-05-01 01:31
 
 ## 使用規則
 
@@ -33,6 +33,17 @@
 - 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
 - `CAP-504` 已完成：模型清單改為使用者自訂維護，轉錄/摘要共用 autocomplete model datalist，並支援 Gemini / OpenRouter 官方模型清單更新與 OpenRouter models API 校對。
 - 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
+
+## 舊版能力吸收任務清單
+
+以下任務來自舊版 `Media Summarizer` 的實戰能力。這些項目要吸收行為與經驗，但不能把舊版 GUI 直連式架構搬回新版；實作時仍需走既有 `runtime / orchestration / services / note writer` 邊界。
+
+- [ ] `CAP-202` 下載穩定性：把舊版 YouTube 下載參數納入新版 `downloader-adapter` 評估與測試，包含 1080p 內格式選擇、`retries`、`fragment_retries`、`socket_timeout`、`continuedl`、`http_chunk_size`，並確認 podcast / direct media 不被 YouTube 參數誤傷。
+- [ ] `CAP-404` 外部依賴更新：把舊版非阻塞 `yt-dlp` 版本檢查經驗落成新版 diagnostics 任務，要求背景檢查、有 timeout、使用者可讀提醒，並與現有 dependency drift / release gate 策略對齊。
+- [ ] `CAP-205` 大型媒體轉錄策略：評估 Gemini file upload 作為 `TranscriptionProvider` 的可選 strategy，和目前 inline `inline_data` 路徑比較檔案大小限制、長媒體穩定性、取消流程、錯誤診斷與成本風險。
+- [ ] `CAP-206` 字幕衍生輸出：將舊版 SRT 與影片字幕嵌入能力整理為可選 artifact lifecycle，先定義 `.srt` 生成、軟字幕嵌入、保留策略與失敗時是否影響主筆記輸出。
+- [ ] `CAP-206` retention UX：參考舊版「不保留來源檔案 / 保留來源檔案 / 保留視訊 + 音訊」語意，重新檢查新版 `delete_temp / keep_temp` 是否足夠；若不足，定義進階 retention mode 與設定頁文案。
+- [ ] `CAP-201` 網頁抽取品質：評估舊版 `trafilatura` 經驗是否應轉為新版 readability / sidecar / runtime extractor strategy，特別針對動態頁、付費牆疑似內容、metadata 品質與擷取不足警語。
 
 ## Product Flows 產品流程
 

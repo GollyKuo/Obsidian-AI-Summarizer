@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-04-29 00:36
+最後更新：2026-05-01 01:31
 
 ## 用途
 
@@ -77,14 +77,14 @@
 狀態：`active`
 
 摘要：
-`webpage URL -> summary note` 主線已打通，剩付費牆與內容不完整警語定義。
+`webpage URL -> summary note` 主線已打通，剩付費牆、內容不完整警語，以及舊版 `trafilatura` / readability 類抽取經驗是否轉為新版 extractor strategy 的評估。
 
 #### CAP-202 Media Acquisition Boundary 媒體取得邊界
 
 狀態：`active`
 
 摘要：
-`yt-dlp` 下載、session isolation、metadata normalization 與 cancellation 驗證已落地，剩 YouTube / podcast 手動 smoke 收尾。
+`yt-dlp` 下載、session isolation、metadata normalization 與 cancellation 驗證已落地，剩 YouTube / podcast 手動 smoke 收尾，並排入舊版 YouTube 下載 resilience 參數回收評估。
 
 #### CAP-203 AI-Ready Media Processing AI 可用媒體處理
 
@@ -105,14 +105,14 @@
 狀態：`active`
 
 摘要：
-收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分、provider routing、OpenRouter 空回應診斷、Gemini 摘要 fallback 與失敗 transcript recovery；剩更完整的手動只重跑摘要 UX 收尾。
+收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分、provider routing、OpenRouter 空回應診斷、Gemini 摘要 fallback 與失敗 transcript recovery；剩更完整的手動只重跑摘要 UX，以及 Gemini file upload 作為大型媒體轉錄 strategy 的評估。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
 狀態：`active`
 
 摘要：
-定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；需涵蓋逐字稿雙輸出，讓完成版逐字稿同時寫入 Obsidian 筆記並保留於下載媒體的 session 資料夾。
+定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；需涵蓋逐字稿雙輸出、字幕衍生輸出，以及參考舊版使用者語意重新檢查 retention UX。
 
 ### User Experience 使用體驗
 
@@ -163,10 +163,10 @@
 說明：CAP-403 負責可重複的 release / build / vault sync 流程，不承擔隱私政策、資料保留、secret handling 或最終交付清理。
 #### CAP-404 External Dependency Update Strategy 外部依賴更新策略
 
-狀態：`completed`
+狀態：`active`
 
 摘要：
-已完成 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate 策略，以及 `ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程。
+已完成 `yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate 策略，以及 `ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程；重新打開用於吸收舊版非阻塞 `yt-dlp` 更新提醒 UX，並對齊新版 diagnostics。
 
 ### Expansion 擴充能力
 
