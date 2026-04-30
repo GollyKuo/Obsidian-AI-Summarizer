@@ -73,12 +73,35 @@ describe("dependency drift monitor", () => {
 
     startDependencyDriftMonitor(plugin, {
       timeoutMs: 5_000,
-      dependencyChecker: async () => createDiagnostics("2025.01.01")
+      dependencyChecker: async () => createDiagnostics("2025.01.01"),
+      latestYtDlpVersionChecker: async () => null
     });
 
     await vi.waitFor(() => {
       expect(warnings.some((warning) => warning.includes("Dependency drift check found"))).toBe(true);
       expect(warnings.some((warning) => warning.includes("yt-dlp is"))).toBe(true);
+    });
+  });
+
+  it("reports available yt-dlp update from latest version check", async () => {
+    const warnings: string[] = [];
+
+    const plugin = {
+      settings: {
+        runtimeStrategy: "local_bridge"
+      },
+      reportWarning: (_context: string, warning: string) => warnings.push(warning),
+      reportInfo: () => undefined
+    } as unknown as AISummarizerPlugin;
+
+    startDependencyDriftMonitor(plugin, {
+      timeoutMs: 5_000,
+      dependencyChecker: async () => createDiagnostics("2026.04.10"),
+      latestYtDlpVersionChecker: async () => "2026.04.20"
+    });
+
+    await vi.waitFor(() => {
+      expect(warnings.some((warning) => warning.includes("yt-dlp update available"))).toBe(true);
     });
   });
 
@@ -97,7 +120,8 @@ describe("dependency drift monitor", () => {
 
       startDependencyDriftMonitor(plugin, {
         timeoutMs: 1_000,
-        dependencyChecker: () => new Promise<MediaRuntimeDependencyDiagnostics>(() => undefined)
+        dependencyChecker: () => new Promise<MediaRuntimeDependencyDiagnostics>(() => undefined),
+        latestYtDlpVersionChecker: async () => null
       });
 
       await vi.advanceTimersByTimeAsync(1_100);

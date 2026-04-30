@@ -73,6 +73,38 @@
 
 ---
 
+## 大型媒體轉錄 Strategy 評估
+
+目前新版預設轉錄路徑是：
+
+```text
+ai-upload artifact -> Gemini generateContent inline_data -> transcript markdown
+```
+
+舊版使用 Gemini file upload：
+
+```text
+compressed audio -> Gemini file upload -> wait processing -> generate transcript
+```
+
+評估結論：
+
+1. v1 預設維持 `inline_data`，因為它符合目前 `TranscriptionProvider` 的最小 contract，測試與取消流程較單純。
+2. Gemini file upload 應保留為 vNext 可選 transcription strategy，適合長媒體、大型 artifact、或 inline payload 逼近 API 限制的情境。
+3. file upload strategy 必須實作在 `TranscriptionProvider` 內，不得讓 summary provider 或 note writer 直接知道 Gemini file handle。
+4. file upload 必須支援 cancellation：取消時不可繼續等待 remote processing；若 API 支援刪除 remote file，需納入 cleanup。
+5. file upload 必須輸出與 inline strategy 相同的 `MediaTranscriptionResult`，後續 `summarizeMediaWithChunking`、`normalizeMediaSummaryResult` 與 `NoteWriter` 不應分支。
+6. diagnostics 需區分 upload failure、remote processing timeout、remote processing failed、transcript empty output。
+7. 成本與大小策略由 `media-acquisition-spec.md` 的 AI-ready artifact 控制；file upload 只改變傳輸方式，不改變 prompt contract。
+
+暫不直接落地 file upload 的原因：
+
+1. 目前主線仍在收斂 `local_bridge` 與 inline artifact handoff。
+2. file upload 涉及遠端檔案生命週期與額外 cleanup，需先有明確 privacy / retention policy。
+3. 若 provider 不支援 file upload，仍需保留 inline strategy 作為可測 baseline。
+
+---
+
 ## 版本歷程
 
 | 版本 | 日期 | 變更內容 |

@@ -1,6 +1,6 @@
 # Dependency Update Strategy
 
-最後更新：2026-04-24 10:06
+最後更新：2026-05-01 01:40
 
 ## 目標
 
@@ -11,8 +11,11 @@
 1. 啟動後背景執行依賴檢查，不等待完成。
 2. 檢查設有 timeout，逾時只記錄 warning，不中斷載入。
 3. `yt-dlp` 版本採 release date 解析，超過門檻天數視為 drift warning。
-4. `ffmpeg` / `ffprobe` 解析 major version，若版本過舊或 major 不一致，視為 compatibility warning。
-5. 缺少依賴視為 drift error，但只影響 media 能力，不影響 plugin 基本載入。
+4. 啟動後背景查詢 `yt-dlp` 最新版本；查詢結果若高於本機版本，寫入 update available warning。
+5. 最新版本查詢必須與 dependency drift 共用同一個 background timeout，不得阻塞 plugin 載入。
+6. 最新版本查詢優先使用 PyPI，失敗時 fallback GitHub latest release；兩者皆失敗時只略過最新版本提醒，仍保留本機版本年齡判斷。
+7. `ffmpeg` / `ffprobe` 解析 major version，若版本過舊或 major 不一致，視為 compatibility warning。
+8. 缺少依賴視為 drift error，但只影響 media 能力，不影響 plugin 基本載入。
 
 ## 判定規則（v1）
 
@@ -30,6 +33,12 @@ runtime diagnostics 會多一段 `Dependency drift`：
 3. `error`: 依賴缺失或重大 drift
 4. `skipped`: 非 `local_bridge` 或依賴檢查不可用
 
+`yt-dlp` 最新版本提醒的使用者可讀格式固定為：
+
+```text
+yt-dlp update available: current <installed>, latest <latest>.
+```
+
 ## 對 Smoke / Release Gate 的影響
 
 1. `webpage-only` 變更：`Dependency drift warning` 不阻塞 release。
@@ -43,4 +52,3 @@ runtime diagnostics 會多一段 `Dependency drift`：
 2. 加入週期性背景檢查與節流
 3. 加入平台專屬相容性規則（Windows/macOS/Linux）
 4. 將 drift 指標接入 CI artifact 或 release checklist
-

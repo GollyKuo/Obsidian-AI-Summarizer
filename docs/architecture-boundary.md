@@ -167,6 +167,18 @@ flowchart TD
 - `summaryProvider = openrouter` 時，OpenRouter 只負責文字摘要；不負責直接讀取音訊或影片。
 - Flow modal 應接 production service wiring：webpage extraction 使用 `FetchWebpageExtractor`，摘要使用 configured Gemini/OpenRouter summary provider，媒體轉錄使用 configured transcription provider（目前實作為 Gemini），筆記輸出使用 `ObsidianNoteWriter`。測試中仍可用 mock dependency 驗證 orchestration contract。
 
+### Webpage extraction strategy
+
+目前 production baseline 使用 `FetchWebpageExtractor`，先確保 plugin 內建路徑可測、可取消、可在 Obsidian runtime 中運作。
+
+舊版 `trafilatura` 經驗保留為 vNext extractor strategy 參考：
+
+1. 不直接把 Python package 假設塞進 `process-webpage`。
+2. 若要引入 readability / trafilatura 類能力，需放在 `services/web` adapter 或 runtime / sidecar 後方。
+3. 動態頁、登入頁、付費牆與 cookie/session 讀取屬於高風險來源，需先定義隱私邊界與 diagnostics。
+4. extractor 必須回傳可判斷內容不足的訊號，讓摘要 prompt 加入付費牆或公開片段警語。
+5. metadata normalization 仍由 `webpageMetadataPolicy` 統一處理，不由 extractor 自行決定 note 欄位。
+
 ## 關鍵契約
 
 ### RuntimeProvider

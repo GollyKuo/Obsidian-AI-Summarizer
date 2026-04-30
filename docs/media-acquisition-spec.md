@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-04-23 20:38
+最後更新：2026-05-01 01:40
 
 ## 目的
 
@@ -119,6 +119,26 @@
   - AI 預設只接收 `ai-upload` 產物，不直接上傳 `downloaded.*`
   - `metadata.json` 需記錄 `uploadArtifactPaths`
 
+## 下載穩定性參數
+
+`media_url` 下載一律經過 `DownloaderAdapter` 組裝 `yt-dlp` 參數，不由 UI 或 orchestration 直接組命令。
+
+### YouTube
+
+YouTube 來源吸收舊版實戰參數，目標是降低分段下載、網路抖動與格式合併失敗風險：
+
+1. 格式限制在 1080p 以內，優先 `mp4 + m4a`，再 fallback 到 1080p 內可用格式。
+2. `--merge-output-format mp4`
+3. `--retries 10`
+4. `--fragment-retries 10`
+5. `--socket-timeout 30`
+6. `--http-chunk-size 10485760`
+7. `--continue`
+
+### Podcast / Direct Media
+
+podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參數。這些來源維持通用 `yt-dlp` 下載參數，避免把影片平台假設帶進 audio/feed/direct file。
+
 ## AI 上傳前壓縮策略
 
 ### 核心原則
@@ -178,6 +198,32 @@
 - `keep_temp`
   - 成功完成 (`completed`)：保留 `downloaded.*`、`normalized.wav`、`transcript.srt`；刪除 `ai-upload/`、`metadata.json`
   - 失敗或取消 (`failed` / `cancelled`)：保留 `downloaded.*`、`normalized.wav`、`transcript.srt`、`metadata.json`；刪除 `ai-upload/`
+
+### Retention UX 對應
+
+舊版使用者語意對應如下；新版設定頁可用這些文案呈現，但底層仍以 artifact lifecycle 執行：
+
+1. `不保留來源檔案`：對應 `delete_temp`，成功後只保留 Obsidian 筆記與完成版逐字稿規則要求的輸出。
+2. `保留來源檔案`：對應 `keep_temp` 的基本模式，保留 `downloaded.*` 與必要 recovery artifact。
+3. `保留視訊 + 音訊`：vNext 進階模式，需同時保留來源影片與 AI-ready / normalized audio；目前不直接映射到 `keep_temp`，避免誤保留大量中間檔。
+
+在 v1 設定仍只暴露 `delete_temp / keep_temp`；若要新增第三種模式，需先擴充 `RetentionMode`、artifact matrix、settings migration 與 manual。
+
+## 字幕衍生輸出策略
+
+舊版具備 SRT 與影片字幕嵌入能力；新版不把它放進主流程硬依賴，改成可選 artifact lifecycle。
+
+### v1 邊界
+
+1. `transcript.srt` 可作為 session 內衍生 artifact，但不得影響主筆記寫入成功。
+2. `.srt` 生成失敗時，主流程最多回報 warning；不可讓 `summary + transcript note` 回滾。
+3. `delete_temp` 成功後是否保留 `.srt`，以「完成版逐字稿雙輸出」規則為準；暫存型 `.srt` 不應被誤當成最終筆記。
+
+### vNext 邊界
+
+1. 軟字幕嵌入影片屬於可選 post-processing，不屬於 transcription provider。
+2. 含字幕影片保留需獨立 retention mode，不能混用 `keep_temp` 的全部中間檔保留語意。
+3. 字幕輸出需有自己的 failure diagnostics、smoke checklist 與 artifact cleanup 規則。
 
 ## Cleanup/Recovery 責任分界（v1）
 

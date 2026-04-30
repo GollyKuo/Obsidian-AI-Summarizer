@@ -30,30 +30,37 @@ async function withTempDirectory<T>(
   }
 }
 
-async function prepareYoutubeSession(tempDirectory: string): Promise<MediaDownloadSession> {
+async function prepareClassifiedSession(
+  tempDirectory: string,
+  classification: MediaUrlClassification
+): Promise<MediaDownloadSession> {
   const adapter = createDownloaderAdapter({
     dependencyChecker: async () => makeDependencyDiagnostics(),
     cacheRootResolver: async (): Promise<MediaCacheRootResolution> => ({
       rootPath: tempDirectory,
       usedDefault: false
     }),
-    urlClassifier: (): MediaUrlClassification => ({
-      normalizedUrl: "https://www.youtube.com/watch?v=demo",
-      sourceType: "youtube",
-      host: "www.youtube.com"
-    }),
+    urlClassifier: (): MediaUrlClassification => classification,
     now: () => new Date(2026, 3, 22, 7, 20, 30),
     randomHex: () => "cafecafe"
   });
 
   return adapter.prepareSession(
     {
-      sourceUrl: "https://www.youtube.com/watch?v=demo",
+      sourceUrl: classification.normalizedUrl,
       mediaCacheRoot: tempDirectory,
       vaultId: "Smoke Vault"
     },
     new AbortController().signal
   );
+}
+
+async function prepareYoutubeSession(tempDirectory: string): Promise<MediaDownloadSession> {
+  return prepareClassifiedSession(tempDirectory, {
+    normalizedUrl: "https://www.youtube.com/watch?v=demo",
+    sourceType: "youtube",
+    host: "www.youtube.com"
+  });
 }
 
 describe("downloader adapter", () => {
@@ -216,6 +223,88 @@ describe("downloader adapter", () => {
       expect(metadata.creatorOrAuthor).toBe("Test Channel");
       expect(metadata.platform).toBe("YouTube");
       expect(metadata.sourceUrl).toBe("https://www.youtube.com/watch?v=demo");
+    });
+  });
+
+  it("applies legacy YouTube resilience options to yt-dlp", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "downloaded.mp4");
+      let capturedArgs: string[] = [];
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async (_command, args) => {
+          capturedArgs = args;
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: `__DOWNLOADED_PATH__${downloadedPath}\n`,
+            stderr: ""
+          };
+        }
+      });
+
+      await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(capturedArgs).toEqual(
+        expect.arrayContaining([
+          "--format",
+          "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080]/b",
+          "--merge-output-format",
+          "mp4",
+          "--retries",
+          "10",
+          "--fragment-retries",
+          "10",
+          "--socket-timeout",
+          "30",
+          "--http-chunk-size",
+          "10485760",
+          "--continue"
+        ])
+      );
+    });
+  });
+
+  it("does not apply YouTube-only yt-dlp options to podcast or direct media", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const sources: MediaUrlClassification[] = [
+        {
+          normalizedUrl: "https://feeds.example.com/episode.mp3",
+          sourceType: "podcast",
+          host: "feeds.example.com"
+        },
+        {
+          normalizedUrl: "https://cdn.example.com/audio/clip.ogg",
+          sourceType: "direct_media",
+          host: "cdn.example.com"
+        }
+      ];
+
+      for (const source of sources) {
+        const session = await prepareClassifiedSession(tempDirectory, source);
+        const extension = path.extname(session.artifacts.downloadedPath);
+        const downloadedPath = path.join(session.sessionDirectory, `downloaded${extension}`);
+        let capturedArgs: string[] = [];
+
+        const adapter = createDownloaderAdapter({
+          commandExecutor: async (_command, args) => {
+            capturedArgs = args;
+            await fs.writeFile(downloadedPath, "ok", "utf8");
+            return {
+              stdout: `__DOWNLOADED_PATH__${downloadedPath}\n`,
+              stderr: ""
+            };
+          }
+        });
+
+        await adapter.downloadMedia(session, new AbortController().signal);
+
+        expect(capturedArgs).not.toContain("--format");
+        expect(capturedArgs).not.toContain("--merge-output-format");
+        expect(capturedArgs).not.toContain("--fragment-retries");
+        expect(capturedArgs).not.toContain("--http-chunk-size");
+        expect(capturedArgs).toContain(source.normalizedUrl);
+      }
     });
   });
 

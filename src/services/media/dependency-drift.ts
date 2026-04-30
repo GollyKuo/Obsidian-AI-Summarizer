@@ -25,6 +25,7 @@ export interface DependencyDriftReport {
 interface DependencyDriftOptions {
   policy?: Partial<DependencyDriftPolicy>;
   referenceTime?: string;
+  latestYtDlpVersion?: string;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -128,11 +129,21 @@ function pushYtDlpDriftWarnings(
   diagnostics: MediaRuntimeDependencyDiagnostics,
   policy: DependencyDriftPolicy,
   referenceTime: Date,
+  latestYtDlpVersion: string | undefined,
   items: DependencyDriftItem[]
 ): void {
   const ytDlp = findStatus(diagnostics, "yt-dlp");
   if (!ytDlp || !ytDlp.available) {
     return;
+  }
+
+  const latestVersion = latestYtDlpVersion?.trim();
+  if (latestVersion && ytDlp.version.trim() !== latestVersion) {
+    items.push({
+      dependency: "yt-dlp",
+      severity: "warning",
+      message: `yt-dlp update available: current ${ytDlp.version}, latest ${latestVersion}.`
+    });
   }
 
   const releaseDate = parseYtDlpReleaseDate(ytDlp.version);
@@ -217,7 +228,7 @@ export function evaluateDependencyDrift(
 
   const items: DependencyDriftItem[] = [];
   pushMissingDependencyErrors(diagnostics, items);
-  pushYtDlpDriftWarnings(diagnostics, policy, safeReferenceTime, items);
+  pushYtDlpDriftWarnings(diagnostics, policy, safeReferenceTime, options.latestYtDlpVersion, items);
   pushFfmpegCompatibilityWarnings(diagnostics, policy, items);
 
   const summary = buildSummary(items);
@@ -228,4 +239,3 @@ export function evaluateDependencyDrift(
     items
   };
 }
-

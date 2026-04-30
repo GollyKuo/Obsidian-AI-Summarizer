@@ -76,6 +76,19 @@ describe("dependency drift", () => {
     expect(report.items.some((item) => item.dependency === "ffmpeg/ffprobe")).toBe(true);
   });
 
+  it("returns warning when latest yt-dlp version is newer than installed version", () => {
+    const report = evaluateDependencyDrift(createDiagnostics(), {
+      latestYtDlpVersion: "2026.04.20"
+    });
+
+    expect(report.state).toBe("warning");
+    expect(
+      report.items.some((item) =>
+        item.message.includes("yt-dlp update available: current 2026.04.10, latest 2026.04.20")
+      )
+    ).toBe(true);
+  });
+
   it("returns error when a dependency is unavailable", () => {
     const report = evaluateDependencyDrift(
       createDiagnostics({
@@ -111,4 +124,3 @@ describe("dependency drift", () => {
     expect(report.items.some((item) => item.severity === "error")).toBe(true);
   });
 });
-

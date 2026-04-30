@@ -407,8 +407,12 @@ function parseYtDlpOutput(stdout: string, sessionDirectory: string): ParsedYtDlp
   };
 }
 
-function buildYtDlpDownloadArgs(sourceUrl: string, sessionDirectory: string): string[] {
-  return [
+function buildYtDlpDownloadArgs(
+  sourceUrl: string,
+  sourceType: MediaUrlSourceType,
+  sessionDirectory: string
+): string[] {
+  const args = [
     "--no-playlist",
     "--no-progress",
     "--print",
@@ -424,6 +428,27 @@ function buildYtDlpDownloadArgs(sourceUrl: string, sessionDirectory: string): st
     "--output",
     path.join(sessionDirectory, "downloaded.%(ext)s"),
     sourceUrl
+  ];
+
+  if (sourceType !== "youtube") {
+    return args;
+  }
+
+  return [
+    "--format",
+    "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080]/b",
+    "--merge-output-format",
+    "mp4",
+    "--retries",
+    "10",
+    "--fragment-retries",
+    "10",
+    "--socket-timeout",
+    "30",
+    "--http-chunk-size",
+    "10485760",
+    "--continue",
+    ...args
   ];
 }
 
@@ -707,7 +732,11 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
     async downloadMedia(session: MediaDownloadSession, signal: AbortSignal): Promise<MediaDownloadResult> {
       throwIfCancelled(signal);
 
-      const args = buildYtDlpDownloadArgs(session.source.normalizedUrl, session.sessionDirectory);
+      const args = buildYtDlpDownloadArgs(
+        session.source.normalizedUrl,
+        session.source.sourceType,
+        session.sessionDirectory
+      );
       let commandResult: ExecCommandResult;
 
       try {
