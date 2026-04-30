@@ -95,6 +95,35 @@ src/
 
 ## AI 工作流程
 
+### 簡化版
+
+```text
+輸入資料
+-> 依來源做前處理
+-> AI 轉錄 / 摘要
+-> 寫入 Obsidian 筆記
+```
+
+來源分支：
+
+```text
+webpage_url
+-> 抽取網頁文字與 metadata
+-> AI 摘要
+-> 寫入 Obsidian
+```
+
+```text
+media_url / local_media
+-> 下載或匯入媒體
+-> 轉成 AI-ready media artifact
+-> AI 轉錄
+-> AI 摘要
+-> 寫入 Obsidian
+```
+
+### 詳細流程
+
 三種輸入來源共用同一個 flow modal 入口，但進入 AI 前的 acquisition / extraction pipeline 不同。模型路徑分成兩類：
 
 1. `webpage_url`：只走摘要模型，不走轉錄模型。
