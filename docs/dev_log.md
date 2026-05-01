@@ -24,6 +24,7 @@
 - 更新 `docs/media-acquisition-spec.md`
 - 更新 `docs/backlog.md`、`docs/backlog-active.md`
 - 補強 `docs/documentation-maintenance.md` 與 `.codex/references/documentation-maintenance.md`：若變更包含 `src/**`、`tests/**`、版本檔、backlog 或正式規格文件，完成前必須檢查是否需要更新 `docs/dev_log.md`，若不更新需明確說明原因
+- 將 `.codex/references/documentation-maintenance.md` 調整為導航型 reference：只保留正式章節導覽與 Codex 最小檢查清單，避免與 `docs/documentation-maintenance.md` 重複維護完整規則
 
 驗證：
 - `npm run typecheck`
