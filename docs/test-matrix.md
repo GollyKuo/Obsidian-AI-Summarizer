@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-05-02 01:50
+最後更新：2026-05-02 02:22
 
 ## Capability Matrix
 
@@ -28,6 +28,17 @@
 | Direct media sample | `https://samplelib.com/lib/preview/mp3/sample-15s.mp3` | `direct_media` | `sample-15s.mp3` | title `sample-15s`; creator `Unknown`; platform `Direct Media`; created `2026-05-01` | pass |
 
 Balanced compression spot check is recorded in [media-acquisition-spec.md](media-acquisition-spec.md#balanced-profile-量測紀錄).
+
+### 2026-05-02 CAP-205 Gladia provider smoke
+
+來源：使用者於 Obsidian 測試 vault 實機回報。
+
+| Case | Input | Transcription provider | Summary provider | Result |
+| --- | --- | --- | --- | --- |
+| Local media + Gladia | local media | Gladia / `default` | Gemini | pass; completed summary and wrote note |
+| Mixed provider | local media | Gladia / `default` | OpenRouter/Qwen | pass; completed summary and wrote note |
+
+Additional check: final summaries did not expose `chunk` / `Chunk 1` / `part` processing markers.
 
 ## Gate Intent
 

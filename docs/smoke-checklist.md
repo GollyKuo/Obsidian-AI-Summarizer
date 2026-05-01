@@ -1,6 +1,6 @@
 ﻿# Smoke Checklist
 
-最後更新：2026-05-02 01:50
+最後更新：2026-05-02 02:22
 
 ## Scope
 
@@ -30,6 +30,15 @@
 |---|---|---|---|---|---|
 | YouTube | `https://www.youtube.com/watch?v=jNQXAC9IVRw` | `youtube` | `Me at the zoo.mp4` | `Me at the zoo` / `jawed` / `YouTube` / `2005-04-24` | pass; `ffmpegPath` passed to `yt-dlp --ffmpeg-location`; JS runtime warning observed but non-blocking |
 | Direct media | `https://samplelib.com/lib/preview/mp3/sample-15s.mp3` | `direct_media` | `sample-15s.mp3` | `sample-15s` / `Unknown` / `Direct Media` / `2026-05-01` | pass |
+
+### 2026-05-02 Gladia Provider
+
+| Case | Transcription provider | Summary provider | Result |
+|---|---|---|---|
+| Local media | Gladia / `default` | Gemini | pass; completed summary |
+| Mixed provider | Gladia / `default` | OpenRouter/Qwen | pass; completed summary |
+
+Additional check: final summaries did not show chunk processing markers.
 
 ## Webpage
 

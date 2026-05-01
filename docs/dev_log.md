@@ -1,8 +1,25 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 01:55
+最後更新：2026-05-02 02:22
 
 ## 版本紀錄
+
+### 0.1.59-gladia-provider-smoke-record - 2026-05-02 02:22
+
+範圍：
+- 補登 Gladia provider 實機 smoke 結果。
+
+主要變更：
+- 更新 `docs/test-matrix.md` 與 `docs/smoke-checklist.md`，記錄 Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 通過
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`，關閉 CAP-205 / CAP-401 中 Gladia local media、mixed provider 與最終摘要不暴露 chunk 標記的驗收點
+- 此次為使用者於 Obsidian 測試 vault 回報的實機 smoke 紀錄，未新增程式碼
+
+驗證：
+- 使用者實機回報：Gladia local media 完成摘要
+- 使用者實機回報：Gladia 轉錄 + OpenRouter/Qwen 摘要完成摘要
+- 使用者實機回報：最終摘要未出現 chunk 標記
+- `npm run build:vault`
+- `git diff --check`
 
 ### 0.1.58-media-summary-final-synthesis - 2026-05-02 01:55
 

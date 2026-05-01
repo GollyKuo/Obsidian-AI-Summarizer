@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 01:55
+最後更新：2026-05-02 02:22
 
 ## 用途
 
@@ -34,7 +34,7 @@
 
 1. `CAP-202` source artifact 與 acquisition manifest 已完成第一輪校準，並以 YouTube / direct media smoke 驗證實機下載結果；`ffmpegPath` 現會傳給 `yt-dlp --ffmpeg-location`，避免 PATH 沒有 ffmpeg 時 YouTube merge 失敗。
 2. `CAP-203` 收斂 AI-ready artifact contract：chunk 命名已統一為 `chunk-0000.<ext>` 起，`balanced` profile 3 組樣本相對 `normalized.wav` 均降低 83% 以上；VAD / 轉錄品質守門移入 vNext。
-3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；下一步是 Gemini inline 多 chunk 改成逐 chunk 轉錄後合併 transcript。
+3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 已通過；下一步是 Gemini inline 多 chunk 改成逐 chunk 轉錄後合併 transcript。
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 分開命名，`transcript.md` 與 `subtitles.srt` 都要進入 session artifact lifecycle；`subtitles.srt` 必須保留在暫存資料夾。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、摘要失敗後重跑、local media、字幕與 artifact retention。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
@@ -108,7 +108,7 @@
 狀態：`active`
 
 摘要：
-已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、失敗 transcript recovery、summary final synthesis，並移除 AI provider 自動 fallback。下一步是補 Gladia local media / mixed provider smoke、手動只重跑摘要 UX，以及 Gemini 逐 chunk inline 轉錄合併。
+已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis，並移除 AI provider 自動 fallback。下一步是補手動只重跑摘要 UX，以及 Gemini 逐 chunk inline 轉錄合併。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 

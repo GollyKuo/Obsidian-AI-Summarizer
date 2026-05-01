@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 01:55
+最後更新：2026-05-02 02:22
 
 ## 用途
 
@@ -24,6 +24,7 @@
 
 - `CAP-202` 的 YouTube / direct media 下載 smoke 已補，可重現紀錄已寫入 smoke matrix。
 - `CAP-203` 的 `balanced` profile 3 組量測已達標；VAD 與轉錄品質守門移入 vNext，不再阻塞 v1。
+- Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider 實機 smoke 已由使用者回報通過，最終摘要未出現 chunk 標記。
 - 字幕檔已定案：`subtitles.srt` 必須保留在 session 暫存資料夾，不得被 `delete_temp` 成功清理移除。
 - 長媒體摘要已定案：chunk 只能是內部 token control / diagnostics，不得以 `chunk`、`part`、`分段` 等技術字樣出現在最終筆記。
 - Gemini 大型媒體 v1 優先採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；Gemini file upload 保留為 vNext 可選策略。
@@ -58,13 +59,13 @@
 目標：
 轉錄、摘要與錯誤恢復都走明確 provider contract；大型媒體不能因單次 payload 過大或 chunk 標記外洩破壞輸出品質。
 
-- [ ] 補 Gladia local media 實機 smoke：驗證本機音訊/影片可成功轉錄，並覆蓋取消與設定缺漏錯誤。
-- [ ] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。
+- [x] 補 Gladia local media 實機 smoke：驗證本機音訊/影片可成功轉錄。（完成：2026-05-02 02:22）
+- [x] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。（完成：2026-05-02 02:22）
 - [ ] 實作 Gemini 逐 chunk inline 轉錄合併：每個 `ai-upload` chunk 各自送 Gemini `inline_data` request，成功後依順序合併 transcript。
 - [ ] Gemini 逐 chunk inline 轉錄需保留 chunk-level diagnostics、partial transcript recovery、單段 retry 邊界與合併後的 `transcript.md` / `subtitles.srt` handoff。
 - [x] 校準 `media-summary-chunking`：移除最終輸出的 `## Chunk N` 合併格式，改為內部 partial notes 後做 final synthesis。（完成：2026-05-02 01:55）
 - [ ] 若 transcript 過長必須二階段處理，只能產生內部 partial notes，再以 final synthesis 輸出單一連貫摘要。
-- [ ] 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段` 等技術標記，除非原始內容本身就在談這些詞。
+- [x] 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段` 等技術標記，除非原始內容本身就在談這些詞。（完成：2026-05-02 02:22）
 - [ ] 定義手動 retry：轉錄成功但摘要失敗時，保留 transcript，並讓使用者明確選擇只重跑摘要。
 - [ ] Gemini file upload vNext 保留為可選 transcription strategy，另行定義 remote file lifecycle、取消、cleanup、privacy/retention 與錯誤診斷。
 
@@ -98,8 +99,8 @@
 每個 release blocker 都要有可重跑的驗證入口。
 
 - [x] 將 YouTube / direct media smoke 結果補入 smoke matrix。（完成：2026-05-02 01:50）
-- [ ] 將 local media + Gladia 轉錄成功路徑補入 provider smoke matrix。
-- [ ] 將 Gladia 轉錄 + OpenRouter/Qwen 摘要混合 provider 路徑補入 smoke matrix。
+- [x] 將 local media + Gladia 轉錄成功路徑補入 provider smoke matrix。（完成：2026-05-02 02:22）
+- [x] 將 Gladia 轉錄 + OpenRouter/Qwen 摘要混合 provider 路徑補入 smoke matrix。（完成：2026-05-02 02:22）
 - [ ] 新增 artifact manifest 驗證：source artifact、derived artifact、upload artifact、transcript、subtitle lineage 都可追蹤。
 - [ ] 新增 Gemini 逐 chunk inline 轉錄合併 regression gate。
 - [ ] 新增長媒體全局摘要 regression gate，確認最終輸出不含 chunk/part 技術標記。
