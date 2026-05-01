@@ -1,8 +1,31 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 01:30
+最後更新：2026-05-02 01:50
 
 ## 版本紀錄
+
+### 0.1.57-media-smoke-and-ffmpeg-location - 2026-05-02 01:50
+
+範圍：
+- 收尾 `CAP-202` / `CAP-203` 的 media URL smoke 與 balanced profile 量測。
+
+主要變更：
+- 更新 `src/services/media/downloader-adapter.ts`，讓 configured `ffmpegPath` 傳給 `yt-dlp --ffmpeg-location`，避免 PATH 沒有 ffmpeg 時 YouTube merge 失敗
+- 更新 direct media metadata normalization，將 `yt-dlp` placeholder creator 與 `Generic` platform 收斂為 `Unknown` / `Direct Media`
+- 更新 `src/runtime/local-bridge-runtime.ts`，建立 downloader 時傳入 configured `ffmpegPath`
+- 更新 `tests/unit/downloader-adapter.test.ts`
+- 更新 `docs/smoke-checklist.md`、`docs/test-matrix.md`、`docs/media-acquisition-spec.md`、`docs/backlog.md`、`docs/backlog-active.md`
+- 補入 YouTube / direct media smoke 紀錄與 3 組 `balanced` profile 量測，三組相對 `normalized.wav` 均降低 83% 以上
+- 將 VAD 與轉錄品質守門明確移入 vNext；v1 保留 chunking、codec fallback 與 `vadApplied: false`
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/downloader-adapter.test.ts tests/unit/local-bridge-runtime.test.ts tests/integration/process-media-url.integration.test.ts --passWithNoTests`
+- `npm run build:vault`
+- `git diff --check`
+- 手動 smoke：YouTube `https://www.youtube.com/watch?v=jNQXAC9IVRw` 下載並 merge 為 `Me at the zoo.mp4`
+- 手動 smoke：direct media `https://samplelib.com/lib/preview/mp3/sample-15s.mp3` 下載為 `sample-15s.mp3`
+- 手動量測：`youtube-me-at-the-zoo`、`direct-sample-15s`、`direct-sample-12s` 的 `balanced` profile 壓縮比例分別為 87.73%、85.64%、83.78%
 
 ### 0.1.56-mistral-model-autocomplete - 2026-05-02 01:30
 

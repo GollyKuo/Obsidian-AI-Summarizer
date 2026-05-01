@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 01:01
+最後更新：2026-05-02 01:50
 
 ## 用途
 
@@ -22,8 +22,8 @@
 
 ## 當前阻塞與決策
 
-- YouTube / podcast 尚缺可重現的手動 smoke 紀錄，`CAP-202` 不能關閉。
-- `balanced` profile 尚缺 3 組樣本量測，`CAP-203` 不能關閉。
+- `CAP-202` 的 YouTube / direct media 下載 smoke 已補，可重現紀錄已寫入 smoke matrix。
+- `CAP-203` 的 `balanced` profile 3 組量測已達標；VAD 與轉錄品質守門移入 vNext，不再阻塞 v1。
 - 字幕檔已定案：`subtitles.srt` 必須保留在 session 暫存資料夾，不得被 `delete_temp` 成功清理移除。
 - 長媒體摘要已定案：chunk 只能是內部 token control / diagnostics，不得以 `chunk`、`part`、`分段` 等技術字樣出現在最終筆記。
 - Gemini 大型媒體 v1 優先採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；Gemini file upload 保留為 vNext 可選策略。
@@ -36,8 +36,8 @@
 目標：
 媒體來源進入 session 後，能保留可追蹤的 source artifact，後續所有轉檔、壓縮與分段都從 source artifact 衍生。
 
-- [ ] 完成 YouTube 至少一條手動 smoke 下載驗證，記錄輸入 URL、來源類型、輸出 artifact、metadata 與成功/失敗原因。
-- [ ] 完成 podcast / direct media 至少一條手動 smoke 下載驗證，記錄同上。
+- [x] 完成 YouTube 至少一條手動 smoke 下載驗證，記錄輸入 URL、來源類型、輸出 artifact、metadata 與成功/失敗原因。（完成：2026-05-02 01:50）
+- [x] 完成 podcast / direct media 至少一條手動 smoke 下載驗證，記錄同上。（完成：2026-05-02 01:50）
 - [x] media URL 下載完成後，session 內保留 yt-dlp 實際輸出的原始檔與原始/安全化檔名，不再只以 `downloaded.<ext>` 作為唯一可辨識來源。（完成：2026-05-02 00:22）
 - [x] local media 匯入 session 時，保留原始檔名或安全化後的原始檔名，並在 metadata 中記錄原始絕對路徑與 session 內 source artifact 路徑。（完成：2026-05-02 00:22）
 - [x] 將 `metadata.json` 校準為 artifact manifest：補 `originalFilename`、`sourceArtifactPath`、`derivedArtifactPaths`、`uploadArtifactPaths`、`chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec`。（完成：2026-05-02 00:22）
@@ -48,10 +48,10 @@
 目標：
 把 source artifact 穩定轉成 transcript-ready payload，並讓成本、品質與 chunk 命名可驗證。
 
-- [ ] 完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本量測，目標上傳量降低至少 70%。
-- [ ] 決定 VAD 與轉錄品質守門屬於 v1 實作或 vNext 規格；若不做 v1，從 active 驗收點移出。
+- [x] 完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本量測，目標上傳量降低至少 70%。（完成：2026-05-02 01:50）
+- [x] 決定 VAD 與轉錄品質守門屬於 vNext 規格；v1 保留 chunking、codec fallback 與 `vadApplied: false` manifest 欄位。（完成：2026-05-02 01:50）
 - [x] 統一 chunk 命名起點：規格、測試與產物一致使用 `chunk-0000.<ext>` 起。（完成：2026-05-02 01:01）
-- [ ] 將 `balanced` profile 壓縮量測結果同步到 [media-acquisition-spec.md](media-acquisition-spec.md)。
+- [x] 將 `balanced` profile 壓縮量測結果同步到 [media-acquisition-spec.md](media-acquisition-spec.md)。（完成：2026-05-02 01:50）
 
 ### CAP-205 AI Processing Pipeline AI 處理管線
 
@@ -97,7 +97,7 @@
 目標：
 每個 release blocker 都要有可重跑的驗證入口。
 
-- [ ] 將 YouTube / podcast smoke 結果補入 smoke matrix。
+- [x] 將 YouTube / direct media smoke 結果補入 smoke matrix。（完成：2026-05-02 01:50）
 - [ ] 將 local media + Gladia 轉錄成功路徑補入 provider smoke matrix。
 - [ ] 將 Gladia 轉錄 + OpenRouter/Qwen 摘要混合 provider 路徑補入 smoke matrix。
 - [ ] 新增 artifact manifest 驗證：source artifact、derived artifact、upload artifact、transcript、subtitle lineage 都可追蹤。

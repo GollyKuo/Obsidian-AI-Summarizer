@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-04-24 10:06
+最後更新：2026-05-02 01:50
 
 ## Capability Matrix
 
@@ -11,6 +11,23 @@
 | `media_url` | desktop | integration + unit | `npm run smoke:media-url` | `gate:local`, `gate:release` |
 | `local_media` | desktop | integration + unit | `npm run smoke:local-media` | `gate:local`, `gate:release` |
 | `media_url` / `local_media` | mobile | none | not supported in v1 | excluded |
+
+## Manual Smoke Evidence
+
+### 2026-05-02 CAP-202 / CAP-203 media URL smoke
+
+環境：
+
+- `yt-dlp 2026.02.21`
+- `ffmpeg 8.1 essentials` / `ffprobe 8.1 essentials`
+- `ffmpegPath` 由測試 vault plugin tools 提供，並透過 `yt-dlp --ffmpeg-location` 驗證 YouTube merge
+
+| Case | Input URL | Source type | Source artifact | Normalized metadata | Result |
+| --- | --- | --- | --- | --- | --- |
+| YouTube short video | `https://www.youtube.com/watch?v=jNQXAC9IVRw` | `youtube` | `Me at the zoo.mp4` | title `Me at the zoo`; creator `jawed`; platform `YouTube`; created `2005-04-24` | pass; source artifact merged to single mp4; one yt-dlp JS runtime warning observed |
+| Direct media sample | `https://samplelib.com/lib/preview/mp3/sample-15s.mp3` | `direct_media` | `sample-15s.mp3` | title `sample-15s`; creator `Unknown`; platform `Direct Media`; created `2026-05-01` | pass |
+
+Balanced compression spot check is recorded in [media-acquisition-spec.md](media-acquisition-spec.md#balanced-profile-量測紀錄).
 
 ## Gate Intent
 

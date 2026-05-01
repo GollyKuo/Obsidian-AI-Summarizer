@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-05-02 01:01
+最後更新：2026-05-02 01:50
 
 ## 目的
 
@@ -151,6 +151,8 @@ YouTube 來源吸收舊版實戰參數，目標是降低分段下載、網路抖
 6. `--http-chunk-size 10485760`
 7. `--continue`
 
+若使用者設定 `ffmpegPath`，`DownloaderAdapter` 必須同步把該路徑傳給 `yt-dlp --ffmpeg-location`。這讓 YouTube 的音訊/影片 merge 不依賴系統 PATH，避免 diagnostics 已通過但下載階段仍只留下分離 stream artifact。
+
 ### Podcast / Direct Media
 
 podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參數。這些來源維持通用 `yt-dlp` 下載參數，避免把影片平台假設帶進 audio/feed/direct file。
@@ -176,12 +178,15 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 
 1. 單段長度上限：`10~15 分鐘`（預設 12 分鐘）
 2. 超過上限即切 chunk，並為每段建立獨立上傳檔。
-3. 可啟用 VAD 去除長靜音區間，降低無效音訊傳輸量。
-4. metadata 需記錄 `chunkCount`、`chunkDurationsMs`、`vadApplied`。
+3. v1 不啟用 VAD；metadata 仍需記錄 `vadApplied: false`，讓後續 vNext 可無破壞擴充。
+4. VAD 去除長靜音區間屬 vNext，需另補品質驗證與 transcript 對齊測試後才能進入 release gate。
+5. metadata 需記錄 `chunkCount`、`chunkDurationsMs`、`vadApplied`。
 
 ### 品質保護與回退
 
-若任一條件成立，判定為「壓縮過度風險」，需自動升級重跑：
+v1 已實作編碼層級 fallback：Opus 產物失敗時升級到 AAC，AAC 失敗時升級到 FLAC。
+
+轉錄品質守門屬 vNext。若任一條件成立，可判定為「壓縮過度風險」，再自動升級重跑：
 
 1. 轉錄文字密度異常低於閾值（例如每分鐘字數顯著偏低）。
 2. 語言偵測與使用者設定語言明顯不符。
@@ -193,7 +198,7 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 2. `AAC 64 kbps mono 16kHz`
 3. `FLAC mono 16kHz`（精度優先，體積較大）
 
-### 品質守門量化門檻（v1）
+### 品質守門量化門檻（vNext）
 
 1. 單一 chunk 若音訊時長大於 30 秒且 transcript 為空，必須觸發回退。
 2. 全任務 transcript 內容密度低於 40 字/分鐘，必須觸發回退。
@@ -205,6 +210,18 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 1. 壓縮策略主要降低「上傳頻寬與音訊處理成本」。
 2. 摘要 token 成本另由「合併 transcript -> 整體摘要；必要時 partial notes -> final synthesis」策略控制，不與音訊壓縮耦合。
 3. `balanced` profile 的目標是相較 `normalized.wav` 降低至少 70% 上傳量（以樣本驗證）。
+
+### `balanced` profile 量測紀錄
+
+2026-05-02 使用 `ffmpeg 8.1 essentials` 與 `yt-dlp 2026.02.21` 量測，`ai-upload.ogg` 以 Opus 32 kbps VBR 產生：
+
+| 樣本 | 來源類型 | source artifact | `normalized.wav` | `ai-upload.ogg` | 降低比例 |
+| --- | --- | --- | ---: | ---: | ---: |
+| `youtube-me-at-the-zoo` | YouTube | `Me at the zoo.mp4` / 533,932 bytes | 610,112 bytes | 74,881 bytes | 87.73% |
+| `direct-sample-15s` | direct media | `sample-15s.mp3` / 307,453 bytes | 613,642 bytes | 88,120 bytes | 85.64% |
+| `direct-sample-12s` | direct media | `sample-12s.mp3` / 205,470 bytes | 409,122 bytes | 66,364 bytes | 83.78% |
+
+三組樣本皆達成相較 `normalized.wav` 降低至少 70% 的 v1 目標。
 
 ## 長媒體摘要整合策略
 
@@ -342,7 +359,7 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 1. `metadata.json` 已開始作為 artifact manifest：acquisition 寫入 source artifact，compression 回寫 `derivedArtifactPaths`、`uploadArtifactPaths`、chunk metadata、`selectedCodec` 與 `vadApplied`；後續 transcript/subtitle lineage 仍需在 CAP-206 補齊。
 2. chunk 命名起點已統一為 `chunk-0000.<ext>`，與 ffmpeg `chunk-%04d` 預設、實作與測試一致。
 3. `transcript.srt` 被規格描述為 UTF-8 SRT，但現行 recovery 會把 transcript markdown 寫入該路徑；已定案需拆成 `transcript.md` 與必保留的 `subtitles.srt`。
-4. VAD 與「轉錄品質守門後自動升級重跑」仍屬規格目標，現行 compressor 只做編碼失敗 fallback 與長度 chunking。
+4. VAD 與「轉錄品質守門後自動升級重跑」已移入 vNext；現行 compressor 只做編碼失敗 fallback、長度 chunking 與 `vadApplied: false` manifest 記錄。
 5. Gemini inline 對多 chunk 已定案需改成逐 chunk request 後合併 transcript，避免一次送出所有 `inline_data` 造成 payload、timeout、503 或整批重試風險。
 6. 現行 media summary chunking 會把中間分段摘要以 `## Chunk N` 拼入最終輸出；需改為內部 partial notes + final synthesis，確保使用者可見摘要不暴露 chunk 標記。
 7. 舊版可見的「保留含字幕影片」與「保留視訊 + 音訊」尚未映射成新版進階 retention mode；但獨立 `subtitles.srt` 已定案為 v1 必保留產物。

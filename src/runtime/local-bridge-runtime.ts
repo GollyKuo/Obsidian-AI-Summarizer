@@ -105,7 +105,10 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       {
         downloaderAdapter:
           this.downloaderAdapter ??
-          createDownloaderAdapter({ dependencyChecker: mediaRuntimeDependencyChecker }),
+          createDownloaderAdapter({
+            dependencyChecker: mediaRuntimeDependencyChecker,
+            ffmpegCommand: input.ffmpegPath
+          }),
         preUploadCompressor: this.buildPreUploadCompressor(input)
       },
       signal

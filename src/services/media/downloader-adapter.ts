@@ -73,6 +73,7 @@ interface DownloaderAdapterOptions {
   dependencyChecker?: () => Promise<MediaRuntimeDependencyDiagnostics>;
   cacheRootResolver?: (configuredPath: string) => Promise<MediaCacheRootResolution>;
   urlClassifier?: (rawUrl: string) => MediaUrlClassification;
+  ffmpegCommand?: string;
   mkdir?: (targetPath: string) => Promise<void>;
   writeFile?: (targetPath: string, content: string) => Promise<void>;
   commandExecutor?: CommandExecutor;
@@ -400,11 +401,15 @@ function parseYtDlpOutput(stdout: string, sessionDirectory: string): ParsedYtDlp
 function buildYtDlpDownloadArgs(
   sourceUrl: string,
   sourceType: MediaUrlSourceType,
-  sessionDirectory: string
+  sessionDirectory: string,
+  ffmpegCommand: string
 ): string[] {
+  const ffmpegLocationArgs =
+    ffmpegCommand.trim().length > 0 ? ["--ffmpeg-location", ffmpegCommand.trim()] : [];
   const args = [
     "--no-playlist",
     "--no-progress",
+    ...ffmpegLocationArgs,
     "--print",
     `before_dl:${METADATA_TITLE_PREFIX}%(title)s`,
     "--print",
@@ -519,6 +524,15 @@ function firstNonEmpty(...values: Array<string | undefined>): string | null {
   return null;
 }
 
+function isYtDlpPlaceholderValue(value: string): boolean {
+  const lower = value.trim().toLowerCase();
+  if (lower === "na" || lower === "n/a" || lower === "none" || lower === "unknown") {
+    return true;
+  }
+
+  return lower.includes("|") && /^[a-z_|]+$/.test(lower);
+}
+
 function normalizeSourceTypePlatform(sourceType: MediaUrlSourceType): string {
   if (sourceType === "youtube") {
     return "YouTube";
@@ -544,6 +558,9 @@ function normalizePlatform(rawPlatform: string | undefined, sourceType: MediaUrl
   }
   if (lower.includes("soundcloud")) {
     return "SoundCloud";
+  }
+  if (lower === "generic") {
+    return normalizeSourceTypePlatform(sourceType);
   }
 
   return trimmed;
@@ -571,7 +588,7 @@ function normalizeTitle(
   sourceType: MediaUrlSourceType
 ): string {
   const explicitTitle = rawTitle?.trim() ?? "";
-  if (explicitTitle.length > 0 && explicitTitle.toLowerCase() !== "na") {
+  if (explicitTitle.length > 0 && !isYtDlpPlaceholderValue(explicitTitle)) {
     return explicitTitle;
   }
 
@@ -589,6 +606,14 @@ function normalizeTitle(
   return "Direct Media";
 }
 
+function normalizeCreatorOrAuthor(rawCreatorOrAuthor: string | undefined): string {
+  const normalized = firstNonEmpty(rawCreatorOrAuthor);
+  if (!normalized || isYtDlpPlaceholderValue(normalized)) {
+    return "Unknown";
+  }
+  return normalized;
+}
+
 function normalizeMediaMetadata(
   session: MediaDownloadSession,
   downloadedPath: string,
@@ -597,7 +622,7 @@ function normalizeMediaMetadata(
 ): SourceMetadata {
   return {
     title: normalizeTitle(rawMetadata.title, downloadedPath, session.source.sourceType),
-    creatorOrAuthor: firstNonEmpty(rawMetadata.creatorOrAuthor) ?? "Unknown",
+    creatorOrAuthor: normalizeCreatorOrAuthor(rawMetadata.creatorOrAuthor),
     platform: normalizePlatform(rawMetadata.platform, session.source.sourceType),
     source: session.source.normalizedUrl,
     created: normalizeCreated(rawMetadata.created, now)
@@ -680,6 +705,7 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
       await fs.writeFile(targetPath, content, "utf8");
     });
   const commandExecutor = options.commandExecutor ?? defaultCommandExecutor;
+  const ffmpegCommand = options.ffmpegCommand ?? "";
   const readdir = options.readdir ?? ((targetPath: string) => fs.readdir(targetPath));
   const stat =
     options.stat ??
@@ -729,7 +755,8 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
       const args = buildYtDlpDownloadArgs(
         session.source.normalizedUrl,
         session.source.sourceType,
-        session.sessionDirectory
+        session.sessionDirectory,
+        ffmpegCommand
       );
       let commandResult: ExecCommandResult;
 

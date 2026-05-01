@@ -1,6 +1,6 @@
 ﻿# Smoke Checklist
 
-最後更新：2026-04-24 01:28
+最後更新：2026-05-02 01:50
 
 ## Scope
 
@@ -21,6 +21,15 @@
 | `local_media` | yes | no | `npm run smoke:local-media` |
 | desktop bundle | yes | n/a | `npm run smoke:desktop` |
 | mobile bundle | webpage only | yes | `npm run smoke:mobile` |
+
+## Recent Smoke Records
+
+### 2026-05-02 Media URL Download
+
+| Case | Input URL | Source type | Output artifact | Metadata | Result |
+|---|---|---|---|---|---|
+| YouTube | `https://www.youtube.com/watch?v=jNQXAC9IVRw` | `youtube` | `Me at the zoo.mp4` | `Me at the zoo` / `jawed` / `YouTube` / `2005-04-24` | pass; `ffmpegPath` passed to `yt-dlp --ffmpeg-location`; JS runtime warning observed but non-blocking |
+| Direct media | `https://samplelib.com/lib/preview/mp3/sample-15s.mp3` | `direct_media` | `sample-15s.mp3` | `sample-15s` / `Unknown` / `Direct Media` / `2026-05-01` | pass |
 
 ## Webpage
 

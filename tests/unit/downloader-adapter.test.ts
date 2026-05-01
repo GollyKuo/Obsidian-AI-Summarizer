@@ -240,6 +240,38 @@ describe("downloader adapter", () => {
     });
   });
 
+  it("normalizes direct media placeholder metadata to user-readable values", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareClassifiedSession(tempDirectory, {
+        normalizedUrl: "https://cdn.example.com/audio/sample.mp3",
+        sourceType: "direct_media",
+        host: "cdn.example.com"
+      });
+      const downloadedPath = path.join(session.sessionDirectory, "sample.mp3");
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async () => {
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: [
+              "__META_TITLE__sample",
+              "__META_CREATOR__channel|creator|artist",
+              "__META_PLATFORM__Generic",
+              "__META_CREATED__20260501",
+              `__DOWNLOADED_PATH__${downloadedPath}`
+            ].join("\n"),
+            stderr: ""
+          };
+        }
+      });
+
+      const result = await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(result.metadata.creatorOrAuthor).toBe("Unknown");
+      expect(result.metadata.platform).toBe("Direct Media");
+    });
+  });
+
   it("uses yt-dlp title-based output template for recognizable source artifacts", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const session = await prepareYoutubeSession(tempDirectory);
@@ -299,6 +331,36 @@ describe("downloader adapter", () => {
           "--http-chunk-size",
           "10485760",
           "--continue"
+        ])
+      );
+    });
+  });
+
+  it("passes configured ffmpeg location to yt-dlp", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "downloaded.mp4");
+      const ffmpegPath = "D:\\tools\\ffmpeg\\bin\\ffmpeg.exe";
+      let capturedArgs: string[] = [];
+
+      const adapter = createDownloaderAdapter({
+        ffmpegCommand: ffmpegPath,
+        commandExecutor: async (_command, args) => {
+          capturedArgs = args;
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: `__DOWNLOADED_PATH__${downloadedPath}\n`,
+            stderr: ""
+          };
+        }
+      });
+
+      await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(capturedArgs).toEqual(
+        expect.arrayContaining([
+          "--ffmpeg-location",
+          ffmpegPath
         ])
       );
     });
