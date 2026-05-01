@@ -179,8 +179,18 @@ describe("downloader adapter", () => {
       expect(result.warnings).toHaveLength(0);
 
       const metadataRaw = await fs.readFile(session.artifacts.metadataPath, "utf8");
-      const metadata = JSON.parse(metadataRaw) as { downloadedPath: string };
+      const metadata = JSON.parse(metadataRaw) as {
+        downloadedPath: string;
+        sourceArtifactPath: string;
+        originalFilename: string;
+        derivedArtifactPaths: string[];
+        uploadArtifactPaths: string[];
+      };
       expect(metadata.downloadedPath).toBe(downloadedPath);
+      expect(metadata.sourceArtifactPath).toBe(downloadedPath);
+      expect(metadata.originalFilename).toBe("downloaded.mp4");
+      expect(metadata.derivedArtifactPaths).toEqual([]);
+      expect(metadata.uploadArtifactPaths).toEqual([]);
     });
   });
 
@@ -218,11 +228,40 @@ describe("downloader adapter", () => {
         creatorOrAuthor: string;
         platform: string;
         sourceUrl: string;
+        sourceArtifactPath: string;
+        originalFilename: string;
       };
       expect(metadata.title).toBe("Unit Test Video");
       expect(metadata.creatorOrAuthor).toBe("Test Channel");
       expect(metadata.platform).toBe("YouTube");
       expect(metadata.sourceUrl).toBe("https://www.youtube.com/watch?v=demo");
+      expect(metadata.sourceArtifactPath).toBe(downloadedPath);
+      expect(metadata.originalFilename).toBe("downloaded.mp4");
+    });
+  });
+
+  it("uses yt-dlp title-based output template for recognizable source artifacts", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "Unit Test Video.mp4");
+      let capturedArgs: string[] = [];
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async (_command, args) => {
+          capturedArgs = args;
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: `__DOWNLOADED_PATH__${downloadedPath}\n`,
+            stderr: ""
+          };
+        }
+      });
+
+      const result = await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(result.downloadedPath).toBe(downloadedPath);
+      expect(session.artifacts.downloadedPath).toBe(downloadedPath);
+      expect(capturedArgs).toContain(path.join(session.sessionDirectory, "%(title).200B.%(ext)s"));
     });
   });
 

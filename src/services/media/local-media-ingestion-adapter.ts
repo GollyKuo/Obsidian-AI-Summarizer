@@ -18,6 +18,10 @@ import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
 } from "@services/media/media-cache-root";
+import {
+  buildInitialArtifactManifest,
+  writeArtifactManifest
+} from "@services/media/artifact-manifest";
 
 export interface LocalMediaIngestionRequest {
   sourcePath: string;
@@ -49,20 +53,6 @@ interface LocalMediaIngestionAdapterOptions {
   writeFile?: (targetPath: string, content: string) => Promise<void>;
   now?: () => Date;
   randomHex?: (bytes: number) => string;
-}
-
-interface PersistedLocalMediaMetadata {
-  sessionId: string;
-  sourceType: "local_media";
-  sourcePath: string;
-  title: string;
-  creatorOrAuthor: string;
-  platform: string;
-  createdAt: string;
-  downloadedPath: string;
-  normalizedAudioPath: string;
-  transcriptPath: string;
-  warnings: string[];
 }
 
 const SUPPORTED_LOCAL_MEDIA_EXTENSIONS = new Set<string>([
@@ -169,6 +159,24 @@ function inferDownloadExtension(localSourcePath: string): string {
   return extension;
 }
 
+function sanitizeFilenameSegment(rawName: string): string {
+  const sanitized = rawName
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  return sanitized.length > 0 ? sanitized : "local-media";
+}
+
+function buildLocalSourceArtifactPath(sessionDirectory: string, localSourcePath: string): string {
+  const originalName = path.basename(localSourcePath);
+  const extension = path.extname(localSourcePath);
+  const sanitizedName = sanitizeFilenameSegment(originalName);
+  if (path.extname(sanitizedName).length > 0) {
+    return path.join(sessionDirectory, sanitizedName);
+  }
+  return path.join(sessionDirectory, `${sanitizedName}${extension.toLowerCase()}`);
+}
+
 function normalizeTitle(localSourcePath: string): string {
   const fileStem = path.basename(localSourcePath, path.extname(localSourcePath));
   if (fileStem.trim().length > 0) {
@@ -236,7 +244,7 @@ export function createLocalMediaIngestionAdapter(
       throwIfCancelled(signal);
 
       const localSourcePath = normalizeLocalSourcePath(input.sourcePath);
-      const downloadExtension = inferDownloadExtension(localSourcePath);
+      inferDownloadExtension(localSourcePath);
       const cacheRoot = await cacheRootResolver(input.mediaCacheRoot);
       const vaultId = sanitizeVaultId(input.vaultId);
       const sessionId = buildSessionId(now(), randomHex);
@@ -246,7 +254,7 @@ export function createLocalMediaIngestionAdapter(
       throwIfCancelled(signal);
 
       const artifacts: MediaDownloadArtifacts = {
-        downloadedPath: path.join(sessionDirectory, `downloaded${downloadExtension}`),
+        downloadedPath: buildLocalSourceArtifactPath(sessionDirectory, localSourcePath),
         normalizedAudioPath: path.join(sessionDirectory, "normalized.wav"),
         transcriptPath: path.join(sessionDirectory, "transcript.srt"),
         metadataPath: path.join(sessionDirectory, "metadata.json"),
@@ -353,22 +361,21 @@ export function createLocalMediaIngestionAdapter(
 
       const warnings: string[] = [];
       const metadata = buildLocalMediaMetadata(session, sourceStatus.mtimeMs, now());
-      const metadataRecord: PersistedLocalMediaMetadata = {
-        sessionId: session.sessionId,
-        sourceType: "local_media",
-        sourcePath: session.localSourcePath,
-        title: metadata.title,
-        creatorOrAuthor: metadata.creatorOrAuthor,
-        platform: metadata.platform,
-        createdAt: metadata.created,
-        downloadedPath: session.artifacts.downloadedPath,
-        normalizedAudioPath: session.artifacts.normalizedAudioPath,
-        transcriptPath: session.artifacts.transcriptPath,
-        warnings
-      };
-
       try {
-        await writeFile(session.artifacts.metadataPath, `${JSON.stringify(metadataRecord, null, 2)}\n`);
+        await writeArtifactManifest(
+          session.artifacts.metadataPath,
+          buildInitialArtifactManifest({
+            sessionId: session.sessionId,
+            sourceType: "local_media",
+            sourcePath: session.localSourcePath,
+            metadata,
+            sourceArtifactPath: session.artifacts.downloadedPath,
+            normalizedAudioPath: session.artifacts.normalizedAudioPath,
+            transcriptPath: session.artifacts.transcriptPath,
+            warnings
+          }),
+          writeFile
+        );
       } catch (error) {
         throw new SummarizerError({
           category: "download_failure",

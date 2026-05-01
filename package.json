@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-summarizer",
-  "version": "0.1.49-transcription-node-import-fix",
+  "version": "0.1.53-cap-202-artifact-manifest",
   "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "main": "main.js",
   "scripts": {

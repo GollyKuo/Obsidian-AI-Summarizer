@@ -9,6 +9,7 @@ import type {
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
+import { updateArtifactManifestWithCompression } from "@services/media/artifact-manifest";
 
 const execFileAsync = promisify(execFile);
 
@@ -515,7 +516,7 @@ export function createPreUploadCompressor(
           }
         }
 
-        return {
+        const result: PreUploadCompressionResult = {
           normalizedAudioPath: session.artifacts.normalizedAudioPath,
           aiUploadArtifactPaths,
           selectedCodec: preset.codec,
@@ -524,6 +525,19 @@ export function createPreUploadCompressor(
           vadApplied: false,
           warnings
         };
+
+        try {
+          await updateArtifactManifestWithCompression(session.artifacts.metadataPath, result);
+        } catch (error) {
+          throw new SummarizerError({
+            category: "download_failure",
+            message: `Artifact manifest update failed: ${error instanceof Error ? error.message : String(error)}`,
+            recoverable: true,
+            cause: error
+          });
+        }
+
+        return result;
       }
 
       const failureSummary = failures

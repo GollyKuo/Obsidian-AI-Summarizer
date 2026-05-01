@@ -7,6 +7,10 @@ import type {
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
 import { createPreUploadCompressor } from "@services/media/pre-upload-compressor";
+import {
+  buildInitialArtifactManifest,
+  writeArtifactManifest
+} from "@services/media/artifact-manifest";
 
 async function withTempDirectory<T>(run: (tempDirectory: string) => Promise<T>): Promise<T> {
   const tempDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "pre-upload-compressor-"));
@@ -58,12 +62,33 @@ function makeDownloadResult(session: MediaDownloadSession): MediaDownloadResult 
   };
 }
 
+async function writeInitialManifest(session: MediaDownloadSession): Promise<void> {
+  const downloadResult = makeDownloadResult(session);
+  await writeArtifactManifest(
+    session.artifacts.metadataPath,
+    buildInitialArtifactManifest({
+      sessionId: session.sessionId,
+      sourceType: session.source.sourceType,
+      sourceUrl: session.source.normalizedUrl,
+      metadata: downloadResult.metadata,
+      sourceArtifactPath: session.artifacts.downloadedPath,
+      normalizedAudioPath: session.artifacts.normalizedAudioPath,
+      transcriptPath: session.artifacts.transcriptPath,
+      warnings: downloadResult.warnings
+    }),
+    async (targetPath, content) => {
+      await fs.writeFile(targetPath, content, "utf8");
+    }
+  );
+}
+
 describe("pre-upload compressor", () => {
   it("generates opus ai-upload artifact for balanced profile", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const session = makeSession(tempDirectory);
       await fs.mkdir(session.sessionDirectory, { recursive: true });
       await fs.writeFile(session.artifacts.downloadedPath, "downloaded", "utf8");
+      await writeInitialManifest(session);
 
       const compressor = createPreUploadCompressor({
         commandExecutor: async (_, args) => {
@@ -89,6 +114,21 @@ describe("pre-upload compressor", () => {
       expect(result.chunkDurationsMs).toEqual([0]);
       expect(result.vadApplied).toBe(false);
       expect(result.warnings).toHaveLength(0);
+
+      const manifest = JSON.parse(await fs.readFile(session.artifacts.metadataPath, "utf8")) as {
+        derivedArtifactPaths: string[];
+        uploadArtifactPaths: string[];
+        selectedCodec: string;
+        chunkCount: number;
+        chunkDurationsMs: number[];
+        vadApplied: boolean;
+      };
+      expect(manifest.derivedArtifactPaths).toEqual([session.artifacts.normalizedAudioPath]);
+      expect(manifest.uploadArtifactPaths).toEqual(result.aiUploadArtifactPaths);
+      expect(manifest.selectedCodec).toBe("opus");
+      expect(manifest.chunkCount).toBe(1);
+      expect(manifest.chunkDurationsMs).toEqual([0]);
+      expect(manifest.vadApplied).toBe(false);
     });
   });
 

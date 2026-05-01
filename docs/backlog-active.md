@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-01 23:55
+最後更新：2026-05-02 00:22
 
 ## 用途
 
@@ -38,10 +38,10 @@
 
 - [ ] 完成 YouTube 至少一條手動 smoke 下載驗證，記錄輸入 URL、來源類型、輸出 artifact、metadata 與成功/失敗原因。
 - [ ] 完成 podcast / direct media 至少一條手動 smoke 下載驗證，記錄同上。
-- [ ] media URL 下載完成後，session 內保留 yt-dlp 實際輸出的原始檔與原始/安全化檔名，不再只以 `downloaded.<ext>` 作為唯一可辨識來源。
-- [ ] local media 匯入 session 時，保留原始檔名或安全化後的原始檔名，並在 metadata 中記錄原始絕對路徑與 session 內 source artifact 路徑。
-- [ ] 將 `metadata.json` 校準為 artifact manifest：補 `originalFilename`、`sourceArtifactPath`、`derivedArtifactPaths`、`uploadArtifactPaths`、`chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec`。
-- [ ] 同步更新 [media-acquisition-spec.md](media-acquisition-spec.md)：定義 source artifact 命名、路徑安全化、同名衝突、清理與 recovery 規則。
+- [x] media URL 下載完成後，session 內保留 yt-dlp 實際輸出的原始檔與原始/安全化檔名，不再只以 `downloaded.<ext>` 作為唯一可辨識來源。（完成：2026-05-02 00:22）
+- [x] local media 匯入 session 時，保留原始檔名或安全化後的原始檔名，並在 metadata 中記錄原始絕對路徑與 session 內 source artifact 路徑。（完成：2026-05-02 00:22）
+- [x] 將 `metadata.json` 校準為 artifact manifest：補 `originalFilename`、`sourceArtifactPath`、`derivedArtifactPaths`、`uploadArtifactPaths`、`chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec`。（完成：2026-05-02 00:22）
+- [x] 同步更新 [media-acquisition-spec.md](media-acquisition-spec.md)：定義 source artifact 命名、路徑安全化、同名衝突、清理與 recovery 規則。（完成：2026-05-02 00:22）
 
 ### CAP-203 AI-Ready Media Processing AI 可用媒體處理
 

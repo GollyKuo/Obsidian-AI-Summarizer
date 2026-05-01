@@ -18,6 +18,10 @@ import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
 } from "@services/media/media-cache-root";
+import {
+  buildInitialArtifactManifest,
+  writeArtifactManifest
+} from "@services/media/artifact-manifest";
 
 export interface MediaDownloadRequest {
   sourceUrl: string;
@@ -330,20 +334,6 @@ interface ParsedYtDlpOutput {
   };
 }
 
-interface PersistedMediaMetadata {
-  sessionId: string;
-  sourceType: MediaUrlSourceType;
-  sourceUrl: string;
-  title: string;
-  creatorOrAuthor: string;
-  platform: string;
-  createdAt: string;
-  downloadedPath: string;
-  normalizedAudioPath: string;
-  transcriptPath: string;
-  warnings: string[];
-}
-
 function normalizeOutputPath(outputPath: string, sessionDirectory: string): string {
   const trimmed = outputPath.trim();
   if (trimmed.length === 0) {
@@ -426,7 +416,7 @@ function buildYtDlpDownloadArgs(
     "--print",
     `after_move:${DOWNLOAD_PATH_PREFIX}%(filepath)s`,
     "--output",
-    path.join(sessionDirectory, "downloaded.%(ext)s"),
+    path.join(sessionDirectory, "%(title).200B.%(ext)s"),
     sourceUrl
   ];
 
@@ -479,9 +469,13 @@ async function resolveDownloadedArtifactPath(
   const files = await readdir(session.sessionDirectory);
   const candidates = await Promise.all(
     files
-      .filter((name) => name.startsWith("downloaded."))
       .filter((name) => !name.endsWith(".part"))
       .filter((name) => !name.endsWith(".ytdl"))
+      .filter((name) => name !== "metadata.json")
+      .filter((name) => name !== "normalized.wav")
+      .filter((name) => name !== "transcript.srt")
+      .filter((name) => name !== "transcript.md")
+      .filter((name) => name !== "subtitles.srt")
       .map(async (name) => {
         const absolutePath = path.join(session.sessionDirectory, name);
         const status = await stat(absolutePath);
@@ -623,22 +617,22 @@ async function buildDownloadResultWithMetadata(
   try {
     throwIfCancelled(signal);
     const metadata = normalizeMediaMetadata(session, downloadedPath, rawMetadata, now());
+    session.artifacts.downloadedPath = downloadedPath;
 
-    const metadataRecord: PersistedMediaMetadata = {
-      sessionId: session.sessionId,
-      sourceType: session.source.sourceType,
-      sourceUrl: session.source.normalizedUrl,
-      title: metadata.title,
-      creatorOrAuthor: metadata.creatorOrAuthor,
-      platform: metadata.platform,
-      createdAt: metadata.created,
-      downloadedPath,
-      normalizedAudioPath: session.artifacts.normalizedAudioPath,
-      transcriptPath: session.artifacts.transcriptPath,
-      warnings
-    };
-
-    await writeFile(session.artifacts.metadataPath, `${JSON.stringify(metadataRecord, null, 2)}\n`);
+    await writeArtifactManifest(
+      session.artifacts.metadataPath,
+      buildInitialArtifactManifest({
+        sessionId: session.sessionId,
+        sourceType: session.source.sourceType,
+        sourceUrl: session.source.normalizedUrl,
+        metadata,
+        sourceArtifactPath: downloadedPath,
+        normalizedAudioPath: session.artifacts.normalizedAudioPath,
+        transcriptPath: session.artifacts.transcriptPath,
+        warnings
+      }),
+      writeFile
+    );
     throwIfCancelled(signal);
 
     return {

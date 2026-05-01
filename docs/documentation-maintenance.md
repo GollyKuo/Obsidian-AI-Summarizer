@@ -1,6 +1,6 @@
 # Documentation Maintenance
 
-最後更新：2026-05-02 00:15
+最後更新：2026-05-02 00:43
 
 ## 用途
 
@@ -96,6 +96,16 @@
 - 更新 `docs/dev_log.md`。
 - 依 `docs/versioning-policy.md` 檢查是否需要同步版本號。
 
+若本次變更包含下列任一類型，完成前必須檢查是否需要新增 `docs/dev_log.md` 條目；若決定不更新，需在最終回覆或工作紀錄中明確說明原因：
+
+- `src/**`
+- `tests/**`
+- 版本檔：`manifest.json`、`package.json`、`package-lock.json`、`versions.json`
+- backlog：`docs/backlog.md`、`docs/backlog-active.md`、`docs/backlog-archive.md`
+- prompt 或 AI 規範：`docs/API_Instructions.md`
+- media acquisition / artifact / retention 規格：`docs/media-acquisition-spec.md`
+- 架構、parity、手冊、測試或 release gate：`docs/architecture-boundary.md`、`docs/parity-contract.md`、`docs/Manual.md`、`docs/test-matrix.md`、`docs/smoke-checklist.md`、`docs/release-gate.md`
+
 ## 文件維護流程
 
 實作前：
@@ -109,8 +119,9 @@
 1. 檢查 changed files 是否在預期範圍。
 2. 檢查 backlog 三檔是否需要同步。
 3. 檢查相關規格、手冊、測試矩陣、release gate 是否需要同步。
-4. 若完成項目，將 `[x]` 標示完成時間，格式固定為 `（完成：YYYY-MM-DD HH:mm）`。
-5. 對中文文件修改後，依 [encoding-safety.md](encoding-safety.md) 做編碼安全檢查。
+4. 檢查 `docs/dev_log.md` 是否需要新增版本節點或重要完成紀錄；若不更新，需說明原因。
+5. 若完成項目，將 `[x]` 標示完成時間，格式固定為 `（完成：YYYY-MM-DD HH:mm）`。
+6. 對中文文件修改後，依 [encoding-safety.md](encoding-safety.md) 做編碼安全檢查。
 
 ## Reference 文件規則
 

@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-01 23:55
+最後更新：2026-05-02 00:22
 
 ## 用途
 
@@ -32,7 +32,7 @@
 
 目前順序：
 
-1. `CAP-202` 收斂 source artifact 與 acquisition manifest：media URL 下載與 local media 匯入都要在 session 內保留原始檔案與原始/安全化檔名，後續轉檔與壓縮只產生衍生 artifact。
+1. `CAP-202` source artifact 與 acquisition manifest 已完成第一輪校準：media URL 下載與 local media 匯入都會在 session 內保留可辨識原始/安全化檔名，`metadata.json` 也會記錄 source/derived/upload artifact 與 chunk metadata。下一步用 YouTube / podcast smoke 驗證實機結果。
 2. `CAP-203` 收斂 AI-ready artifact contract：統一 chunk 命名，量測 `balanced` profile 對 `normalized.wav` 的壓縮比例，並決定 VAD / 轉錄品質守門是 v1 實作或 vNext 規格。
 3. `CAP-205` 收斂大型媒體轉錄與摘要：Gemini inline 多 chunk 不能長期維持「一次 request 塞所有 inline_data」；v1 優先改成逐 chunk inline 轉錄後合併 transcript，再用乾淨合併 transcript 產出全局摘要。
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 分開命名，`transcript.md` 與 `subtitles.srt` 都要進入 session artifact lifecycle；`subtitles.srt` 必須保留在暫存資料夾。
@@ -87,7 +87,7 @@
 狀態：`active`
 
 摘要：
-`yt-dlp` 下載、session isolation、metadata normalization、cancellation 與舊版 YouTube 下載 resilience 參數回收已落地。下一步是完成 YouTube / podcast smoke，並把 media URL 與 local media 的 source artifact、原始檔名與 artifact manifest 收斂。
+`yt-dlp` 下載、session isolation、metadata normalization、cancellation、舊版 YouTube 下載 resilience 參數、source artifact 可辨識檔名與 artifact manifest 回寫已落地。下一步是完成 YouTube / podcast smoke，驗證實機下載結果、metadata lineage 與 recovery 行為。
 
 #### CAP-203 AI-Ready Media Processing AI 可用媒體處理
 

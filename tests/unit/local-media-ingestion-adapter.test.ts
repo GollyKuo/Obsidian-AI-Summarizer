@@ -65,8 +65,35 @@ describe("local media ingestion adapter", () => {
       expect(session.sessionId).toBe("20260423-123456-a1b2c3d4");
       expect(session.localSourcePath).toBe(path.resolve(sourceFile));
       expect(session.sessionDirectory).toContain("my-vault");
-      expect(session.artifacts.downloadedPath.endsWith("downloaded.mp3")).toBe(true);
+      expect(session.artifacts.downloadedPath.endsWith("demo.MP3")).toBe(true);
       expect(mkdirCalls).toHaveLength(1);
+    });
+  });
+
+  it("sanitizes local source artifact filename while preserving a recognizable original name", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const sourceFile = path.join(tempDirectory, "source", "demo bad name?.mp3");
+
+      const adapter = createLocalMediaIngestionAdapter({
+        dependencyChecker: async () => makeDependencyDiagnostics(),
+        cacheRootResolver: async (): Promise<MediaCacheRootResolution> => ({
+          rootPath: tempDirectory,
+          usedDefault: false
+        }),
+        mkdir: async (targetPath) => {
+          await fs.mkdir(targetPath, { recursive: true });
+        }
+      });
+
+      const session = await adapter.prepareSession(
+        {
+          ...baseRequest,
+          sourcePath: sourceFile
+        },
+        new AbortController().signal
+      );
+
+      expect(path.basename(session.artifacts.downloadedPath)).toBe("demo bad name-.mp3");
     });
   });
 
@@ -139,10 +166,18 @@ describe("local media ingestion adapter", () => {
         sourceType: string;
         sourcePath: string;
         downloadedPath: string;
+        originalFilename: string;
+        sourceArtifactPath: string;
+        derivedArtifactPaths: string[];
+        uploadArtifactPaths: string[];
       };
       expect(metadata.sourceType).toBe("local_media");
       expect(metadata.sourcePath).toBe(path.resolve(sourceFile));
       expect(metadata.downloadedPath).toBe(session.artifacts.downloadedPath);
+      expect(metadata.sourceArtifactPath).toBe(session.artifacts.downloadedPath);
+      expect(metadata.originalFilename).toBe(path.basename(session.artifacts.downloadedPath));
+      expect(metadata.derivedArtifactPaths).toEqual([]);
+      expect(metadata.uploadArtifactPaths).toEqual([]);
     });
   });
 

@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-05-01 23:45
+最後更新：2026-05-02 00:22
 
 ## 目的
 
@@ -23,7 +23,7 @@
    - video：`.mp4`、`.mov`、`.mkv`、`.webm`、`.m4v`
 2. 檔案大小上限：`2 GiB`（`2147483648` bytes）
 3. source path 必須是「可存取的絕對檔案路徑」，不接受資料夾或相對路徑。
-4. ingest 成功後，會在當前 session 複製為 `downloaded.<ext>`，後續流程與 media URL 共用 `normalized.wav -> ai-upload.*`。
+4. ingest 成功後，會在當前 session 複製為安全化後的原始檔名，例如 `interview 01.mp3`；後續流程與 media URL 共用 `normalized.wav -> ai-upload.*`。
 
 ### Local Media v1 錯誤分類
 
@@ -75,13 +75,16 @@
 
 ## 產物格式規格
 
-### 1) downloaded media
+### 1) source media artifact
 
-- 檔名：`downloaded.<ext>`
+- 檔名：保留可辨識的原始/安全化名稱，不再固定為 `downloaded.<ext>`。
 - 預設：
-  - YouTube 視訊來源：`downloaded.mp4`
-  - podcast / audio-only：`downloaded.m4a`
-  - direct media：保留可辨識副檔名，無法判斷時 fallback `downloaded.bin`
+  - media URL：使用 `yt-dlp` 解析出的 title-based 安全檔名，例如 `<title>.<ext>`。
+  - local media：使用本機來源檔的原始檔名，並將路徑不安全字元替換為安全字元。
+  - 下載工具或來源無法提供可辨識名稱時，才 fallback 到 adapter 既有推斷名稱。
+- 說明：
+  - 程式欄位仍保留 `downloadedPath` 以相容既有流程，但語意已收斂為 session 內的 `sourceArtifactPath`。
+  - 後續轉檔、壓縮、分段都必須從這份 source artifact 衍生，不可覆寫 source artifact 本身。
 
 ### 2) normalized audio
 
@@ -108,10 +111,18 @@
   - `creatorOrAuthor`
   - `platform`
   - `createdAt`
+  - `originalFilename`
   - `downloadedPath`
+  - `sourceArtifactPath`
   - `normalizedAudioPath`
   - `transcriptPath`
   - `subtitlePath`
+  - `derivedArtifactPaths`
+  - `uploadArtifactPaths`
+  - `chunkCount`
+  - `chunkDurationsMs`
+  - `vadApplied`
+  - `selectedCodec`
   - `warnings`
 
 ### 5) ai upload artifacts
@@ -121,7 +132,7 @@
   - 單檔模式：`ai-upload.<ext>`
   - 分段模式：`chunk-0001.<ext>`、`chunk-0002.<ext>`...
 - 說明：
-  - AI 預設只接收 `ai-upload` 產物，不直接上傳 `downloaded.*`
+  - AI 預設只接收 `ai-upload` 產物，不直接上傳 source artifact
   - `metadata.json` 需記錄 `uploadArtifactPaths`
 
 ## 下載穩定性參數
@@ -149,7 +160,7 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 ### 核心原則
 
 1. 先抽音訊，不上傳影片影像軌。
-2. 優先壓縮 `ai-upload` 檔案，而不是變更 `downloaded.*` 原檔語意。
+2. 優先壓縮 `ai-upload` 檔案，而不是變更 source artifact 原檔語意。
 3. 在可維持轉錄品質前提下，最小化檔案大小與傳輸量。
 
 ### 預設 Profile（v1）
@@ -224,18 +235,18 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 ## 媒體暫存檔模式對應
 
 - `delete_temp`
-  - 成功完成 (`completed`)：刪除 `downloaded.*`、`normalized.wav`、`ai-upload/`、`metadata.json`；保留 `transcript.md`、`subtitles.srt`
-  - 失敗或取消 (`failed` / `cancelled`)：為了 recovery 保留 `downloaded.*`、`metadata.json`；若 `transcript.md`、`subtitles.srt` 已產生也必須保留；刪除其餘中間產物
+  - 成功完成 (`completed`)：刪除 source artifact、`normalized.wav`、`ai-upload/`、`metadata.json`；保留 `transcript.md`、`subtitles.srt`
+  - 失敗或取消 (`failed` / `cancelled`)：為了 recovery 保留 source artifact、`metadata.json`；若 `transcript.md`、`subtitles.srt` 已產生也必須保留；刪除其餘中間產物
 - `keep_temp`
-  - 成功完成 (`completed`)：保留 `downloaded.*`、`normalized.wav`、`transcript.md`、`subtitles.srt`；刪除 `ai-upload/`、`metadata.json`
-  - 失敗或取消 (`failed` / `cancelled`)：保留 `downloaded.*`、`normalized.wav`、`transcript.md`、`subtitles.srt`、`metadata.json`；刪除 `ai-upload/`
+  - 成功完成 (`completed`)：保留 source artifact、`normalized.wav`、`transcript.md`、`subtitles.srt`；刪除 `ai-upload/`、`metadata.json`
+  - 失敗或取消 (`failed` / `cancelled`)：保留 source artifact、`normalized.wav`、`transcript.md`、`subtitles.srt`、`metadata.json`；刪除 `ai-upload/`
 
 ### Retention UX 對應
 
 舊版使用者語意對應如下；新版設定頁可用這些文案呈現，但底層仍以 artifact lifecycle 執行：
 
 1. `不保留來源檔案`：對應 `delete_temp`，成功後保留 Obsidian 筆記、完成版逐字稿與 session 暫存資料夾內的 `subtitles.srt`。
-2. `保留來源檔案`：對應 `keep_temp` 的基本模式，保留 `downloaded.*` 與必要 recovery artifact。
+2. `保留來源檔案`：對應 `keep_temp` 的基本模式，保留 source artifact 與必要 recovery artifact。
 3. `保留視訊 + 音訊`：vNext 進階模式，需同時保留來源影片與 AI-ready / normalized audio；目前不直接映射到 `keep_temp`，避免誤保留大量中間檔。
 
 在 v1 設定仍只暴露 `delete_temp / keep_temp`；若要新增第三種模式，需先擴充 `RetentionMode`、artifact matrix、settings migration 與 manual。
@@ -270,7 +281,7 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 1. 恢復只允許在同一個 `<session-id>` 目錄內尋找候選檔案。
 2. 禁止掃描整個 `<media-cache-root>/<vault-id>/` 後挑最大檔作為回復來源。
 3. 若 session 內無合法產物，直接回報 `download_failure`，不做跨 session fallback。
-4. 若 `ai-upload` 遺失但 `downloaded.*` 存在，可在同 session 內重建；不可跨 session 借檔。
+4. 若 `ai-upload` 遺失但 source artifact 存在，可在同 session 內重建；不可跨 session 借檔。
 
 ## 錯誤分類對齊
 
@@ -288,10 +299,10 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 | 面向 | 舊版 `Media Summarizer` | 本專案 `AI Summarizer` | 判斷 |
 | --- | --- | --- | --- |
 | 入口判斷 | GUI 以 local file、已知影音平台網域、其他 URL 判斷本機媒體、影音 URL、網頁。direct media URL 若不在白名單內，容易被當成網頁。 | 明確分成 `media_url`、`local_media`、`webpage_url`，`media_url` 再分類為 YouTube / podcast / direct media。 | 新版來源邊界較清楚，direct media 支援較完整。 |
-| 下載方式 | 直接使用 `yt_dlp.YoutubeDL` Python API。YouTube 套用 1080p 內格式、mp4 merge、retry、fragment retry、socket timeout、chunk size、continuedl。非 YouTube 走 `bestaudio/best` 並用 postprocessor 轉 `mp3 192k`。 | 以 `yt-dlp` subprocess 執行。YouTube 吸收舊版穩定參數；podcast/direct media 不套用 YouTube 專屬格式假設，以通用參數下載到 session 內的 `downloaded.<ext>`。 | 新版隔離性與可診斷性較好；舊版 podcast 直接轉 mp3，對使用者較直覺但會把下載與轉檔耦合。 |
-| 下載暫存位置 | `downloads/<uuid8>/%(title)s.%(ext)s`，相對於 app 工作目錄。 | `<mediaCacheRoot>/<vault-id>/<session-id>/downloaded.<ext>`，預設在 vault 外 OS cache。 | 新版不污染 vault，且避免檔名受 title 影響。 |
-| 下載恢復 | YouTube 下載失敗時，只在當次 session 內找大於 1 MB 的最大檔案，並補抓 metadata。 | 只接受同 session 中 `yt-dlp` 印出的路徑或 `downloaded.*` 候選，排除 `.part` / `.ytdl`，依 mtime 選最新。 | 新版比舊版更安全，避免錯拿同 cache root 的舊檔。 |
-| 本機媒體 | 直接使用使用者選取的原始檔；影片才進字幕流程；缺少副檔名、大小與絕對路徑邊界。 | 只接受支援副檔名與絕對檔案路徑，大小上限 2 GiB，先複製到 session 的 `downloaded.<ext>`。 | 新版較安全，也能讓本機與 URL 流程共用後段 lifecycle。 |
+| 下載方式 | 直接使用 `yt_dlp.YoutubeDL` Python API。YouTube 套用 1080p 內格式、mp4 merge、retry、fragment retry、socket timeout、chunk size、continuedl。非 YouTube 走 `bestaudio/best` 並用 postprocessor 轉 `mp3 192k`。 | 以 `yt-dlp` subprocess 執行。YouTube 吸收舊版穩定參數；podcast/direct media 不套用 YouTube 專屬格式假設，以通用參數下載到 session 內的 title-based source artifact。 | 新版隔離性與可診斷性較好；舊版 podcast 直接轉 mp3，對使用者較直覺但會把下載與轉檔耦合。 |
+| 下載暫存位置 | `downloads/<uuid8>/%(title)s.%(ext)s`，相對於 app 工作目錄。 | `<mediaCacheRoot>/<vault-id>/<session-id>/<title>.<ext>`，預設在 vault 外 OS cache。 | 新版不污染 vault，且已保留可辨識來源檔名。 |
+| 下載恢復 | YouTube 下載失敗時，只在當次 session 內找大於 1 MB 的最大檔案，並補抓 metadata。 | 只接受同 session 中 `yt-dlp` 印出的路徑或合法 source artifact 候選，排除 `.part` / `.ytdl` 與中間產物，依 mtime 選最新。 | 新版比舊版更安全，避免錯拿同 cache root 的舊檔。 |
+| 本機媒體 | 直接使用使用者選取的原始檔；影片才進字幕流程；缺少副檔名、大小與絕對路徑邊界。 | 只接受支援副檔名與絕對檔案路徑，大小上限 2 GiB，先複製到 session 並保留安全化後的原始檔名。 | 新版較安全，也能讓本機與 URL 流程共用後段 lifecycle。 |
 | 上傳前音訊處理 | `ffmpeg -vn -ac 1 -ar 16000 -b:a 32k` 輸出 `<base>_compressed.mp3`；失敗時直接上傳原始檔。 | 先建立 `normalized.wav`，再依 profile 產生 `ai-upload/ai-upload.ogg`，失敗 fallback 到 `m4a`、`flac`；長媒體再切成 chunk。 | 新版成本與格式控制較完整；舊版 fallback 到原始檔的行為簡單但可能造成高成本。 |
 | 長媒體處理 | 不分段；整個壓縮音訊上傳到 Gemini file upload。 | 超過門檻先切 `ai-upload/chunk-0000.<ext>` 起的多段；Gladia 已逐段上傳輪詢；Gemini 已定案 v1 改為逐 chunk inline 轉錄後合併；摘要階段再以合併 transcript 做全局整合。 | 新版對長媒體的恢復性較好；chunk 不應成為最終摘要結構；Gemini file upload 保留為 vNext 大型媒體策略。 |
 | 轉錄與摘要 | 同一個 Gemini model/file handle 先轉錄再摘要。 | `TranscriptionProvider` 與 `SummaryProvider` 已拆分，支援 Gemini/Gladia 轉錄與 Gemini/OpenRouter 摘要。 | 新版模型路由彈性明顯較好。 |
@@ -308,11 +319,11 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 
 | 產物 | 舊版 URL 媒體 | 舊版本機媒體 | 本專案目前設計 |
 | --- | --- | --- | --- |
-| 原始下載/匯入 | `downloads/<uuid8>/<title>.<ext>`；YouTube 通常 mp4，podcast/audio 轉成 mp3。 | 使用原始檔路徑，不複製。 | session 內 `downloaded.<ext>`；本機檔也先複製。 |
+| 原始下載/匯入 | `downloads/<uuid8>/<title>.<ext>`；YouTube 通常 mp4，podcast/audio 轉成 mp3。 | 使用原始檔路徑，不複製。 | session 內 source artifact；media URL 使用 title-based 檔名，本機檔使用安全化後原始檔名。 |
 | 正規化音訊 | 無獨立 normalized 檔。 | 無獨立 normalized 檔。 | `normalized.wav`，PCM 16-bit mono 16kHz。 |
 | AI 上傳檔 | `<base>_compressed.mp3`，32 kbps mono 16kHz。 | `<base>_compressed.mp3`，位於原始檔同資料夾。 | `ai-upload/ai-upload.ogg`，fallback `ai-upload.m4a`、`ai-upload.flac`。 |
 | 分段檔 | 無。 | 無。 | `ai-upload/chunk-0000.<ext>` 起，多段時取代單一 `ai-upload.<ext>` 交給 provider。 |
-| metadata | 只在記憶體 dict 中流動。 | 只在記憶體 dict 中流動。 | `metadata.json`，目前記錄 session/source/download/normalized/transcript/warnings；`uploadArtifactPaths`、chunk metadata 仍需補落盤。 |
+| metadata | 只在記憶體 dict 中流動。 | 只在記憶體 dict 中流動。 | `metadata.json`，記錄 session/source/source artifact/derived artifacts/upload artifacts/chunk metadata/transcript/warnings。 |
 | 逐字稿檔 | 只寫入 Obsidian；影片另可生成 SRT。 | 只寫入 Obsidian；影片另可生成 SRT。 | `transcript.md` 必須保留在 session 暫存資料夾，供 recovery 與手動重跑摘要使用。 |
 | 字幕檔 | `<video>.srt`。 | `<video>.srt`，位於原始檔同資料夾。 | `subtitles.srt` 必須保留在 session 暫存資料夾，且不得被 `delete_temp` 成功清理移除。 |
 | 含字幕影片 | `<video>_subtitled.mkv`。 | `<video>_subtitled.mkv`，位於原始檔同資料夾。 | vNext 尚未接入。 |
@@ -328,7 +339,7 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 
 新版目前需要校準的地方已轉成 `docs/backlog.md` 的「近期優化路線：舊版對照後」，並在 `docs/backlog-active.md` 保留 release 收斂所需 checklist：
 
-1. 規格寫明 `metadata.json` 需記錄 `uploadArtifactPaths`，但目前 compression 結果只在 payload 內流動，尚未補回 metadata。
+1. `metadata.json` 已開始作為 artifact manifest：acquisition 寫入 source artifact，compression 回寫 `derivedArtifactPaths`、`uploadArtifactPaths`、chunk metadata、`selectedCodec` 與 `vadApplied`；後續 transcript/subtitle lineage 仍需在 CAP-206 補齊。
 2. 規格的 chunk 範例是 `chunk-0001` 起，實作與測試是 ffmpeg 預設的 `chunk-0000` 起，文件或實作需統一。
 3. `transcript.srt` 被規格描述為 UTF-8 SRT，但現行 recovery 會把 transcript markdown 寫入該路徑；已定案需拆成 `transcript.md` 與必保留的 `subtitles.srt`。
 4. VAD 與「轉錄品質守門後自動升級重跑」仍屬規格目標，現行 compressor 只做編碼失敗 fallback 與長度 chunking。

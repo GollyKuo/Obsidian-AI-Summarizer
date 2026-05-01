@@ -1,8 +1,101 @@
 ﻿# 開發日誌
 
-最後更新：2026-04-29 00:04
+最後更新：2026-05-02 00:43
 
 ## 版本紀錄
+
+### 0.1.53-cap-202-artifact-manifest - 2026-05-02 00:43
+
+範圍：
+- 完成 `CAP-202` source artifact 與 artifact manifest 第一輪校準。
+
+主要變更：
+- 新增 `src/services/media/artifact-manifest.ts`
+- media URL 下載改用 `yt-dlp` title-based source artifact，不再以固定 `downloaded.<ext>` 作為唯一可辨識來源檔名
+- local media 匯入改為保留安全化後的原始檔名，例如 `demo.MP3`
+- acquisition 階段寫入 `metadata.json` artifact manifest
+- compression 階段回寫 `derivedArtifactPaths`、`uploadArtifactPaths`、`chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec`
+- 更新 `src/services/media/downloader-adapter.ts`
+- 更新 `src/services/media/local-media-ingestion-adapter.ts`
+- 更新 `src/services/media/pre-upload-compressor.ts`
+- 更新 `tests/unit/downloader-adapter.test.ts`
+- 更新 `tests/unit/local-media-ingestion-adapter.test.ts`
+- 更新 `tests/unit/pre-upload-compressor.test.ts`
+- 更新 `docs/media-acquisition-spec.md`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`
+- 補強 `docs/documentation-maintenance.md` 與 `.codex/references/documentation-maintenance.md`：若變更包含 `src/**`、`tests/**`、版本檔、backlog 或正式規格文件，完成前必須檢查是否需要更新 `docs/dev_log.md`，若不更新需明確說明原因
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/downloader-adapter.test.ts tests/unit/local-media-ingestion-adapter.test.ts tests/unit/pre-upload-compressor.test.ts tests/integration/process-media-url.integration.test.ts tests/integration/process-local-media.integration.test.ts --passWithNoTests`
+- `npm run test`
+- `npm run build`
+- `git diff --check`
+
+### 0.1.52-documentation-maintenance-policy - 2026-05-02 00:15
+
+範圍：
+- 建立正式文件維護規範，將 backlog 與相關文件同步規則集中管理。
+
+主要變更：
+- 新增 `docs/documentation-maintenance.md`
+- 新增 `.codex/references/documentation-maintenance.md`
+- 刪除 `docs/docs-governance.md`
+- 刪除 `.codex/references/docs-governance.md`
+- 更新 `.codex/SKILL.md`，改讀 `references/documentation-maintenance.md`
+- 更新 `README.md`，新增文件維護規範入口
+- 更新 `docs/workflow-sop.md`
+- 整理 `docs/backlog.md`、`docs/backlog-active.md`、`docs/backlog-archive.md` 三層 backlog 分工
+
+驗證：
+- `git diff --check`
+- 以 `rg` 確認現行引用不再指向被刪除的 `docs-governance` reference；僅保留 `docs/dev_log.md` 歷史紀錄與正式規範中的停用說明
+
+### 0.1.51-long-media-summary-contract - 2026-05-01 23:45
+
+範圍：
+- 定案長媒體 chunk、transcript 與最終摘要的整合規範。
+
+主要變更：
+- 更新 `docs/API_Instructions.md`
+- 更新 `src/domain/prompts.ts`
+- 明確規定 audio/transcript chunk 僅供內部 token control、diagnostics 與 recovery 使用
+- 最終摘要必須以合併 transcript 做全局整合
+- 若 transcript 過長，允許 partial notes，但必須再做 final synthesis
+- 最終輸出不得暴露 `chunk`、`part`、`分段` 等技術標記，除非原始內容本身就在討論這些詞
+- 更新 `docs/media-acquisition-spec.md`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`
+
+驗證：
+- `npm run typecheck`
+- `git diff --check -- docs\API_Instructions.md docs\backlog.md docs\backlog-active.md docs\media-acquisition-spec.md src\domain\prompts.ts`
+
+### 0.1.50-gladia-and-legacy-media-alignment - 2026-05-01 20:52
+
+範圍：
+- 接入 Gladia transcription provider，並吸收舊版 `Media Summarizer` 的媒體可靠性經驗。
+
+主要變更：
+- 新增 Gladia pre-recorded transcription provider
+- 更新 `src/services/ai/gladia-transcription-provider.ts`
+- 更新 provider/model settings，加入 `gladiaApiKey`、`transcriptionProvider: gladia`、`transcriptionModel: default`
+- 更新 API health check 與設定頁 Gladia 測試入口
+- 更新 `src/orchestration/process-media.ts`
+- 更新 `src/services/ai/configured-ai-provider.ts`
+- 更新 `tests/integration/process-media.integration.test.ts`
+- 更新 `tests/unit/api-health-check.test.ts`
+- 更新 `tests/unit/configured-ai-provider.test.ts`
+- 更新 `tests/unit/settings.test.ts`
+- 吸收舊版 YouTube 下載穩定參數到新版 downloader：1080p 內格式、retry、fragment retry、socket timeout、http chunk size、continued download
+- 新增 dependency drift monitor 與 `yt-dlp` 非阻塞更新提醒策略
+- 更新 `docs/dependency-update-strategy.md`
+- 更新 `docs/media-acquisition-spec.md`
+- 更新 `docs/API_Instructions.md`、`docs/Manual.md`、`docs/architecture-boundary.md`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`
+
+驗證：
+- 追溯補登：此條整理自既有 commit `a737796`、`1916892`、`2030f70` 與當時文件/測試更新
+- 當前工作樹已於 `0.1.53` 回歸執行 `npm run typecheck`、`npm run test`、`npm run build`
 
 ### 0.1.49-transcription-node-import-fix - 2026-04-29 00:04
 
