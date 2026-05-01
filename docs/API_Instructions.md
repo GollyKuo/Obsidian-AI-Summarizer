@@ -46,6 +46,12 @@
 9. **業配與廣告過濾** (V1.7 新增)
    - 若內容中包含業配、贊助商廣告、產品推銷、折扣碼推廣等商業推廣段落，請直接忽略，不納入重點摘要中
 
+10. **長媒體摘要整合**
+   - 音訊或逐字稿的 chunk 只屬於內部處理技術，不可成為摘要輸出的章節名稱或內容標記
+   - 最終摘要必須以合併後的完整逐字稿作為整體脈絡來整理
+   - 即使內部因 token control 需要 partial summary，最後也必須再做一次全局整合摘要
+   - 最終輸出不得出現 `chunk`、`Chunk 1`、`Part 1`、`分段 1` 等技術分段字樣，除非原始內容本身真的在討論這些詞
+
 ---
 
 ## AI 註記格式
@@ -75,10 +81,11 @@
 
 ## 大型媒體轉錄 Strategy 評估
 
-目前新版預設轉錄路徑是：
+目前新版 Gemini 預設轉錄路徑是：
 
 ```text
-ai-upload artifact -> Gemini generateContent inline_data -> transcript markdown
+single ai-upload artifact -> Gemini generateContent inline_data -> transcript markdown
+multiple ai-upload chunks -> per-chunk Gemini generateContent inline_data -> merge transcript markdown
 ```
 
 舊版使用 Gemini file upload：
@@ -90,16 +97,19 @@ compressed audio -> Gemini file upload -> wait processing -> generate transcript
 評估結論：
 
 1. v1 預設維持 `inline_data`，因為它符合目前 `TranscriptionProvider` 的最小 contract，測試與取消流程較單純。
-2. Gemini file upload 應保留為 vNext 可選 transcription strategy，適合長媒體、大型 artifact、或 inline payload 逼近 API 限制的情境。
-3. file upload strategy 必須實作在 `TranscriptionProvider` 內，不得讓 summary provider 或 note writer 直接知道 Gemini file handle。
-4. file upload 必須支援 cancellation：取消時不可繼續等待 remote processing；若 API 支援刪除 remote file，需納入 cleanup。
-5. file upload 必須輸出與 inline strategy 相同的 `MediaTranscriptionResult`，後續 `summarizeMediaWithChunking`、`normalizeMediaSummaryResult` 與 `NoteWriter` 不應分支。
-6. diagnostics 需區分 upload failure、remote processing timeout、remote processing failed、transcript empty output。
-7. 成本與大小策略由 `media-acquisition-spec.md` 的 AI-ready artifact 控制；file upload 只改變傳輸方式，不改變 prompt contract。
+2. 單一 `ai-upload` artifact 可維持單次 Gemini inline request。
+3. 多個 `ai-upload` chunk 不得一次塞進同一個 Gemini inline request；需逐 chunk 呼叫 Gemini，再依 chunk 順序合併 transcript。
+4. 逐 chunk inline 需保留 chunk-level diagnostics、partial transcript recovery 與單段重試邊界，避免單段失敗導致整份長媒體轉錄結果全部丟失。
+5. Gemini file upload 應保留為 vNext 可選 transcription strategy，適合超長媒體、單一 chunk 仍過大、或 inline 穩定性不足的情境。
+6. file upload strategy 必須實作在 `TranscriptionProvider` 內，不得讓 summary provider 或 note writer 直接知道 Gemini file handle。
+7. file upload 必須支援 cancellation：取消時不可繼續等待 remote processing；若 API 支援刪除 remote file，需納入 cleanup。
+8. file upload 必須輸出與 inline strategy 相同的 `MediaTranscriptionResult`，後續 `summarizeMediaWithChunking`、`normalizeMediaSummaryResult` 與 `NoteWriter` 不應分支。
+9. diagnostics 需區分 inline chunk failure、upload failure、remote processing timeout、remote processing failed、transcript empty output。
+10. 成本與大小策略由 `media-acquisition-spec.md` 的 AI-ready artifact 控制；file upload 只改變傳輸方式，不改變 prompt contract。
 
 暫不直接落地 file upload 的原因：
 
-1. 目前主線仍在收斂 `local_bridge` 與 inline artifact handoff。
+1. v1 可先用逐 chunk inline 解決多 chunk 單 request 的 payload、timeout 與整批重試風險，改動較小且與現有 Gemini inline provider 相容。
 2. file upload 涉及遠端檔案生命週期與額外 cleanup，需先有明確 privacy / retention policy。
 3. 若 provider 不支援 file upload，仍需保留 inline strategy 作為可測 baseline。
 

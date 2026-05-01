@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-01 20:52
+最後更新：2026-05-01 23:45
 
 ## 使用規則
 
@@ -12,28 +12,31 @@
 ## 目前階段
 
 - Phase 3 收斂：`CAP-202` 到 `CAP-206` 已完成主體實作，剩實機 smoke、量測與 retention 邊界收尾。
-- Phase 4 準備：`CAP-302`、`CAP-401` 到 `CAP-404` 已完成，待移入 archive；`CAP-303` 重新打開，用於完善使用者手冊。
+- Phase 4 準備：`CAP-302`、`CAP-401` 已完成，待移入 archive；`CAP-404` 基線已完成但舊版對照新增 `yt-dlp` 執行檔 UX queued enhancement；`CAP-303` 重新打開，用於完善使用者手冊。
 
 ## 唯一主線
 
 1. 收尾 `CAP-202`：完成 YouTube / podcast 各至少一條手動 smoke 下載驗證。
 2. 收尾 `CAP-203`：完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本上傳量量測（目標至少 70%）。
-3. 推進 `CAP-205`：規劃並落地「轉錄模型」與「摘要模型」拆分，支援 Gemini / Gladia 轉錄 + OpenRouter/Qwen 摘要。
-4. 收尾 `CAP-206`：定案字幕與逐字稿衍生輸出的 artifact lifecycle（v1/vNext 邊界）。
+3. 推進 `CAP-205`：補 Gemini 逐 chunk inline 轉錄後合併 transcript，並校準長媒體摘要為全局整合輸出，避免 chunk 標記外洩；Gemini file upload 保留為 vNext 可選策略。
+4. 收尾 `CAP-206`：落地字幕與逐字稿衍生輸出的 artifact lifecycle，並確保影音字幕檔保留在 session 暫存資料夾。
 5. 推進 `CAP-303`：補齊使用者手冊，涵蓋模型選擇、多 provider、轉錄/摘要拆分與常見問題。
+6. 收斂舊版 `Media Summarizer` 對照後發現的規格/實作落差：保留原始下載檔名、artifact manifest、transcript artifact 格式、Gemini 大型媒體傳輸策略。
 
 ## 當前阻塞與前置依賴
 
 - 缺少可重現的 YouTube / podcast 手動 smoke 結果與紀錄格式。
 - 缺少 `balanced` profile 的基準樣本與量測紀錄，無法關閉 CAP-203 最後驗收點。
-- 字幕產線（`.srt` / 軟字幕嵌入）是否納入 v1 尚未定案，影響 CAP-206 lifecycle 收斂。
+- 字幕產線已定案：影音字幕檔 `.srt` 必須保留在 session 暫存資料夾；仍需補實作、manifest、cleanup 與 smoke 覆蓋。
 - Gladia 第一版 provider 已接入，API key / health check 可用，且 media URL 實機 smoke 已成功；仍缺 local media 實機 smoke、混合 provider smoke 與使用手冊細節補強。
+- 舊版流程對照顯示：新版目前用 `downloaded.<ext>` 固定命名，與「保留原始下載檔案與檔名」的使用者期待不一致；`metadata.json`、chunk 命名、`transcript.md` / `subtitles.srt` 分離、VAD/品質守門、Gemini 逐 chunk inline 轉錄合併策略，以及摘要 chunk 標記外洩問題也仍需校準，否則文件與實作會持續漂移。
 
 ## 下一個切換點
 
-- 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
+- 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 與 `CAP-404` 基線移入封存；`CAP-404` 的 `yt-dlp` 執行檔 UX 仍留在 `docs/backlog.md` 作 queued enhancement。
 - `CAP-504` 已完成：模型清單改為使用者自訂維護，轉錄/摘要共用 autocomplete model datalist；Gemini 轉錄與摘要都內建 `gemini-3-flash-preview` 與 `gemini-2.5-flash`，並支援 Gemini / OpenRouter 官方模型清單更新與 OpenRouter models API 校對。
-- 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
+- 當 `CAP-206` 字幕/逐字稿保留實作落地後，切換到下一輪 capability 排程（Expansion 或新主線）。
+- 舊版對照後的完整優化順序已同步到 `docs/backlog.md` 的「近期優化路線：舊版對照後」；本檔只保留當前 release 收斂需要追蹤的 checklist。
 
 ## 舊版能力吸收任務清單
 
@@ -42,9 +45,20 @@
 - [x] `CAP-202` 下載穩定性：把舊版 YouTube 下載參數納入新版 `downloader-adapter` 評估與測試，包含 1080p 內格式選擇、`retries`、`fragment_retries`、`socket_timeout`、`continuedl`、`http_chunk_size`，並確認 podcast / direct media 不被 YouTube 參數誤傷。（完成：2026-05-01 01:38）
 - [x] `CAP-404` 外部依賴更新：把舊版非阻塞 `yt-dlp` 版本檢查經驗落成新版 diagnostics 任務，要求背景檢查、有 timeout、使用者可讀提醒，並與現有 dependency drift / release gate 策略對齊。（完成：2026-05-01 01:40）
 - [x] `CAP-205` 大型媒體轉錄策略：評估 Gemini file upload 作為 `TranscriptionProvider` 的可選 strategy，和目前 inline `inline_data` 路徑比較檔案大小限制、長媒體穩定性、取消流程、錯誤診斷與成本風險。（完成：2026-05-01 01:42）
-- [x] `CAP-206` 字幕衍生輸出：將舊版 SRT 與影片字幕嵌入能力整理為可選 artifact lifecycle，先定義 `.srt` 生成、軟字幕嵌入、保留策略與失敗時是否影響主筆記輸出。（完成：2026-05-01 01:42）
+- [x] `CAP-206` 字幕衍生輸出：將舊版 SRT 與影片字幕嵌入能力整理為 artifact lifecycle，先定義 `.srt` 生成、軟字幕嵌入、保留策略與失敗時是否影響主筆記輸出；後續已定案 `subtitles.srt` 為必保留，軟字幕嵌入仍可選。（完成：2026-05-01 01:42）
 - [x] `CAP-206` retention UX：參考舊版「不保留來源檔案 / 保留來源檔案 / 保留視訊 + 音訊」語意，重新檢查新版 `delete_temp / keep_temp` 是否足夠；若不足，定義進階 retention mode 與設定頁文案。（完成：2026-05-01 01:42）
 - [x] `CAP-201` 網頁抽取品質：評估舊版 `trafilatura` 經驗是否應轉為新版 readability / sidecar / runtime extractor strategy，特別針對動態頁、付費牆疑似內容、metadata 品質與擷取不足警語。（完成：2026-05-01 01:42）
+- [x] `CAP-202/203/205/206` 舊新版流程對照：完成本專案與舊版 `Media Summarizer` 的 media URL、本機媒體、暫存產物、下載方式、AI 傳輸、字幕、retention 與輸出格式比較，並寫入 `docs/media-acquisition-spec.md`。（完成：2026-05-01 22:07）
+- [ ] `CAP-202` 原始下載檔保留策略：media URL 下載完成後，session 內需保留 yt-dlp 實際輸出的原始檔與原始/安全化檔名，不再只用 `downloaded.<ext>` 取代使用者可辨識的來源檔名；後續轉檔、壓縮、分段都從這份 immutable source artifact 衍生。
+- [ ] `CAP-202` local media 原始檔名保留策略：本機媒體匯入 session 時，複製檔也應保留原始檔名或安全化後的原始檔名，不再只複製為 `downloaded.<ext>`；metadata 需保留原始絕對路徑與 session 內來源檔路徑。
+- [ ] `CAP-202` artifact manifest 校準：在 acquisition / compression 完成後，把 `originalFilename`、`sourceArtifactPath`、`derivedArtifactPaths`、`uploadArtifactPaths`、`chunkCount`、`chunkDurationsMs`、`vadApplied`、`selectedCodec` 補寫回 `metadata.json`，讓原始下載檔與後續衍生檔的 lineage 可追蹤。
+- [ ] `CAP-202` 更新 `docs/media-acquisition-spec.md`：把 `downloaded.<ext>` 固定命名修正為「保留原始檔名的 source artifact + 明確衍生 artifact 命名」，並定義路徑安全化、同名衝突、清理與 recovery 規則。
+- [ ] `CAP-203` 規格/實作校準：VAD 與轉錄品質守門目前仍是規格目標，實作只做編碼失敗 fallback 與長度分段；需選擇落地 VAD/品質回退，或把該段移入 vNext。
+- [ ] `CAP-203` chunk 命名校準：規格範例為 `chunk-0001.<ext>` 起，實作與測試為 ffmpeg 預設 `chunk-0000.<ext>` 起；需統一文件、測試與產物命名。
+- [ ] `CAP-205` Gemini 大型媒體傳輸策略：避免多個 `ai-upload` chunk 以同一個 Gemini inline request 一次送出；v1 優先實作逐 chunk inline 轉錄後合併 transcript，包含 chunk-level diagnostics、partial transcript recovery 與單段重試邊界。
+- [ ] `CAP-205` Gemini file upload vNext 策略：保留為可選 transcription strategy，用於超長媒體、單 chunk 仍過大或 inline 穩定性不足的情境；需另行定義 remote file lifecycle、取消、cleanup、privacy/retention 與錯誤診斷。
+- [ ] `CAP-205` 長媒體摘要全局整合策略：音訊與逐字稿 chunk 只可作為內部 token control / diagnostics，不得出現在最終摘要；摘要應優先使用合併後完整 transcript 一次生成，若長度超限，需用 partial notes + final synthesis，最終輸出仍不可出現 `chunk`、`part`、`分段` 等技術標記。
+- [ ] `CAP-206` transcript/subtitle artifact 格式校準：現行 recovery 會把 transcript markdown 寫入 `transcript.srt`；需拆出完成版 `transcript.md` 與必保留的真正 UTF-8 `subtitles.srt`。
 
 ## Product Flows 產品流程
 
@@ -176,6 +190,8 @@ Open Work：
 - [x] 完成 Gladia media URL 實機 smoke：YouTube 媒體 URL 下載後進入 AI-ready pipeline，1106s 媒體分成 2 個 AI upload chunks，Gladia 成功轉錄並進入 3 段 chunked media summary，最後寫入 Obsidian 筆記。（完成：2026-05-01 19:59）
 - [ ] 補 Gladia local media 實機 smoke：本機音訊/影片流程需驗證 Gladia 轉錄成功、取消與設定缺漏。
 - [ ] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。
+- [ ] 實作 Gemini 逐 chunk inline 轉錄合併：每個 `ai-upload` chunk 各自送 Gemini `inline_data` request，成功後依 chunk 順序合併 transcript；需保留 chunk-level diagnostics、partial transcript recovery、單段 retry 邊界與合併後的 `transcript.md` / `subtitles.srt` handoff。
+- [ ] 校準 `media-summary-chunking`：移除最終輸出的 `## Chunk N` 合併格式；改為合併 transcript 後做整體摘要，長內容才產生內部 partial notes，並以 final synthesis 輸出單一連貫摘要。
 - [ ] 定義手動 retry：轉錄成功但摘要失敗時，可保留 transcript 並由使用者明確選擇只重跑摘要
 - [x] 強化 OpenRouter 摘要空回應處理：當 response 沒有 `message.content` 時，保留 HTTP status、provider error detail 與 response shape 到 debug log，modal 顯示可行診斷方向（quota / rate limit / model unsupported / empty output）（完成：2026-04-29 00:36）
 - [x] 補摘要階段 recovery：轉錄成功但 OpenRouter 摘要失敗時，保留 transcript 與 media artifacts 狀態；自動 fallback 到 Gemini 的行為已於 2026-05-01 20:52 移除，改由使用者手動重跑。（完成：2026-04-29 00:36，更新：2026-05-01 20:52）
@@ -201,9 +217,10 @@ Open Work：
 - [x] 定義 note output metadata contract 與 path collision policy 的進一步規格（完成：2026-04-24 00:00）
 - [x] 定義 webpage metadata policy，明確規定網頁來源 `Platform` 統一輸出為 `Web`（完成：2026-04-24 00:00）
 - [x] 定義 cleanup/recovery 在成功、失敗、取消三種狀態的責任分界（完成：2026-04-23 20:38）
-- [ ] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle
+- [x] 決定字幕、逐字稿附件、衍生輸出是否納入同一 artifact lifecycle：影音字幕檔 `.srt` 必須保留在下載媒體的 session 暫存資料夾，不得被 `delete_temp` 成功清理移除。（完成：2026-05-01 23:18）
 - [ ] 完成逐字稿雙輸出：逐字稿除依規則寫入 Obsidian 筆記外，也需在下載媒體的 session 資料夾中保留一份完成版逐字稿檔案；此保留不應被 `retentionMode: delete_temp` 成功清理移除，並需納入 cleanup / final handoff 安全檢查。
-- [ ] 定義字幕產線是否納入 v1/vNext，包含 `.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略
+- [ ] 實作影音字幕檔保留：在下載媒體的 session 暫存資料夾中產生並保留真正 UTF-8 `.srt`，補 `metadata.json` lineage、cleanup 保護與 final handoff 檢查。
+- [ ] 定義字幕產線剩餘 v1/vNext 邊界，包含 `.srt` 生成細節、FFmpeg 軟字幕嵌入、含字幕影片保留策略
 
 ## User Experience 使用體驗
 

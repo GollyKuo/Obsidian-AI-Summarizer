@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-05-01 01:40
+最後更新：2026-05-01 23:45
 
 ## 目的
 
@@ -88,10 +88,14 @@
 - 檔名：`normalized.wav`
 - 格式：`WAV PCM 16-bit mono 16kHz`
 
-### 3) transcript artifact
+### 3) transcript / subtitle artifacts
 
-- 檔名：`transcript.srt`
-- 格式：`UTF-8 SRT`
+- 完成版逐字稿檔名：`transcript.md`
+  - 格式：`UTF-8 Markdown`
+  - 說明：供摘要失敗 recovery、手動重跑摘要與完成版逐字稿雙輸出使用。
+- 影音字幕檔名：`subtitles.srt`
+  - 格式：`UTF-8 SRT`
+  - 說明：`media_url` / `local_media` 成功完成轉錄後必須保留在 session 暫存資料夾；不可因 `retentionMode: delete_temp` 成功清理而刪除。
 
 ### 4) metadata
 
@@ -107,6 +111,7 @@
   - `downloadedPath`
   - `normalizedAudioPath`
   - `transcriptPath`
+  - `subtitlePath`
   - `warnings`
 
 ### 5) ai upload artifacts
@@ -187,23 +192,49 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 ### 成本對齊
 
 1. 壓縮策略主要降低「上傳頻寬與音訊處理成本」。
-2. 摘要 token 成本另由「chunk summary -> final summary」策略控制，不與音訊壓縮耦合。
+2. 摘要 token 成本另由「合併 transcript -> 整體摘要；必要時 partial notes -> final synthesis」策略控制，不與音訊壓縮耦合。
 3. `balanced` profile 的目標是相較 `normalized.wav` 降低至少 70% 上傳量（以樣本驗證）。
+
+## 長媒體摘要整合策略
+
+1. 音訊 chunk 與 transcript chunk 只屬於內部處理、token control、diagnostics 與 recovery，不是內容章節。
+2. 轉錄完成後，摘要階段應優先使用合併後的完整 transcript 作為整體脈絡，產出單一連貫摘要。
+3. 若合併 transcript 超過摘要模型可承受長度，允許先產生內部 partial notes；partial notes 不得直接拼接為最終筆記。
+4. partial notes 完成後必須再做 final synthesis，由模型重新整合主題脈絡、重複論點、時間順序與結論。
+5. 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段 1` 等技術分段字樣，除非原始內容本身真的在討論這些詞。
+6. chunk index、artifact path、chunk duration 等資訊只可出現在 diagnostics、metadata 或 debug log，不可進入使用者可見摘要正文。
+
+## Gemini 大型媒體轉錄策略
+
+### v1：逐 chunk inline 轉錄
+
+1. 若 `aiUploadArtifactPaths` 只有單一 artifact，Gemini 可用既有 `inline_data` 單次 request 轉錄。
+2. 若有多個 `ai-upload` chunk，不得把所有 chunk 一次塞進同一個 Gemini `generateContent` request。
+3. Gemini v1 必須逐 chunk 送出 `inline_data` request，取得每段 transcript 後依 chunk 檔名順序合併。
+4. 每段 chunk 需有獨立 diagnostics：artifact path、chunk index、duration、request failure、empty output、provider error excerpt。
+5. partial transcript recovery 需能保留已成功 chunk，避免單段失敗時整份長媒體轉錄結果全部丟失。
+6. 合併後 transcript 仍需走同一套 `MediaTranscriptionResult`、`transcript.md`、`subtitles.srt` 與 summary handoff，不得讓 note writer 或 summary provider 分支處理 Gemini chunk 細節，也不得讓 chunk 標記進入摘要 prompt 的使用者可見內容。
+
+### vNext：Gemini file upload strategy
+
+1. Gemini file upload 保留為可選 `TranscriptionProvider` strategy，適合超長媒體、單一 chunk 仍過大、或 inline request 穩定性不足的情境。
+2. file upload strategy 必須另行定義 remote file lifecycle、processing polling、取消後 cleanup、privacy/retention policy 與錯誤診斷。
+3. file upload 只改變傳輸方式，不改變 AI-ready artifact、prompt contract、transcript/subtitle output contract。
 
 ## 媒體暫存檔模式對應
 
 - `delete_temp`
-  - 成功完成 (`completed`)：刪除 `downloaded.*`、`normalized.wav`、`transcript.srt`、`ai-upload/`、`metadata.json`
-  - 失敗或取消 (`failed` / `cancelled`)：為了 recovery 保留 `downloaded.*`、`metadata.json`；刪除其餘中間產物
+  - 成功完成 (`completed`)：刪除 `downloaded.*`、`normalized.wav`、`ai-upload/`、`metadata.json`；保留 `transcript.md`、`subtitles.srt`
+  - 失敗或取消 (`failed` / `cancelled`)：為了 recovery 保留 `downloaded.*`、`metadata.json`；若 `transcript.md`、`subtitles.srt` 已產生也必須保留；刪除其餘中間產物
 - `keep_temp`
-  - 成功完成 (`completed`)：保留 `downloaded.*`、`normalized.wav`、`transcript.srt`；刪除 `ai-upload/`、`metadata.json`
-  - 失敗或取消 (`failed` / `cancelled`)：保留 `downloaded.*`、`normalized.wav`、`transcript.srt`、`metadata.json`；刪除 `ai-upload/`
+  - 成功完成 (`completed`)：保留 `downloaded.*`、`normalized.wav`、`transcript.md`、`subtitles.srt`；刪除 `ai-upload/`、`metadata.json`
+  - 失敗或取消 (`failed` / `cancelled`)：保留 `downloaded.*`、`normalized.wav`、`transcript.md`、`subtitles.srt`、`metadata.json`；刪除 `ai-upload/`
 
 ### Retention UX 對應
 
 舊版使用者語意對應如下；新版設定頁可用這些文案呈現，但底層仍以 artifact lifecycle 執行：
 
-1. `不保留來源檔案`：對應 `delete_temp`，成功後只保留 Obsidian 筆記與完成版逐字稿規則要求的輸出。
+1. `不保留來源檔案`：對應 `delete_temp`，成功後保留 Obsidian 筆記、完成版逐字稿與 session 暫存資料夾內的 `subtitles.srt`。
 2. `保留來源檔案`：對應 `keep_temp` 的基本模式，保留 `downloaded.*` 與必要 recovery artifact。
 3. `保留視訊 + 音訊`：vNext 進階模式，需同時保留來源影片與 AI-ready / normalized audio；目前不直接映射到 `keep_temp`，避免誤保留大量中間檔。
 
@@ -211,19 +242,21 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 
 ## 字幕衍生輸出策略
 
-舊版具備 SRT 與影片字幕嵌入能力；新版不把它放進主流程硬依賴，改成可選 artifact lifecycle。
+舊版具備 SRT 與影片字幕嵌入能力；新版將真正 SRT 字幕檔納入 v1 必備 artifact lifecycle，影片軟字幕嵌入仍維持可選 post-processing。
 
 ### v1 邊界
 
-1. `transcript.srt` 可作為 session 內衍生 artifact，但不得影響主筆記寫入成功。
-2. `.srt` 生成失敗時，主流程最多回報 warning；不可讓 `summary + transcript note` 回滾。
-3. `delete_temp` 成功後是否保留 `.srt`，以「完成版逐字稿雙輸出」規則為準；暫存型 `.srt` 不應被誤當成最終筆記。
+1. `subtitles.srt` 是 media workflow 成功完成後必須存在的 session 內最終衍生 artifact。
+2. `subtitles.srt` 必須是真正 UTF-8 SRT，不可把 transcript markdown 寫入 `.srt` 檔。
+3. 若 provider 沒有回傳細緻時間碼，仍需用可取得的 transcript segment / chunk duration 產生 best-effort SRT；不可靜默略過字幕檔。
+4. `.srt` 生成或保留失敗時，流程不可標記為完整成功；需回報可讀 diagnostics，並保留已完成的 transcript recovery artifact。
+5. `delete_temp` 成功後不得刪除 `subtitles.srt`；它屬於 final handoff artifact，不是可清除的中間暫存檔。
 
 ### vNext 邊界
 
 1. 軟字幕嵌入影片屬於可選 post-processing，不屬於 transcription provider。
 2. 含字幕影片保留需獨立 retention mode，不能混用 `keep_temp` 的全部中間檔保留語意。
-3. 字幕輸出需有自己的 failure diagnostics、smoke checklist 與 artifact cleanup 規則。
+3. 字幕輸出需有自己的 smoke checklist，覆蓋 `subtitles.srt` 產生、保留、cleanup 保護與重跑摘要情境。
 
 ## Cleanup/Recovery 責任分界（v1）
 
@@ -245,6 +278,63 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 2. 下載失敗：`download_failure`
 3. runtime 未配置：`runtime_unavailable`
 4. 使用者取消：`cancellation`
+
+## 舊版 Media Summarizer 對照檢查
+
+比較對象為本 repo 內 `Media Summarizer/` Python GUI 版；已用 `gui_app.py` 與 `src/downloader.py` 的 SHA-256 確認它與外層 `D:\程式開發\Media Summarizer` 同版。此節只記錄流程差異與可吸收經驗，不能把舊版 GUI 直連式架構搬回新版。
+
+### 端到端流程差異
+
+| 面向 | 舊版 `Media Summarizer` | 本專案 `AI Summarizer` | 判斷 |
+| --- | --- | --- | --- |
+| 入口判斷 | GUI 以 local file、已知影音平台網域、其他 URL 判斷本機媒體、影音 URL、網頁。direct media URL 若不在白名單內，容易被當成網頁。 | 明確分成 `media_url`、`local_media`、`webpage_url`，`media_url` 再分類為 YouTube / podcast / direct media。 | 新版來源邊界較清楚，direct media 支援較完整。 |
+| 下載方式 | 直接使用 `yt_dlp.YoutubeDL` Python API。YouTube 套用 1080p 內格式、mp4 merge、retry、fragment retry、socket timeout、chunk size、continuedl。非 YouTube 走 `bestaudio/best` 並用 postprocessor 轉 `mp3 192k`。 | 以 `yt-dlp` subprocess 執行。YouTube 吸收舊版穩定參數；podcast/direct media 不套用 YouTube 專屬格式假設，以通用參數下載到 session 內的 `downloaded.<ext>`。 | 新版隔離性與可診斷性較好；舊版 podcast 直接轉 mp3，對使用者較直覺但會把下載與轉檔耦合。 |
+| 下載暫存位置 | `downloads/<uuid8>/%(title)s.%(ext)s`，相對於 app 工作目錄。 | `<mediaCacheRoot>/<vault-id>/<session-id>/downloaded.<ext>`，預設在 vault 外 OS cache。 | 新版不污染 vault，且避免檔名受 title 影響。 |
+| 下載恢復 | YouTube 下載失敗時，只在當次 session 內找大於 1 MB 的最大檔案，並補抓 metadata。 | 只接受同 session 中 `yt-dlp` 印出的路徑或 `downloaded.*` 候選，排除 `.part` / `.ytdl`，依 mtime 選最新。 | 新版比舊版更安全，避免錯拿同 cache root 的舊檔。 |
+| 本機媒體 | 直接使用使用者選取的原始檔；影片才進字幕流程；缺少副檔名、大小與絕對路徑邊界。 | 只接受支援副檔名與絕對檔案路徑，大小上限 2 GiB，先複製到 session 的 `downloaded.<ext>`。 | 新版較安全，也能讓本機與 URL 流程共用後段 lifecycle。 |
+| 上傳前音訊處理 | `ffmpeg -vn -ac 1 -ar 16000 -b:a 32k` 輸出 `<base>_compressed.mp3`；失敗時直接上傳原始檔。 | 先建立 `normalized.wav`，再依 profile 產生 `ai-upload/ai-upload.ogg`，失敗 fallback 到 `m4a`、`flac`；長媒體再切成 chunk。 | 新版成本與格式控制較完整；舊版 fallback 到原始檔的行為簡單但可能造成高成本。 |
+| 長媒體處理 | 不分段；整個壓縮音訊上傳到 Gemini file upload。 | 超過門檻先切 `ai-upload/chunk-0000.<ext>` 起的多段；Gladia 已逐段上傳輪詢；Gemini 已定案 v1 改為逐 chunk inline 轉錄後合併；摘要階段再以合併 transcript 做全局整合。 | 新版對長媒體的恢復性較好；chunk 不應成為最終摘要結構；Gemini file upload 保留為 vNext 大型媒體策略。 |
+| 轉錄與摘要 | 同一個 Gemini model/file handle 先轉錄再摘要。 | `TranscriptionProvider` 與 `SummaryProvider` 已拆分，支援 Gemini/Gladia 轉錄與 Gemini/OpenRouter 摘要。 | 新版模型路由彈性明顯較好。 |
+| AI 傳輸方式 | Gemini file upload，輪詢 `PROCESSING` 到完成後再 `generate_content([myfile, prompt])`。 | Gemini v1 使用逐 chunk `inline_data`；Gladia 走 `POST /upload`、`POST /pre-recorded`、輪詢結果。 | 逐 chunk inline 先降低 payload 與重試成本；file upload 待 remote lifecycle 與 retention policy 清楚後再做。 |
+| 逐字稿格式 | prompt 要求 `{0m8s - 0m13s}`；影片會用 regex 轉 SRT。 | transcript provider 回傳 markdown/segments；Gladia segments 會格式化為 `{startMs-endMs}`；Gemini inline 目前保留模型文字輸出。 | 新版 provider contract 較乾淨，但 `.srt` artifact 名稱與實際內容仍需校準。 |
+| 字幕產物 | 影片可產生 `<video>.srt`，再用 ffmpeg copy mux 成 `<video>_subtitled.mkv`。 | `subtitles.srt` 已定案為 v1 必保留 artifact；軟字幕嵌入仍是 vNext 可選 post-processing。 | 新版需先補齊獨立 SRT 保留；含字幕影片保留模式可後續再做。 |
+| Obsidian 輸出 | 直接寫進使用者選擇的 vault path，frontmatter 為 Title/Creator/Platform/Source/Created，支援讀模板後覆寫固定欄位並插入 Summary/Transcript。 | `NoteWriter` 負責 path collision、metadata normalize、內建模板或自訂模板，輸出 summary + `## Transcript`。 | 新版更符合 Obsidian plugin 架構，也較容易測試。 |
+| 保留策略 | 三種 UI 語意：不保留來源檔案、保留來源檔案、保留視訊 + 音訊。media URL 可優先保留含字幕影片；local media 不刪原始檔，只清中間產物。 | `delete_temp` / `keep_temp` 兩種底層模式；成功、失敗、取消由 `artifact-retention` 集中決策。 | 新版 lifecycle 較一致；舊版第三種模式與含字幕影片保留語意仍可作為 vNext UX。 |
+| 取消與清理 | `stop_event` + yt-dlp progress hook；Gemini SDK 呼叫用 polling future 包住，但已送出的 SDK request 不一定能強制中止。清理由 GUI 分支直接處理。 | `AbortSignal` 串接 downloader、ffmpeg/ffprobe、fetch、Gladia polling；yt-dlp 取消會 kill process tree；清理由 orchestration 統一執行。 | 新版取消與清理責任邊界較完整。 |
+| 外部依賴 | PyInstaller 可帶 `ffmpeg.exe`；`yt-dlp` 以 Python package 使用，啟動背景檢查 PyPI/GitHub 最新版本。 | 任務開始前檢查 `yt-dlp`、`ffmpeg`、`ffprobe`；可設定 ffmpeg/ffprobe 路徑，並有 dependency drift / release gate 策略。 | 新版診斷較正式；若要降低使用者安裝成本，可補 `yt-dlp` 路徑或安裝 UX。 |
+| 測試性 | 主要靠 GUI 實機流程與 dev log。 | 已有 downloader、compressor、retention、provider routing、media integration 測試。 | 新版工程品質較高。 |
+
+### 暫存與衍生產物矩陣
+
+| 產物 | 舊版 URL 媒體 | 舊版本機媒體 | 本專案目前設計 |
+| --- | --- | --- | --- |
+| 原始下載/匯入 | `downloads/<uuid8>/<title>.<ext>`；YouTube 通常 mp4，podcast/audio 轉成 mp3。 | 使用原始檔路徑，不複製。 | session 內 `downloaded.<ext>`；本機檔也先複製。 |
+| 正規化音訊 | 無獨立 normalized 檔。 | 無獨立 normalized 檔。 | `normalized.wav`，PCM 16-bit mono 16kHz。 |
+| AI 上傳檔 | `<base>_compressed.mp3`，32 kbps mono 16kHz。 | `<base>_compressed.mp3`，位於原始檔同資料夾。 | `ai-upload/ai-upload.ogg`，fallback `ai-upload.m4a`、`ai-upload.flac`。 |
+| 分段檔 | 無。 | 無。 | `ai-upload/chunk-0000.<ext>` 起，多段時取代單一 `ai-upload.<ext>` 交給 provider。 |
+| metadata | 只在記憶體 dict 中流動。 | 只在記憶體 dict 中流動。 | `metadata.json`，目前記錄 session/source/download/normalized/transcript/warnings；`uploadArtifactPaths`、chunk metadata 仍需補落盤。 |
+| 逐字稿檔 | 只寫入 Obsidian；影片另可生成 SRT。 | 只寫入 Obsidian；影片另可生成 SRT。 | `transcript.md` 必須保留在 session 暫存資料夾，供 recovery 與手動重跑摘要使用。 |
+| 字幕檔 | `<video>.srt`。 | `<video>.srt`，位於原始檔同資料夾。 | `subtitles.srt` 必須保留在 session 暫存資料夾，且不得被 `delete_temp` 成功清理移除。 |
+| 含字幕影片 | `<video>_subtitled.mkv`。 | `<video>_subtitled.mkv`，位於原始檔同資料夾。 | vNext 尚未接入。 |
+| 最終筆記 | `<title>.md`，同名加 `(2)`。 | `<title>.md`，同名加 `(2)`。 | 由 `outputFolder`、path resolver、note writer 決定。 |
+
+### 優缺點結論
+
+舊版的優點是單機 EXE 心智模型簡單、Gemini file upload 對大型媒體直覺、字幕嵌入與三段 retention UX 已具體可用，且背景檢查 `yt-dlp` 版本能提醒使用者處理平台變動。
+
+舊版的主要風險是 GUI、下載、AI、Obsidian 寫入高度耦合；本機媒體中間檔會寫在原始檔旁邊；非 YouTube URL 入口判斷較粗；缺少正式錯誤分類、測試與 provider 抽象；長媒體無 chunk strategy，失敗後較難 recovery。
+
+新版的優點是 session isolation、vault 外 cache、typed error、runtime diagnostics、local media safe copy、AI-ready artifact、provider 拆分、長媒體內部分段處理與測試覆蓋都已成形。整體架構不需要回頭套用舊版流程。
+
+新版目前需要校準的地方已轉成 `docs/backlog.md` 的「近期優化路線：舊版對照後」，並在 `docs/backlog-active.md` 保留 release 收斂所需 checklist：
+
+1. 規格寫明 `metadata.json` 需記錄 `uploadArtifactPaths`，但目前 compression 結果只在 payload 內流動，尚未補回 metadata。
+2. 規格的 chunk 範例是 `chunk-0001` 起，實作與測試是 ffmpeg 預設的 `chunk-0000` 起，文件或實作需統一。
+3. `transcript.srt` 被規格描述為 UTF-8 SRT，但現行 recovery 會把 transcript markdown 寫入該路徑；已定案需拆成 `transcript.md` 與必保留的 `subtitles.srt`。
+4. VAD 與「轉錄品質守門後自動升級重跑」仍屬規格目標，現行 compressor 只做編碼失敗 fallback 與長度 chunking。
+5. Gemini inline 對多 chunk 已定案需改成逐 chunk request 後合併 transcript，避免一次送出所有 `inline_data` 造成 payload、timeout、503 或整批重試風險。
+6. 現行 media summary chunking 會把中間分段摘要以 `## Chunk N` 拼入最終輸出；需改為內部 partial notes + final synthesis，確保使用者可見摘要不暴露 chunk 標記。
+7. 舊版可見的「保留含字幕影片」與「保留視訊 + 音訊」尚未映射成新版進階 retention mode；但獨立 `subtitles.srt` 已定案為 v1 必保留產物。
 
 ## 備註
 
