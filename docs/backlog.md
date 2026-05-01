@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-01 01:42
+最後更新：2026-05-01 20:52
 
 ## 用途
 
@@ -74,7 +74,7 @@
 
 #### CAP-201 Webpage Flow Baseline 網頁流程基線
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
 `webpage URL -> summary note` 主線已打通，已定義舊版 `trafilatura` / readability 類抽取經驗的 vNext adapter 邊界；剩付費牆與內容不完整警語落地。
@@ -105,7 +105,7 @@
 狀態：`active`
 
 摘要：
-收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分、provider routing、OpenRouter 空回應診斷、Gemini 摘要 fallback、失敗 transcript recovery，並完成 Gemini file upload 作為 vNext 大型媒體轉錄 strategy 的邊界評估；剩更完整的手動只重跑摘要 UX。
+收斂 transcript、summary、chunking、跨輸入來源共用的 AI output contract，已落地轉錄/摘要模型拆分、provider routing、OpenRouter 空回應診斷、Gladia pre-recorded transcription provider、Gladia media URL 實機 smoke、失敗 transcript recovery，並移除 AI provider 自動 fallback 以忠實呈現原 provider 錯誤；剩 Gladia local media / mixed provider smoke 與更完整的手動只重跑摘要 UX。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
@@ -141,17 +141,17 @@
 
 #### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 
-狀態：`completed`
+狀態：`active`
 
 摘要：
-已完成 capability-based 測試矩陣、smoke checklist 與 regression gate。
+已完成 capability-based 測試矩陣、smoke checklist 與 regression gate；Gladia media URL smoke 已通過，仍需補 local media 與 Gladia + OpenRouter/Qwen mixed provider smoke。
 
 #### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
 狀態：`completed`
 
 摘要：
-已完成 logging policy、diagnostics summary、錯誤呈現層級收斂與 AI provider response diagnostics；OpenRouter / Gemini 失敗時可從 debug log 分辨 transport error、provider error payload、empty output 與 unexpected response shape。
+已完成 logging policy、diagnostics summary、錯誤呈現層級收斂與 AI provider response diagnostics；OpenRouter / Gemini 失敗時可從 debug log 分辨 transport error、provider error payload、empty output 與 unexpected response shape，Gladia 失敗時可保留 job id、polling status 與 provider error payload diagnostics。
 
 #### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
 
@@ -196,7 +196,7 @@
 狀態：`completed`
 
 摘要：
-已完成 provider 分層與使用者可管理的 AI 模型清單。初始化不預載內建模型選項，模型清單改由使用者透過設定頁的下拉選單與管理輸入維護；每筆模型記錄 provider、用途（轉錄 / 摘要）、顯示名稱與 model id。轉錄與摘要共用同一套管理模型 autocomplete/datalist，會依目前 provider 動態切換 Gemini 或 OpenRouter 候選來源；OpenRouter 路徑支援從官方 models API 查詢、校對與驗證 model id / 名稱，Gemini 與 OpenRouter 模型清單支援手動更新，並採 1 天快取。Gemini 轉錄模型保留 audio-capable 風險提示與 API 驗證邊界。（完成：2026-04-26）
+已完成 provider 分層與使用者可管理的 AI 模型清單。模型清單由使用者透過設定頁的下拉選單與管理輸入維護；每筆模型記錄 provider、用途（轉錄 / 摘要）、顯示名稱與 model id。Gemini 轉錄與摘要 provider 都內建 `gemini-3-flash-preview` 與 `gemini-2.5-flash` 兩個官方 model ID，並以 model ID 作為下拉顯示文字，轉錄與摘要共用同一套管理模型 autocomplete/datalist，會依目前 provider 動態切換 Gemini 或 OpenRouter 候選來源；OpenRouter 路徑支援從官方 models API 查詢、校對與驗證 model id / 名稱，Gemini 與 OpenRouter 模型清單支援手動更新，並採 1 天快取。Gemini 轉錄模型保留 audio-capable 風險提示與 API 驗證邊界；Gladia 使用 `default` 轉錄模型佔位，接入 CAP-205 provider routing，不改變 CAP-504 已完成的 catalog 邊界。（完成：2026-04-26）
 
 #### CAP-505 Batch And Queueing 批次與佇列
 

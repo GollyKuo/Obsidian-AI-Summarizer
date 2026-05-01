@@ -11,7 +11,7 @@ import {
   getTranscriptionModelOptions,
   getGeminiTranscriptionRiskMessage,
   normalizeSummaryModel,
-  normalizeTranscriptionModel,
+  normalizeTranscriptionModelForProvider,
   removeModelCatalogEntry,
   upsertModelCatalogEntry,
   type AiModelCatalogEntry,
@@ -421,8 +421,40 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       kind: "transcription",
       provider: this.plugin.settings.transcriptionProvider,
       model: this.plugin.settings.transcriptionModel,
-      apiKey: this.plugin.settings.apiKey
+      apiKey: this.getTranscriptionApiKey()
     });
+  }
+
+  private getTranscriptionApiKey(): string {
+    return this.plugin.settings.transcriptionProvider === "gladia"
+      ? this.plugin.settings.gladiaApiKey
+      : this.plugin.settings.apiKey;
+  }
+
+  private setTranscriptionApiKey(value: string): void {
+    if (this.plugin.settings.transcriptionProvider === "gladia") {
+      this.plugin.settings.gladiaApiKey = value.trim();
+      return;
+    }
+
+    this.plugin.settings.apiKey = value.trim();
+    this.invalidateModelDataListCache("gemini");
+  }
+
+  private getTranscriptionProviderLabel(): string {
+    return this.plugin.settings.transcriptionProvider === "gladia" ? "Gladia" : "Gemini";
+  }
+
+  private getTranscriptionModelPlaceholder(): string {
+    return this.plugin.settings.transcriptionProvider === "gladia"
+      ? "default"
+      : "gemini-3-flash-preview";
+  }
+
+  private getTranscriptionModelDescription(): string {
+    return this.plugin.settings.transcriptionProvider === "gladia"
+      ? "Gladia 第一版不需要模型 id；保留 default 供設定與模型清單一致化。"
+      : "建議填入穩定的 Gemini audio-capable 模型。";
   }
 
   private async testSummaryApi(): Promise<void> {
@@ -602,12 +634,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private resolveManagedModelDataProvider(
     provider: SummaryProvider | TranscriptionProvider,
     purpose: ModelPurpose
-  ): "gemini" | "openrouter" {
+  ): "gemini" | "openrouter" | null {
     if (purpose === "summary") {
       return provider === "openrouter" ? "openrouter" : "gemini";
     }
 
-    return provider === "openrouter" ? "openrouter" : "gemini";
+    return provider === "gemini" ? "gemini" : null;
   }
 
   private getManagedModelDataListEl(): HTMLDataListElement {
@@ -632,12 +664,12 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private async updateManagedModelAutocomplete(
     query: string,
-    provider: "gemini" | "openrouter"
+    provider: "gemini" | "openrouter" | null
   ): Promise<void> {
     const dataListEl = this.getManagedModelDataListEl();
     dataListEl.replaceChildren();
 
-    if (query.trim().length === 0) {
+    if (!provider || query.trim().length === 0) {
       return;
     }
 
@@ -664,7 +696,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private attachManagedModelAutocomplete(
     inputEl: HTMLInputElement,
-    resolveProvider: () => "gemini" | "openrouter",
+    resolveProvider: () => "gemini" | "openrouter" | null,
     onValueChange: (value: string) => void
   ): void {
     inputEl.setAttribute("list", this.getManagedModelDataListEl().id);
@@ -692,7 +724,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   ): void {
     const normalizedModelId =
       purpose === "transcription"
-        ? normalizeTranscriptionModel(modelId)
+        ? normalizeTranscriptionModelForProvider(provider as TranscriptionProvider, modelId)
         : normalizeSummaryModel(provider as SummaryProvider, modelId);
 
     this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
@@ -725,7 +757,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       entry
     );
     if (entry.purpose === "transcription") {
-      this.plugin.settings.transcriptionProvider = "gemini";
+      this.plugin.settings.transcriptionProvider = entry.provider as TranscriptionProvider;
       this.plugin.settings.transcriptionModel = entry.modelId;
     } else if (entry.provider === this.plugin.settings.summaryProvider) {
       this.plugin.settings.summaryModel = entry.modelId;
@@ -750,7 +782,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           this.plugin.settings.modelCatalog,
           this.plugin.settings.transcriptionProvider,
           "transcription"
-        ) ?? normalizeTranscriptionModel("");
+        ) ?? normalizeTranscriptionModelForProvider(this.plugin.settings.transcriptionProvider, "");
     }
 
     const hasSelectedSummaryModel = this.plugin.settings.modelCatalog.some(
@@ -870,7 +902,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
+      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -885,7 +917,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
                 this.plugin.settings.modelCatalog,
                 this.plugin.settings.transcriptionProvider,
                 "transcription"
-              ) ?? this.plugin.settings.transcriptionModel;
+              ) ?? normalizeTranscriptionModelForProvider(this.plugin.settings.transcriptionProvider, "");
             await this.plugin.saveSettings();
             this.display();
           });
@@ -893,7 +925,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("模型")
-      .setDesc("建議選穩定的 Gemini audio-capable 模型。")
+      .setDesc(this.getTranscriptionModelDescription())
       .addDropdown((dropdown) => {
         for (const option of getTranscriptionModelOptions(
           this.plugin.settings.transcriptionProvider,
@@ -914,14 +946,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc("Gemini 轉錄使用的 API Key。")
+      .setDesc(`${this.getTranscriptionProviderLabel()} 轉錄使用的 API Key。`)
       .addText((text) =>
         text
-          .setPlaceholder("輸入 Gemini API Key")
-          .setValue(this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getTranscriptionProviderLabel()} API Key`)
+          .setValue(this.getTranscriptionApiKey())
           .onChange(async (value) => {
-            this.plugin.settings.apiKey = value.trim();
-            this.invalidateModelDataListCache("gemini");
+            this.setTranscriptionApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           })
@@ -1015,7 +1046,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
+      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1025,24 +1056,34 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.transcriptionProvider)
           .onChange(async (value) => {
             this.plugin.settings.transcriptionProvider = value as TranscriptionProvider;
+            this.plugin.settings.transcriptionModel =
+              getFirstModelIdForProvider(
+                this.plugin.settings.modelCatalog,
+                this.plugin.settings.transcriptionProvider,
+                "transcription"
+              ) ?? normalizeTranscriptionModelForProvider(this.plugin.settings.transcriptionProvider, "");
             this.persistSelectedModelInCatalog(
               this.plugin.settings.transcriptionProvider,
               "transcription",
               this.plugin.settings.transcriptionModel
             );
             await this.plugin.saveSettings();
+            this.display();
           });
       });
 
     new Setting(containerEl)
       .setName("模型")
-      .setDesc("建議填入穩定的 Gemini audio-capable 模型。")
+      .setDesc(this.getTranscriptionModelDescription())
       .addText((text) =>
         text
-          .setPlaceholder("gemini-2.5-flash")
+          .setPlaceholder(this.getTranscriptionModelPlaceholder())
           .setValue(this.plugin.settings.transcriptionModel)
           .onChange(async (value) => {
-            this.plugin.settings.transcriptionModel = normalizeTranscriptionModel(value);
+            this.plugin.settings.transcriptionModel = normalizeTranscriptionModelForProvider(
+              this.plugin.settings.transcriptionProvider,
+              value
+            );
             this.persistSelectedModelInCatalog(
               this.plugin.settings.transcriptionProvider,
               "transcription",
@@ -1053,14 +1094,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc("Gemini 轉錄使用的 API Key。")
+      .setDesc(`${this.getTranscriptionProviderLabel()} 轉錄使用的 API Key。`)
       .addText((text) =>
         text
-          .setPlaceholder("輸入 Gemini API Key")
-          .setValue(this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getTranscriptionProviderLabel()} API Key`)
+          .setValue(this.getTranscriptionApiKey())
           .onChange(async (value) => {
-            this.plugin.settings.apiKey = value.trim();
-            this.invalidateModelDataListCache("gemini");
+            this.setTranscriptionApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           })
@@ -1216,7 +1256,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     const modelId =
       purpose === "transcription"
-        ? normalizeTranscriptionModel(modelInput)
+        ? normalizeTranscriptionModelForProvider(provider as TranscriptionProvider, modelInput)
         : normalizeSummaryModel(provider as SummaryProvider, modelInput);
     this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
       this.plugin.settings.modelCatalog,
@@ -1251,13 +1291,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     if (purpose === "transcription") {
       const transcriptionProvider = provider as TranscriptionProvider;
+      this.plugin.settings.transcriptionProvider = transcriptionProvider;
       this.plugin.settings.transcriptionModel =
         getFirstModelIdForProvider(
           this.plugin.settings.modelCatalog,
           transcriptionProvider,
           "transcription"
         ) ??
-        normalizeTranscriptionModel("");
+        normalizeTranscriptionModelForProvider(transcriptionProvider, "");
     } else {
       const summaryProvider = provider as SummaryProvider;
       this.plugin.settings.summaryModel =
@@ -1274,7 +1315,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("目前只有 Gemini；未來加入其他 audio-capable provider 時會出現在這裡。")
+      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1286,7 +1327,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
               this.plugin.settings.modelCatalog,
               this.plugin.settings.transcriptionProvider,
               "transcription"
-            ) ?? normalizeTranscriptionModel("");
+            ) ?? normalizeTranscriptionModelForProvider(this.plugin.settings.transcriptionProvider, "");
           await this.plugin.saveSettings();
           this.display();
         });
@@ -1316,7 +1357,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setDesc("新增或刪除轉錄模型下拉選單中的項目。")
       .addText((text) => {
         manageTranscriptionModelInputEl = text.inputEl;
-        return text.setPlaceholder("gemini-2.5-flash").onChange((value) => {
+        return text.setPlaceholder(this.getTranscriptionModelPlaceholder()).onChange((value) => {
           newTranscriptionModel = value;
         });
       })
@@ -1344,8 +1385,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         manageTranscriptionModelInputEl,
         () =>
           this.resolveManagedModelDataProvider(
-          this.plugin.settings.transcriptionProvider,
-          "transcription"
+            this.plugin.settings.transcriptionProvider,
+            "transcription"
           ),
         (value) => {
           newTranscriptionModel = value;
@@ -1355,14 +1396,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc("Gemini 轉錄使用的 API Key。")
+      .setDesc(`${this.getTranscriptionProviderLabel()} 轉錄使用的 API Key。`)
       .addText((text) =>
         text
-          .setPlaceholder("輸入 Gemini API Key")
-          .setValue(this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getTranscriptionProviderLabel()} API Key`)
+          .setValue(this.getTranscriptionApiKey())
           .onChange(async (value) => {
-            this.plugin.settings.apiKey = value.trim();
-            this.invalidateModelDataListCache("gemini");
+            this.setTranscriptionApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           })

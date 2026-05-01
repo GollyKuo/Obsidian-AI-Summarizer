@@ -12,6 +12,7 @@ import type {
 } from "@domain/types";
 import { throwIfCancelled } from "@orchestration/cancellation";
 import type { SummaryProvider } from "@services/ai/ai-provider";
+import { transcribeWithGladia } from "@services/ai/gladia-transcription-provider";
 import { buildMediaSummaryPrompt, buildTranscriptPrompt, buildWebpageSummaryPrompt } from "@services/ai/prompt-builder";
 import { formatTranscriptMarkdown, type TranscriptionProvider } from "@services/ai/transcription-provider";
 
@@ -407,6 +408,9 @@ async function readAudioPart(filePath: string): Promise<GeminiPart> {
 
 export interface ConfiguredAiProviderOptions {
   fetchImpl?: typeof fetch;
+  gladiaPollIntervalMs?: number;
+  gladiaMaxPollingMs?: number;
+  gladiaRequestTimeoutMs?: number;
 }
 
 export function createConfiguredSummaryProvider(
@@ -486,6 +490,16 @@ export function createConfiguredTranscriptionProvider(
         });
       }
 
+      if (input.transcriptionProvider === "gladia") {
+        return transcribeWithGladia(input, signal, {
+          apiKey: settings.gladiaApiKey,
+          fetchImpl: options.fetchImpl,
+          requestTimeoutMs: options.gladiaRequestTimeoutMs,
+          pollIntervalMs: options.gladiaPollIntervalMs,
+          maxPollingMs: options.gladiaMaxPollingMs
+        });
+      }
+
       const audioParts = await Promise.all(aiUploadArtifactPaths.map((artifactPath) => readAudioPart(artifactPath)));
       const transcriptMarkdown = await generateGeminiText({
         apiKey: settings.apiKey,
@@ -504,10 +518,11 @@ export function createConfiguredTranscriptionProvider(
           }
         ],
         transcriptMarkdown,
-        warnings:
-          aiUploadArtifactPaths.length > 1
+        warnings: [
+          ...(aiUploadArtifactPaths.length > 1
             ? [`Transcribed ${aiUploadArtifactPaths.length} AI upload artifact chunks in one request.`]
-            : []
+            : [])
+        ]
       };
     }
   };

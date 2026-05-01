@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_GEMINI_MODEL,
+  DEFAULT_GLADIA_TRANSCRIPTION_MODEL,
   DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
@@ -20,19 +21,47 @@ import {
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
+  normalizeTranscriptionModelForProvider,
   removeModelCatalogEntry,
   upsertModelCatalogEntry
 } from "@domain/settings";
 
 describe("settings", () => {
-  it("does not preload built-in model options into the user catalog", () => {
+  it("preloads the supported Gemini transcription and summary models into the default catalog", () => {
     expect(DEFAULT_SETTINGS.transcriptionProvider).toBe(DEFAULT_TRANSCRIPTION_PROVIDER);
     expect(DEFAULT_SETTINGS.transcriptionModel).toBe(DEFAULT_TRANSCRIPTION_MODEL);
     expect(DEFAULT_SETTINGS.summaryProvider).toBe(DEFAULT_SUMMARY_PROVIDER);
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_SUMMARY_MODEL);
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_GEMINI_MODEL);
-    expect(DEFAULT_SETTINGS.modelCatalog).toEqual([]);
-    expect(DEFAULT_MODEL_CATALOG).toEqual([]);
+    expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.modelId)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
+    expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.displayName)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
+    expect(DEFAULT_MODEL_CATALOG).toEqual(DEFAULT_SETTINGS.modelCatalog);
+    expect(getTranscriptionModelOptions().map((option) => option.value)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
+    expect(getTranscriptionModelOptions().map((option) => option.label)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
+    expect(getSummaryModelOptions("gemini").map((option) => option.value)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
+    expect(getSummaryModelOptions("gemini").map((option) => option.label)).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash"
+    ]);
     expect(GEMINI_MODEL_OPTIONS).toEqual([]);
     expect(OPENROUTER_SUMMARY_MODEL_OPTIONS).toEqual([]);
   });
@@ -42,6 +71,11 @@ describe("settings", () => {
     expect(isSupportedGeminiModel(" ")).toBe(false);
     expect(normalizeTranscriptionModel("custom-model")).toBe("custom-model");
     expect(normalizeTranscriptionModel(" ")).toBe(DEFAULT_TRANSCRIPTION_MODEL);
+    expect(normalizeTranscriptionModel("gemini-3.0-flash-preview")).toBe("gemini-3-flash-preview");
+    expect(normalizeTranscriptionModelForProvider("gladia", " ")).toBe(DEFAULT_GLADIA_TRANSCRIPTION_MODEL);
+    expect(normalizeSummaryModel("gemini", "gemini-3.0-flash-preview")).toBe(
+      "gemini-3-flash-preview"
+    );
     expect(normalizeSummaryProvider("unknown")).toBe(DEFAULT_SUMMARY_PROVIDER);
     expect(normalizeSummaryModel("gemini", "custom-summary")).toBe("custom-summary");
     expect(normalizeSummaryModel("openrouter", "vendor/model")).toBe("vendor/model");
@@ -70,17 +104,25 @@ describe("settings", () => {
       displayName: "Qwen",
       modelId: "qwen/qwen3.6-plus"
     });
+    const gladiaTranscript = createModelCatalogEntry({
+      provider: "gladia",
+      purpose: "transcription",
+      displayName: "Gladia Default",
+      modelId: "default"
+    });
 
     expect(geminiTranscript).not.toBeNull();
     expect(openRouterSummary).not.toBeNull();
+    expect(gladiaTranscript).not.toBeNull();
 
     let catalog = normalizeModelCatalog([
       geminiTranscript,
+      gladiaTranscript,
       openRouterSummary,
       { provider: "openrouter", purpose: "transcription", modelId: "bad" }
     ]);
 
-    expect(catalog).toHaveLength(2);
+    expect(catalog).toHaveLength(3);
     catalog = upsertModelCatalogEntry(catalog, {
       provider: "openrouter",
       purpose: "summary",
@@ -90,6 +132,9 @@ describe("settings", () => {
 
     expect(getTranscriptionModelOptions("gemini", catalog).map((option) => option.value)).toEqual([
       "gemini-audio"
+    ]);
+    expect(getTranscriptionModelOptions("gladia", catalog).map((option) => option.value)).toEqual([
+      "default"
     ]);
     expect(getSummaryModelOptions("openrouter", catalog).map((option) => option.label)).toEqual([
       "Qwen Updated"
@@ -103,7 +148,7 @@ describe("settings", () => {
     expect(getSummaryModelOptions("openrouter", catalog)).toEqual([]);
   });
 
-  it("can migrate saved selected models into the catalog without doing that for defaults", () => {
+  it("keeps built-in Gemini transcription models while migrating selected custom models", () => {
     expect(
       ensureSelectedModelsInCatalog([], {
         transcriptionProvider: "gemini",
@@ -111,7 +156,7 @@ describe("settings", () => {
         summaryProvider: "gemini",
         summaryModel: DEFAULT_SUMMARY_MODEL
       })
-    ).toEqual([]);
+    ).toEqual(DEFAULT_MODEL_CATALOG);
 
     expect(
       ensureSelectedModelsInCatalog(
@@ -124,6 +169,40 @@ describe("settings", () => {
         },
         { includeDefaults: true }
       )
+    ).toHaveLength(5);
+
+    expect(
+      ensureSelectedModelsInCatalog([], {
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-custom-audio",
+        summaryProvider: "gemini",
+        summaryModel: DEFAULT_SUMMARY_MODEL
+      }).map((entry) => entry.modelId)
+    ).toEqual([
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash",
+      "gemini-custom-audio"
+    ]);
+
+    expect(
+      ensureSelectedModelsInCatalog(
+        [
+          {
+            provider: "gemini",
+            purpose: "summary",
+            displayName: "Gemini 3.0 Flash Preview",
+            modelId: "gemini-3.0-flash-preview"
+          }
+        ],
+        {
+          transcriptionProvider: "gemini",
+          transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
+          summaryProvider: "gemini",
+          summaryModel: "gemini-3.0-flash-preview"
+        }
+      ).filter((entry) => entry.modelId === "gemini-3-flash-preview")
     ).toHaveLength(2);
   });
 

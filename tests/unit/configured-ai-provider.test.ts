@@ -256,4 +256,233 @@ describe("configured AI providers", () => {
       await rm(tempDirectory, { recursive: true, force: true });
     }
   });
+
+  it("reports Gemini transcription capacity errors without retrying another model", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi.fn<typeof fetch>().mockResolvedValueOnce(
+        jsonResponse(
+          {
+            error: {
+              message:
+                "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+            }
+          },
+          503
+        )
+      );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key"
+        },
+        { fetchImpl }
+      );
+
+      await expect(
+        provider.transcribeMedia(
+          {
+            metadata: {
+              title: "Media",
+              creatorOrAuthor: "Creator",
+              platform: "Local File",
+              source: audioPath,
+              created: "2026-04-25T00:00:00.000Z"
+            },
+            normalizedText: "",
+            transcript: [],
+            aiUploadArtifactPaths: [audioPath],
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash"
+          },
+          new AbortController().signal
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: expect.stringContaining("HTTP 503")
+      });
+
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+      expect(String(fetchImpl.mock.calls[0][0])).toContain("gemini-2.5-flash:generateContent");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("transcribes AI upload artifacts with Gladia pre-recorded polling", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.wav");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            audio_url: "https://api.gladia.io/file/audio-1",
+            audio_metadata: {
+              id: "audio-1",
+              filename: "ai-upload.wav",
+              size: 5,
+              audio_duration: 1
+            }
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              id: "job-1",
+              result_url: "https://api.gladia.io/v2/pre-recorded/job-1"
+            },
+            201
+          )
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: "job-1",
+            request_id: "G-job-1",
+            status: "queued",
+            result: null
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: "job-1",
+            request_id: "G-job-1",
+            status: "done",
+            result: {
+              transcription: {
+                full_transcript: "hello from Gladia",
+                utterances: [{ start: 0, end: 1.25, text: "hello from Gladia" }]
+              }
+            }
+          })
+        );
+
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          gladiaApiKey: "gladia-key"
+        },
+        {
+          fetchImpl,
+          gladiaPollIntervalMs: 1,
+          gladiaMaxPollingMs: 100
+        }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: audioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [audioPath],
+          transcriptionProvider: "gladia",
+          transcriptionModel: "default"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.transcriptMarkdown).toContain("hello from Gladia");
+      expect(result.transcript[0]).toMatchObject({
+        startMs: 0,
+        endMs: 1250,
+        text: "hello from Gladia"
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(4);
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://api.gladia.io/v2/upload");
+      expect(fetchImpl.mock.calls[0][1]?.headers).toMatchObject({
+        "x-gladia-key": "gladia-key"
+      });
+      expect(fetchImpl.mock.calls[1][0]).toBe("https://api.gladia.io/v2/pre-recorded");
+      expect(JSON.parse(String(fetchImpl.mock.calls[1][1]?.body))).toMatchObject({
+        audio_url: "https://api.gladia.io/file/audio-1",
+        callback: false,
+        summarization: false
+      });
+      expect(fetchImpl.mock.calls[2][0]).toBe("https://api.gladia.io/v2/pre-recorded/job-1");
+      expect(fetchImpl.mock.calls[3][0]).toBe("https://api.gladia.io/v2/pre-recorded/job-1");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("reports Gladia empty transcription output with diagnostics", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.wav");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(jsonResponse({ audio_url: "https://api.gladia.io/file/audio-1" }))
+        .mockResolvedValueOnce(jsonResponse({ id: "job-1" }, 201))
+        .mockResolvedValueOnce(
+          jsonResponse({
+            id: "job-1",
+            request_id: "G-job-1",
+            status: "done",
+            result: {
+              transcription: {
+                full_transcript: "",
+                utterances: []
+              }
+            }
+          })
+        );
+
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          gladiaApiKey: "gladia-key"
+        },
+        {
+          fetchImpl,
+          gladiaPollIntervalMs: 1,
+          gladiaMaxPollingMs: 100
+        }
+      );
+
+      await expect(
+        provider.transcribeMedia(
+          {
+            metadata: {
+              title: "Media",
+              creatorOrAuthor: "Creator",
+              platform: "Local File",
+              source: audioPath,
+              created: "2026-04-25T00:00:00.000Z"
+            },
+            normalizedText: "",
+            transcript: [],
+            aiUploadArtifactPaths: [audioPath],
+            transcriptionProvider: "gladia",
+            transcriptionModel: "default"
+          },
+          new AbortController().signal
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: expect.stringContaining("Gladia transcription result did not include transcript text"),
+        causeValue: expect.objectContaining({
+          provider: "Gladia",
+          failureKind: "empty_output",
+          jobId: "job-1",
+          requestId: "G-job-1",
+          utteranceCount: 0
+        })
+      } satisfies Partial<SummarizerError>);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
 });

@@ -76,6 +76,27 @@ describe("api-health-check", () => {
     });
   });
 
+  it("tests Gladia with the pre-recorded list endpoint", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ items: [] }));
+
+    const result = await testAiApiAvailability({
+      kind: "transcription",
+      provider: "gladia",
+      model: "default",
+      apiKey: "gladia-key",
+      fetchImpl
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.gladia.io/v2/pre-recorded?limit=1");
+    expect(init?.headers).toMatchObject({
+      "x-gladia-key": "gladia-key"
+    });
+  });
+
   it("returns provider error detail on failed requests", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

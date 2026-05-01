@@ -1,4 +1,4 @@
-﻿# AI Summarizer - API 指令規範
+# AI Summarizer - API 指令規範
 
 > 本文件記錄所有關於利用 Gemini API 整理媒體內容的要求及指令。
 > 如有任何變更，請同步更新此檔案。
@@ -102,6 +102,33 @@ compressed audio -> Gemini file upload -> wait processing -> generate transcript
 1. 目前主線仍在收斂 `local_bridge` 與 inline artifact handoff。
 2. file upload 涉及遠端檔案生命週期與額外 cleanup，需先有明確 privacy / retention policy。
 3. 若 provider 不支援 file upload，仍需保留 inline strategy 作為可測 baseline。
+
+---
+
+## AI Provider 錯誤回報原則
+
+實機觀察：`gemini-2.5-flash` 在媒體轉錄時可能回傳 HTTP 503 high demand，但同一份 AI-ready artifact 改用 `gemini-3-flash-preview` 可成功。
+
+目前規則：
+
+1. 新安裝預設轉錄模型使用 `gemini-3-flash-preview`。
+2. 若 Gemini、Gladia 或 OpenRouter 回傳錯誤，流程會直接呈現原 provider 的錯誤原因，不自動換 provider 或模型重跑。
+3. 轉錄成功但摘要失敗時，流程會保留 recovery transcript，方便使用者之後手動重跑摘要。
+4. API key、模型不存在、容量不足、空輸出、安全阻擋、音訊不可讀等錯誤都應忠實回報為當下 provider 的 `ai_failure`。
+
+---
+
+## Gladia 轉錄 Provider
+
+Gladia 只作為 `TranscriptionProvider`，不作為摘要 provider。摘要仍由 `summaryProvider` 處理既有逐字稿文字。
+
+目前規則：
+
+1. Gladia 使用官方 v2 pre-recorded 流程：`POST /v2/upload` 上傳 AI-ready artifact，`POST /v2/pre-recorded` 建立 job，`GET /v2/pre-recorded/{id}` 輪詢結果。
+2. Gladia API key 獨立保存為 `gladiaApiKey`，透過 `x-gladia-key` header 傳送；debug log 不得記錄 API key。
+3. Gladia 第一版 `transcriptionModel` 使用 `default` 佔位，實際請求不傳模型 id；模型欄位只用於既有 provider/model catalog 與 UI 一致性。
+4. Gladia job 完成後，優先把 `result.transcription.utterances` 正規化為 transcript segments；若沒有 utterances，才使用 `full_transcript` 形成單段逐字稿。
+5. diagnostics 需區分 upload failure、job creation failure、polling timeout、job failed、empty transcript output，並保留 HTTP status、provider error payload excerpt、job id、request id 與 polling status。
 
 ---
 

@@ -7,6 +7,7 @@ import type {
 
 export type ApiHealthCheckRequest =
   | ApiHealthCheckGeminiRequest
+  | ApiHealthCheckGladiaRequest
   | ApiHealthCheckOpenRouterRequest;
 
 interface ApiHealthCheckBaseRequest {
@@ -18,7 +19,7 @@ interface ApiHealthCheckBaseRequest {
 type ApiHealthCheckGeminiRequest =
   | (ApiHealthCheckBaseRequest & {
       kind: "transcription";
-      provider: TranscriptionProvider;
+      provider: "gemini";
       model: TranscriptionModel;
     })
   | (ApiHealthCheckBaseRequest & {
@@ -31,6 +32,12 @@ interface ApiHealthCheckOpenRouterRequest extends ApiHealthCheckBaseRequest {
   kind: "summary";
   provider: "openrouter";
   model: SummaryModel;
+}
+
+interface ApiHealthCheckGladiaRequest extends ApiHealthCheckBaseRequest {
+  kind: "transcription";
+  provider: "gladia";
+  model: TranscriptionModel;
 }
 
 export interface ApiHealthCheckResult {
@@ -218,6 +225,51 @@ async function testOpenRouterApi(
   };
 }
 
+async function testGladiaApi(
+  request: ApiHealthCheckGladiaRequest
+): Promise<ApiHealthCheckResult> {
+  const fetchImpl = getFetchImplementation(request.fetchImpl);
+  if (!fetchImpl) {
+    return {
+      ok: false,
+      provider: request.provider,
+      model: request.model,
+      message: "目前環境不支援 fetch，無法測試 Gladia API。"
+    };
+  }
+
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    "https://api.gladia.io/v2/pre-recorded?limit=1",
+    {
+      method: "GET",
+      headers: {
+        "x-gladia-key": request.apiKey
+      }
+    },
+    request.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  );
+
+  if (!response.ok) {
+    const detail = await readErrorMessage(response);
+    return {
+      ok: false,
+      provider: request.provider,
+      model: request.model,
+      message: detail
+        ? `Gladia API 測試失敗（HTTP ${response.status}）：${detail}`
+        : `Gladia API 測試失敗（HTTP ${response.status}）。`
+    };
+  }
+
+  return {
+    ok: true,
+    provider: request.provider,
+    model: request.model,
+    message: "Gladia API Key 可用。"
+  };
+}
+
 export async function testAiApiAvailability(
   request: ApiHealthCheckRequest
 ): Promise<ApiHealthCheckResult> {
@@ -234,6 +286,9 @@ export async function testAiApiAvailability(
   try {
     if (request.provider === "openrouter") {
       return await testOpenRouterApi({ ...request, apiKey });
+    }
+    if (request.provider === "gladia") {
+      return await testGladiaApi({ ...request, apiKey });
     }
 
     return await testGeminiApi({ ...request, apiKey });

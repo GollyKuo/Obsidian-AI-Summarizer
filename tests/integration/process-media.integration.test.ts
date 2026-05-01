@@ -311,7 +311,7 @@ describe("processMedia integration", () => {
     expect(result.warnings.some((warning) => warning.includes("Chunked media summary into"))).toBe(true);
   });
 
-  it("falls back to Gemini summary when OpenRouter summary returns an AI failure", async () => {
+  it("reports OpenRouter summary failures without retrying Gemini", async () => {
     const summaryProviders: string[] = [];
 
     const runtimeProvider: RuntimeProvider = {
@@ -322,7 +322,7 @@ describe("processMedia integration", () => {
             title: "Fallback Demo",
             creatorOrAuthor: "Demo Channel",
             platform: "YouTube",
-            source: "https://www.youtube.com/watch?v=fallback",
+            source: "https://www.youtube.com/watch?v=openrouter-failure",
             created: "2026-04-29T00:00:00.000Z"
           },
           normalizedText: "normalized-context",
@@ -359,10 +359,7 @@ describe("processMedia integration", () => {
           });
         }
 
-        return {
-          summaryMarkdown: "## Summary\n\nGemini fallback summary",
-          warnings: []
-        };
+        throw new Error("Gemini should not be called");
       },
       async summarizeWebpage() {
         throw new Error("should not execute");
@@ -382,32 +379,34 @@ describe("processMedia integration", () => {
       }
     };
 
-    const result = await processMedia(
-      {
-        sourceKind: "media_url",
-        sourceValue: "https://www.youtube.com/watch?v=fallback",
-        transcriptionProvider: "gemini",
-        transcriptionModel: "gemini-2.5-flash",
-        summaryProvider: "openrouter",
-        summaryModel: "qwen/qwen3.6-plus",
-        retentionMode: "delete_temp"
-      },
-      {
-        runtimeProvider,
-        transcriptionProvider,
-        summaryProvider,
-        noteWriter
-      },
-      new AbortController().signal
-    );
+    await expect(
+      processMedia(
+        {
+          sourceKind: "media_url",
+          sourceValue: "https://www.youtube.com/watch?v=openrouter-failure",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "openrouter",
+          summaryModel: "qwen/qwen3.6-plus",
+          retentionMode: "delete_temp"
+        },
+        {
+          runtimeProvider,
+          transcriptionProvider,
+          summaryProvider,
+          noteWriter
+        },
+        new AbortController().signal
+      )
+    ).rejects.toMatchObject({
+      category: "ai_failure",
+      message: "OpenRouter response did not include text output."
+    });
 
-    expect(summaryProviders).toEqual(["openrouter", "gemini"]);
-    expect(result.summary.summaryMarkdown).toContain("Gemini fallback summary");
-    expect(result.warnings.some((warning) => warning.includes("retrying with Gemini"))).toBe(true);
-    expect(result.warnings.some((warning) => warning.includes("fallback used Gemini"))).toBe(true);
+    expect(summaryProviders).toEqual(["openrouter"]);
   });
 
-  it("preserves transcript artifact when summary and fallback both fail", async () => {
+  it("preserves transcript artifact when summary fails", async () => {
     const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "process-media-recovery-"));
     const transcriptPath = path.join(tempDirectory, "transcript.srt");
     const warnings: string[] = [];
@@ -497,7 +496,7 @@ describe("processMedia integration", () => {
         )
       ).rejects.toMatchObject({
         category: "ai_failure",
-        message: expect.stringContaining("Gemini fallback also failed")
+        message: "openrouter summary failed"
       });
 
       expect(await readFile(transcriptPath, "utf8")).toContain("recovered transcript");

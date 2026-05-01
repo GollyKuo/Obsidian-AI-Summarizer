@@ -1,7 +1,7 @@
 export type GeminiModel = string;
 export type OpenRouterSummaryModel = string;
 
-export type TranscriptionProvider = "gemini";
+export type TranscriptionProvider = "gemini" | "gladia";
 export type SummaryProvider = "gemini" | "openrouter";
 export type ModelProvider = TranscriptionProvider | SummaryProvider;
 export type ModelPurpose = "transcription" | "summary";
@@ -32,13 +32,50 @@ export interface AiModelCatalogEntry {
 
 export const GEMINI_MODEL_OPTIONS: readonly ModelOption<GeminiModel>[] = [];
 export const OPENROUTER_SUMMARY_MODEL_OPTIONS: readonly ModelOption<OpenRouterSummaryModel>[] = [];
-export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [];
+const LEGACY_GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3.0-flash-preview";
+const GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3-flash-preview";
+
+export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [
+  {
+    provider: "gemini",
+    purpose: "transcription",
+    displayName: GEMINI_3_FLASH_PREVIEW_MODEL,
+    modelId: GEMINI_3_FLASH_PREVIEW_MODEL,
+    source: "user"
+  },
+  {
+    provider: "gemini",
+    purpose: "transcription",
+    displayName: "gemini-2.5-flash",
+    modelId: "gemini-2.5-flash",
+    source: "user"
+  },
+  {
+    provider: "gemini",
+    purpose: "summary",
+    displayName: GEMINI_3_FLASH_PREVIEW_MODEL,
+    modelId: GEMINI_3_FLASH_PREVIEW_MODEL,
+    source: "user"
+  },
+  {
+    provider: "gemini",
+    purpose: "summary",
+    displayName: "gemini-2.5-flash",
+    modelId: "gemini-2.5-flash",
+    source: "user"
+  }
+];
 
 export const TRANSCRIPTION_PROVIDER_OPTIONS: readonly ProviderOption<TranscriptionProvider>[] = [
   {
     value: "gemini",
     label: "Gemini",
     description: "Audio-capable provider for media transcription."
+  },
+  {
+    value: "gladia",
+    label: "Gladia",
+    description: "Async pre-recorded speech-to-text provider for audio and video transcription."
   }
 ] as const;
 
@@ -57,7 +94,8 @@ export const SUMMARY_PROVIDER_OPTIONS: readonly ProviderOption<SummaryProvider>[
 
 export const DEFAULT_TRANSCRIPTION_PROVIDER: TranscriptionProvider = "gemini";
 export const DEFAULT_SUMMARY_PROVIDER: SummaryProvider = "gemini";
-export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = "gemini-2.5-flash";
+export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = GEMINI_3_FLASH_PREVIEW_MODEL;
+export const DEFAULT_GLADIA_TRANSCRIPTION_MODEL: TranscriptionModel = "default";
 export const DEFAULT_GEMINI_SUMMARY_MODEL: GeminiModel = "gemini-3.1-flash-lite-preview";
 export const DEFAULT_OPENROUTER_SUMMARY_MODEL: OpenRouterSummaryModel = "qwen/qwen3.6-plus";
 export const DEFAULT_SUMMARY_MODEL: SummaryModel = DEFAULT_GEMINI_SUMMARY_MODEL;
@@ -70,8 +108,16 @@ function normalizeModelText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function normalizeKnownModelId(provider: ModelProvider, modelId: string): string {
+  if (provider === "gemini" && modelId === LEGACY_GEMINI_3_FLASH_PREVIEW_MODEL) {
+    return GEMINI_3_FLASH_PREVIEW_MODEL;
+  }
+
+  return modelId;
+}
+
 function isModelProvider(value: string): value is ModelProvider {
-  return value === "gemini" || value === "openrouter";
+  return value === "gemini" || value === "openrouter" || value === "gladia";
 }
 
 function isModelPurpose(value: string): value is ModelPurpose {
@@ -80,7 +126,7 @@ function isModelPurpose(value: string): value is ModelPurpose {
 
 function isAllowedProviderPurpose(provider: ModelProvider, purpose: ModelPurpose): boolean {
   if (purpose === "transcription") {
-    return provider === "gemini";
+    return provider === "gemini" || provider === "gladia";
   }
 
   return provider === "gemini" || provider === "openrouter";
@@ -95,7 +141,7 @@ export function isSupportedOpenRouterSummaryModel(model: string): model is OpenR
 }
 
 export function normalizeTranscriptionProvider(provider: string): TranscriptionProvider {
-  return provider === "gemini" ? provider : DEFAULT_TRANSCRIPTION_PROVIDER;
+  return provider === "gemini" || provider === "gladia" ? provider : DEFAULT_TRANSCRIPTION_PROVIDER;
 }
 
 export function normalizeSummaryProvider(provider: string): SummaryProvider {
@@ -103,11 +149,26 @@ export function normalizeSummaryProvider(provider: string): SummaryProvider {
 }
 
 export function normalizeTranscriptionModel(model: string): TranscriptionModel {
-  return normalizeModelText(model) || DEFAULT_TRANSCRIPTION_MODEL;
+  const normalizedModel = normalizeModelText(model);
+  return normalizedModel
+    ? normalizeKnownModelId("gemini", normalizedModel)
+    : DEFAULT_TRANSCRIPTION_MODEL;
+}
+
+export function normalizeTranscriptionModelForProvider(
+  provider: TranscriptionProvider,
+  model: string
+): TranscriptionModel {
+  const normalizedModel = normalizeKnownModelId(provider, normalizeModelText(model));
+  if (normalizedModel.length > 0) {
+    return normalizedModel;
+  }
+
+  return provider === "gladia" ? DEFAULT_GLADIA_TRANSCRIPTION_MODEL : DEFAULT_TRANSCRIPTION_MODEL;
 }
 
 export function normalizeSummaryModel(provider: SummaryProvider, model: string): SummaryModel {
-  const normalizedModel = normalizeModelText(model);
+  const normalizedModel = normalizeKnownModelId(provider, normalizeModelText(model));
   if (normalizedModel.length > 0) {
     return normalizedModel;
   }
@@ -132,16 +193,17 @@ export function normalizeModelCatalog(value: unknown): AiModelCatalogEntry[] {
 
     const provider = normalizeModelText(candidate.provider);
     const purpose = normalizeModelText(candidate.purpose);
-    const modelId = normalizeModelText(candidate.modelId);
+    const rawModelId = normalizeModelText(candidate.modelId);
     if (
       !isModelProvider(provider) ||
       !isModelPurpose(purpose) ||
       !isAllowedProviderPurpose(provider, purpose) ||
-      modelId.length === 0
+      rawModelId.length === 0
     ) {
       continue;
     }
 
+    const modelId = normalizeKnownModelId(provider, rawModelId);
     const key = `${provider}:${purpose}:${modelId}`;
     if (seen.has(key)) {
       continue;
@@ -172,7 +234,7 @@ export function createModelCatalogEntry(input: {
   source?: "user" | "openrouter";
   updatedAt?: string;
 }): AiModelCatalogEntry | null {
-  const modelId = input.modelId.trim();
+  const modelId = normalizeKnownModelId(input.provider, input.modelId.trim());
   if (!isAllowedProviderPurpose(input.provider, input.purpose) || modelId.length === 0) {
     return null;
   }
@@ -234,27 +296,43 @@ export function ensureSelectedModelsInCatalog(
   },
   options: { includeDefaults?: boolean } = {}
 ): AiModelCatalogEntry[] {
-  let next = normalizeModelCatalog(catalog);
+  let next = normalizeModelCatalog([...DEFAULT_MODEL_CATALOG, ...catalog]);
   const includeDefaults = options.includeDefaults ?? false;
 
   if (includeDefaults || selected.transcriptionModel !== DEFAULT_TRANSCRIPTION_MODEL) {
-    const entry = createModelCatalogEntry({
-      provider: selected.transcriptionProvider,
-      purpose: "transcription",
-      modelId: selected.transcriptionModel
-    });
-    if (entry) {
+    const hasSelectedTranscriptionModel = next.some(
+      (entry) =>
+        entry.provider === selected.transcriptionProvider &&
+        entry.purpose === "transcription" &&
+        entry.modelId === selected.transcriptionModel
+    );
+    const entry = hasSelectedTranscriptionModel
+      ? null
+      : createModelCatalogEntry({
+          provider: selected.transcriptionProvider,
+          purpose: "transcription",
+          modelId: selected.transcriptionModel
+        });
+    if (!hasSelectedTranscriptionModel && entry) {
       next = upsertModelCatalogEntry(next, entry);
     }
   }
 
   if (includeDefaults || selected.summaryModel !== DEFAULT_SUMMARY_MODEL) {
-    const entry = createModelCatalogEntry({
-      provider: selected.summaryProvider,
-      purpose: "summary",
-      modelId: selected.summaryModel
-    });
-    if (entry) {
+    const hasSelectedSummaryModel = next.some(
+      (entry) =>
+        entry.provider === selected.summaryProvider &&
+        entry.purpose === "summary" &&
+        entry.modelId === selected.summaryModel
+    );
+    const entry = hasSelectedSummaryModel
+      ? null
+      : createModelCatalogEntry({
+          provider: selected.summaryProvider,
+          purpose: "summary",
+          modelId: selected.summaryModel
+        });
+    if (!hasSelectedSummaryModel && entry) {
       next = upsertModelCatalogEntry(next, entry);
     }
   }

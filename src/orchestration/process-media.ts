@@ -1,7 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { SummarizerError } from "@domain/errors";
-import { DEFAULT_GEMINI_SUMMARY_MODEL } from "@domain/model-selection";
 import type {
   LocalMediaRequest,
   MediaProcessResult,
@@ -49,10 +48,6 @@ function validateMediaInput(input: MediaRequest): void {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function isAiFailure(error: unknown): boolean {
-  return error instanceof SummarizerError && error.category === "ai_failure";
 }
 
 async function persistTranscriptForRecovery(
@@ -148,55 +143,11 @@ export async function processMedia(
           summaryModel: input.summaryModel
         };
 
-        try {
-          return await summarizeMediaWithChunking(
-            summaryInput,
-            dependencies.summaryProvider,
-            signal
-          );
-        } catch (error) {
-          if (input.summaryProvider !== "openrouter" || !isAiFailure(error)) {
-            throw error;
-          }
-
-          const fallbackWarning =
-            `OpenRouter summary failed; retrying with Gemini summary provider. Reason: ${getErrorMessage(error)}`;
-          warnings.push(fallbackWarning);
-          emitWarnings([fallbackWarning], hooks);
-
-          try {
-            const fallbackSummary = await summarizeMediaWithChunking(
-              {
-                ...summaryInput,
-                summaryProvider: "gemini",
-                summaryModel: DEFAULT_GEMINI_SUMMARY_MODEL
-              },
-              dependencies.summaryProvider,
-              signal
-            );
-            return {
-              ...fallbackSummary,
-              warnings: [
-                `OpenRouter summary fallback used Gemini model ${DEFAULT_GEMINI_SUMMARY_MODEL}.`,
-                ...fallbackSummary.warnings
-              ]
-            };
-          } catch (fallbackError) {
-            throw new SummarizerError({
-              category: "ai_failure",
-              message:
-                `OpenRouter summary failed and Gemini fallback also failed. ` +
-                `OpenRouter: ${getErrorMessage(error)}; ` +
-                `Gemini fallback: ${getErrorMessage(fallbackError)}`,
-              recoverable: true,
-              cause: {
-                failureKind: "summary_fallback_failed",
-                originalSummaryError: getErrorMessage(error),
-                fallbackSummaryError: getErrorMessage(fallbackError)
-              }
-            });
-          }
-        }
+        return summarizeMediaWithChunking(
+          summaryInput,
+          dependencies.summaryProvider,
+          signal
+        );
       },
       hooks
     );

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-01 01:42
+最後更新：2026-05-01 20:52
 
 ## 使用規則
 
@@ -18,7 +18,7 @@
 
 1. 收尾 `CAP-202`：完成 YouTube / podcast 各至少一條手動 smoke 下載驗證。
 2. 收尾 `CAP-203`：完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本上傳量量測（目標至少 70%）。
-3. 推進 `CAP-205`：規劃並落地「轉錄模型」與「摘要模型」拆分，支援 Gemini 轉錄 + OpenRouter/Qwen 摘要。
+3. 推進 `CAP-205`：規劃並落地「轉錄模型」與「摘要模型」拆分，支援 Gemini / Gladia 轉錄 + OpenRouter/Qwen 摘要。
 4. 收尾 `CAP-206`：定案字幕與逐字稿衍生輸出的 artifact lifecycle（v1/vNext 邊界）。
 5. 推進 `CAP-303`：補齊使用者手冊，涵蓋模型選擇、多 provider、轉錄/摘要拆分與常見問題。
 
@@ -27,11 +27,12 @@
 - 缺少可重現的 YouTube / podcast 手動 smoke 結果與紀錄格式。
 - 缺少 `balanced` profile 的基準樣本與量測紀錄，無法關閉 CAP-203 最後驗收點。
 - 字幕產線（`.srt` / 軟字幕嵌入）是否納入 v1 尚未定案，影響 CAP-206 lifecycle 收斂。
+- Gladia 第一版 provider 已接入，API key / health check 可用，且 media URL 實機 smoke 已成功；仍缺 local media 實機 smoke、混合 provider smoke 與使用手冊細節補強。
 
 ## 下一個切換點
 
 - 當 `CAP-202` 與 `CAP-203` 的最後驗收點完成後，將 `CAP-302`、`CAP-401` 到 `CAP-404` 移入封存並清理 active backlog。
-- `CAP-504` 已完成：模型清單改為使用者自訂維護，轉錄/摘要共用 autocomplete model datalist，並支援 Gemini / OpenRouter 官方模型清單更新與 OpenRouter models API 校對。
+- `CAP-504` 已完成：模型清單改為使用者自訂維護，轉錄/摘要共用 autocomplete model datalist；Gemini 轉錄與摘要都內建 `gemini-3-flash-preview` 與 `gemini-2.5-flash`，並支援 Gemini / OpenRouter 官方模型清單更新與 OpenRouter models API 校對。
 - 當 `CAP-206` 字幕/逐字稿策略定案後，切換到下一輪 capability 排程（Expansion 或新主線）。
 
 ## 舊版能力吸收任務清單
@@ -167,10 +168,23 @@ Open Work：
 - [x] 設定頁拆分模型選擇：`transcriptionProvider/transcriptionModel` 與 `summaryProvider/summaryModel`（完成：2026-04-24 16:24）
 - [x] 支援預設組合：Gemini audio-capable model 轉錄，Gemini summary model 摘要（完成：2026-04-24 16:24）
 - [x] 支援 OpenRouter summary provider，第一版可用 `qwen/qwen3.6-plus` 處理已有逐字稿的文字摘要（完成：2026-04-24 16:24）
-- [ ] 定義 fallback / retry：轉錄成功但摘要失敗時，可保留 transcript 並只重跑摘要
+- [x] 調研並定義 Gladia `TranscriptionProvider` contract：採官方 `POST /v2/upload`、`POST /v2/pre-recorded`、`GET /v2/pre-recorded/{id}` 流程，確認 `x-gladia-key` 驗證、job lifecycle、輪詢/timeout/cancel 規則、回傳逐字稿與 utterance segments 格式。（完成：2026-05-01 19:35）
+- [x] 實作 Gladia 轉錄 provider：由既有 AI-ready audio/video artifact 建立 Gladia pre-recorded transcription job，輪詢完成狀態，將結果正規化為現有 transcript markdown / transcript segments contract。（完成：2026-05-01 19:35）
+- [x] 新增 Gladia 設定：`gladiaApiKey`、`transcriptionProvider: gladia`、`transcriptionModel: default`，並確保 provider 切換不影響 summary provider 設定。（完成：2026-05-01 19:35）
+- [x] 定義 Gladia 錯誤映射與恢復策略：auth failure、quota/rate limit、file too large、unsupported media、empty transcript、polling timeout、job failure 映射到使用者可讀錯誤與 debug log diagnostics。（完成：2026-05-01 19:35）
+- [x] 手動確認 Gladia API key / health check 可用，設定頁可用 Gladia API 測試驗證連線。（完成：2026-05-01 19:53）
+- [x] 完成 Gladia media URL 實機 smoke：YouTube 媒體 URL 下載後進入 AI-ready pipeline，1106s 媒體分成 2 個 AI upload chunks，Gladia 成功轉錄並進入 3 段 chunked media summary，最後寫入 Obsidian 筆記。（完成：2026-05-01 19:59）
+- [ ] 補 Gladia local media 實機 smoke：本機音訊/影片流程需驗證 Gladia 轉錄成功、取消與設定缺漏。
+- [ ] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。
+- [ ] 定義手動 retry：轉錄成功但摘要失敗時，可保留 transcript 並由使用者明確選擇只重跑摘要
 - [x] 強化 OpenRouter 摘要空回應處理：當 response 沒有 `message.content` 時，保留 HTTP status、provider error detail 與 response shape 到 debug log，modal 顯示可行診斷方向（quota / rate limit / model unsupported / empty output）（完成：2026-04-29 00:36）
-- [x] 補摘要階段 fallback / retry：轉錄成功但 OpenRouter 摘要失敗時，保留 transcript 與 media artifacts 狀態，支援只重跑摘要或 fallback 到 Gemini summary provider（完成：2026-04-29 00:36）
+- [x] 補摘要階段 recovery：轉錄成功但 OpenRouter 摘要失敗時，保留 transcript 與 media artifacts 狀態；自動 fallback 到 Gemini 的行為已於 2026-05-01 20:52 移除，改由使用者手動重跑。（完成：2026-04-29 00:36，更新：2026-05-01 20:52）
 - [x] 補長逐字稿 + OpenRouter 空輸出 regression test，覆蓋 chunked transcript summary request 與使用者可讀錯誤訊息（完成：2026-04-29 00:36）
+- [x] 補 Gemini 轉錄預設模型調整：將新安裝預設轉錄模型改為 `gemini-3-flash-preview`；自動 retry 行為已於 2026-05-01 20:52 移除，HTTP 503 high demand 會直接回報原錯誤。（完成：2026-05-01 02:19，更新：2026-05-01 20:52）
+- [x] 內建 Gemini 轉錄與摘要模型清單：預設 catalog 固定提供 `gemini-3-flash-preview` 與 `gemini-2.5-flash` 給 Gemini 轉錄、Gemini 摘要兩種用途，讓新安裝與舊設定載入時都可直接在對應下拉選單選用。（完成：2026-05-01 20:16）
+- [x] 校正 Gemini 3 Flash Preview 官方 model id：將錯誤的 `gemini-3.0-flash-preview` 改為官方 `gemini-3-flash-preview`，並在設定載入時自動遷移舊值。（完成：2026-05-01 20:32）
+- [x] 將 Gemini 內建模型下拉顯示文字改為官方 model ID：`gemini-3-flash-preview`、`gemini-2.5-flash`，避免 display name 與 API model id 混淆。（完成：2026-05-01 20:40）
+- [x] 移除 AI provider 自動 fallback：Gemini 轉錄容量錯誤不再自動改用其他 Gemini 模型，OpenRouter 摘要失敗不再自動改用 Gemini；錯誤直接呈現原 provider 的實際原因，並保留轉錄 recovery artifact 供後續手動重跑。（完成：2026-05-01 20:52）
 - [x] 補上 unit / integration tests，覆蓋轉錄模型與摘要模型不同 provider 的 routing 行為（完成：2026-04-24 16:24）
 
 ### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
@@ -215,6 +229,7 @@ Open Work：
 - [x] 補齊轉錄模型與摘要模型拆分說明：為何拆分、建議組合、成本與品質取捨（完成：2026-04-24 16:24）
 - [x] 補齊 OpenRouter / Qwen 摘要模型使用限制：可做文字摘要，不作為 audio transcription 主路徑（完成：2026-04-24 16:24）
 - [x] 補齊 API key 與 provider 設定教學：Gemini、OpenRouter，以及未來 OpenAI API 與 ChatGPT/Codex Pro 訂閱差異（完成：2026-04-24 16:24）
+- [ ] 補齊 Gladia 轉錄 provider 使用說明：API key 設定、建議使用情境、與 Gemini 轉錄的取捨、常見錯誤與成本注意事項
 - [ ] 補齊常見問題與疑難排解：轉錄失敗、摘要失敗、重跑摘要、模型不可用、rate limit、成本預估
 - [ ] 補齊使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片、已有逐字稿重跑摘要
 
@@ -230,6 +245,7 @@ Open Work：
 - [x] 整理 webpage / media URL / local media 的 smoke checklist（完成：2026-04-24 01:28）
 - [x] 建立 capability-based 測試矩陣，而不是只按檔案或服務測（完成：2026-04-24 01:28）
 - [x] 定義桌面 regression gate，確保新 runtime 或新流程不破壞既有 webpage flow（完成：2026-04-24 07:35）
+- [ ] 將 Gladia 加入 provider smoke matrix：已完成 media URL + Gladia 轉錄 + 摘要 + 寫筆記路徑；仍需覆蓋 local media 成功路徑，以及 Gladia 轉錄 + OpenRouter/Qwen 摘要的混合 provider 路徑
 
 ### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
@@ -242,6 +258,7 @@ Open Work：
 - [x] 建立 capability detection / diagnostics summary（desktop/mobile/runtime availability）（2026-04-24 01:00）
 - [x] 統一錯誤訊息層級：notice、modal、log、test assertion（2026-04-24 01:18）
 - [x] 補 AI provider response diagnostics：OpenRouter / Gemini 失敗時需能從 debug log 分辨 transport error、provider error payload、empty output、unexpected response shape（完成：2026-04-29 00:36）
+- [x] 補 Gladia provider diagnostics：debug log 需保留 request/job id、HTTP status、provider error payload、polling 狀態轉換與 transcript 正規化結果摘要，且不得記錄 API key 或原始敏感內容。（完成：2026-05-01 19:35）
 
 ### CAP-403 Release, Build, And Vault Sync 發布、建置與 Vault 同步
 

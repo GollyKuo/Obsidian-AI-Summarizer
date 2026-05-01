@@ -20,7 +20,7 @@ import {
   normalizeRetentionMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
-  normalizeTranscriptionModel,
+  normalizeTranscriptionModelForProvider,
   normalizeTranscriptionProvider,
   type AISummarizerPluginSettings
 } from "@domain/settings";
@@ -60,7 +60,8 @@ export default class AISummarizerPlugin extends Plugin {
     const summaryProvider = normalizeSummaryProvider(
       String(loadedSettings?.summaryProvider ?? DEFAULT_SETTINGS.summaryProvider)
     );
-    const transcriptionModel = normalizeTranscriptionModel(
+    const transcriptionModel = normalizeTranscriptionModelForProvider(
+      transcriptionProvider,
       String(loadedSettings?.transcriptionModel ?? legacyModel ?? DEFAULT_SETTINGS.transcriptionModel)
     );
     const summaryModel = normalizeSummaryModel(
@@ -88,6 +89,7 @@ export default class AISummarizerPlugin extends Plugin {
       modelCatalog,
       retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
+      gladiaApiKey: String(loadedSettings?.gladiaApiKey ?? DEFAULT_SETTINGS.gladiaApiKey),
       ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
       ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)
     };

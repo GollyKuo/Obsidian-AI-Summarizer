@@ -1,6 +1,7 @@
 import type { RetentionMode, SourceType } from "@domain/types";
 import {
   DEFAULT_GEMINI_SUMMARY_MODEL,
+  DEFAULT_GLADIA_TRANSCRIPTION_MODEL,
   DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
@@ -21,6 +22,7 @@ import {
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
+  normalizeTranscriptionModelForProvider,
   normalizeTranscriptionProvider,
   removeModelCatalogEntry,
   upsertModelCatalogEntry,
@@ -41,6 +43,7 @@ export type MediaCompressionProfile = "balanced" | "quality";
 export interface AISummarizerPluginSettings {
   apiKey: string;
   openRouterApiKey: string;
+  gladiaApiKey: string;
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
   summaryProvider: SummaryProvider;
@@ -61,6 +64,7 @@ export interface AISummarizerPluginSettings {
 export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   apiKey: "",
   openRouterApiKey: "",
+  gladiaApiKey: "",
   transcriptionProvider: DEFAULT_TRANSCRIPTION_PROVIDER,
   transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
   summaryProvider: DEFAULT_SUMMARY_PROVIDER,
@@ -88,6 +92,7 @@ export function normalizeRetentionMode(rawMode: unknown): RetentionMode {
 
 export {
   DEFAULT_GEMINI_SUMMARY_MODEL as DEFAULT_GEMINI_MODEL,
+  DEFAULT_GLADIA_TRANSCRIPTION_MODEL,
   DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
@@ -108,6 +113,7 @@ export {
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModel,
+  normalizeTranscriptionModelForProvider,
   normalizeTranscriptionProvider,
   removeModelCatalogEntry,
   upsertModelCatalogEntry
