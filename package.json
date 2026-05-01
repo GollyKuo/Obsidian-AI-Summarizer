@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-summarizer",
-  "version": "0.1.57-media-smoke-and-ffmpeg-location",
+  "version": "0.1.58-media-summary-final-synthesis",
   "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "main": "main.js",
   "scripts": {

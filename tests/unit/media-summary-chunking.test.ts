@@ -54,15 +54,24 @@ describe("summarizeMediaWithChunking", () => {
   it("chunks transcript and merges summaries when transcript exceeds chunk limit", async () => {
     const normalizedTextInputs: string[] = [];
     const transcriptLengths: number[] = [];
+    const finalSynthesisInputs: string[] = [];
 
     const aiProvider: AiProvider = {
       async summarizeMedia(input) {
         normalizedTextInputs.push(input.normalizedText);
         transcriptLengths.push(input.transcript.map((segment) => segment.text.length).reduce((a, b) => a + b, 0));
 
+        if (input.transcript.length === 0) {
+          finalSynthesisInputs.push(input.normalizedText);
+          return {
+            summaryMarkdown: "Final synthesized summary",
+            warnings: ["final-warning"]
+          };
+        }
+
         return {
-          summaryMarkdown: `Chunk summary ${transcriptLengths.length}`,
-          warnings: [`chunk-warning-${transcriptLengths.length}`]
+          summaryMarkdown: `Internal note ${transcriptLengths.length}`,
+          warnings: [`partial-warning-${transcriptLengths.length}`]
         };
       },
       async summarizeWebpage() {
@@ -96,14 +105,20 @@ describe("summarizeMediaWithChunking", () => {
       }
     );
 
-    expect(transcriptLengths).toEqual([10, 10, 10]);
-    expect(normalizedTextInputs).toEqual(["abcdefgh", "", ""]);
-    expect(result.summaryMarkdown).toContain("## Chunk 1");
-    expect(result.summaryMarkdown).toContain("Chunk summary 3");
+    expect(transcriptLengths).toEqual([10, 10, 10, 0]);
+    expect(normalizedTextInputs.slice(0, 3)).toEqual(["abcdefgh", "", ""]);
+    expect(finalSynthesisInputs).toHaveLength(1);
+    expect(finalSynthesisInputs[0]).toContain("Internal note 1");
+    expect(finalSynthesisInputs[0]).toContain("Internal note 3");
+    expect(finalSynthesisInputs[0]).not.toContain("Chunk");
+    expect(result.summaryMarkdown).toBe("Final synthesized summary");
+    expect(result.summaryMarkdown).not.toContain("## Chunk");
     expect(result.warnings[0]).toContain("Chunked media summary into 3 chunks");
-    expect(result.warnings).toContain("chunk-warning-1");
-    expect(result.warnings).toContain("chunk-warning-2");
-    expect(result.warnings).toContain("chunk-warning-3");
+    expect(result.warnings[1]).toContain("Final synthesis generated from 3 internal partial summaries");
+    expect(result.warnings).toContain("partial-warning-1");
+    expect(result.warnings).toContain("partial-warning-2");
+    expect(result.warnings).toContain("partial-warning-3");
+    expect(result.warnings).toContain("final-warning");
     expect(
       result.warnings.some((warning) => warning.includes("Token control applied: truncated normalized text in chunk mode"))
     ).toBe(true);

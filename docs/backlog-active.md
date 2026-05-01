@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 01:50
+最後更新：2026-05-02 01:55
 
 ## 用途
 
@@ -62,7 +62,7 @@
 - [ ] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。
 - [ ] 實作 Gemini 逐 chunk inline 轉錄合併：每個 `ai-upload` chunk 各自送 Gemini `inline_data` request，成功後依順序合併 transcript。
 - [ ] Gemini 逐 chunk inline 轉錄需保留 chunk-level diagnostics、partial transcript recovery、單段 retry 邊界與合併後的 `transcript.md` / `subtitles.srt` handoff。
-- [ ] 校準 `media-summary-chunking`：移除最終輸出的 `## Chunk N` 合併格式，改為合併 transcript 後做整體摘要。
+- [x] 校準 `media-summary-chunking`：移除最終輸出的 `## Chunk N` 合併格式，改為內部 partial notes 後做 final synthesis。（完成：2026-05-02 01:55）
 - [ ] 若 transcript 過長必須二階段處理，只能產生內部 partial notes，再以 final synthesis 輸出單一連貫摘要。
 - [ ] 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段` 等技術標記，除非原始內容本身就在談這些詞。
 - [ ] 定義手動 retry：轉錄成功但摘要失敗時，保留 transcript，並讓使用者明確選擇只重跑摘要。

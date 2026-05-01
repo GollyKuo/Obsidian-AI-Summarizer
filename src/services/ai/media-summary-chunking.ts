@@ -109,19 +109,16 @@ function chunkTranscript(
   return chunks;
 }
 
-function mergeChunkMarkdown(
-  title: string,
-  chunkSummaries: string[]
-): string {
+function buildFinalSynthesisMaterial(partialSummaries: string[]): string {
   return [
-    `${title}`,
+    "以下為長媒體內部整理素材，請重新統整為單一最終摘要；不要保留素材編號、處理流程描述或中間整理痕跡。",
     "",
-    ...chunkSummaries.flatMap((summary, index) => [
-      `## Chunk ${index + 1}`,
+    ...partialSummaries.flatMap((summary, index) => [
+      `### 摘要素材 ${index + 1}`,
       "",
-      summary
+      summary.trim()
     ])
-  ].join("\n");
+  ].join("\n").trim();
 }
 
 export async function summarizeMediaWithChunking(
@@ -193,20 +190,31 @@ export async function summarizeMediaWithChunking(
     chunkSummaries.push(summary);
   }
 
-  const mergedSummaryMarkdown = mergeChunkMarkdown(
-    "# Summary",
+  const finalSynthesisMaterial = buildFinalSynthesisMaterial(
     chunkSummaries.map((entry) => entry.summaryMarkdown)
+  );
+  const finalSummary = await summaryProvider.summarizeMedia(
+    {
+      metadata: input.metadata,
+      normalizedText: finalSynthesisMaterial,
+      transcript: [],
+      summaryProvider: input.summaryProvider,
+      summaryModel: input.summaryModel
+    },
+    signal
   );
   const warnings: string[] = [
     `Chunked media summary into ${chunks.length} chunks with max ${maxChunkCharacters} characters per chunk.`,
-    ...chunkSummaries.flatMap((entry) => entry.warnings)
+    `Final synthesis generated from ${chunks.length} internal partial summaries.`,
+    ...chunkSummaries.flatMap((entry) => entry.warnings),
+    ...finalSummary.warnings
   ];
   if (firstChunkNormalizedText.warning) {
     warnings.push(firstChunkNormalizedText.warning);
   }
 
   return {
-    summaryMarkdown: mergedSummaryMarkdown,
+    summaryMarkdown: finalSummary.summaryMarkdown,
     warnings
   };
 }

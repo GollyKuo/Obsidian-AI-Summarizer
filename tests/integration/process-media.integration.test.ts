@@ -261,10 +261,17 @@ describe("processMedia integration", () => {
     };
 
     const summaryProvider: SummaryProvider = {
-      async summarizeMedia() {
+      async summarizeMedia(input) {
         summarizeMediaCalls += 1;
+        if (input.transcript.length === 0) {
+          return {
+            summaryMarkdown: "Final synthesized chunk summary",
+            warnings: []
+          };
+        }
+
         return {
-          summaryMarkdown: `Chunk summary ${summarizeMediaCalls}`,
+          summaryMarkdown: `Internal chunk summary ${summarizeMediaCalls}`,
           warnings: []
         };
       },
@@ -307,8 +314,10 @@ describe("processMedia integration", () => {
     );
 
     expect(summarizeMediaCalls).toBeGreaterThan(1);
-    expect(capturedSummaryMarkdown).toContain("## Chunk 1");
+    expect(capturedSummaryMarkdown).toBe("## 一、重點摘要\nFinal synthesized chunk summary");
+    expect(capturedSummaryMarkdown).not.toContain("## Chunk 1");
     expect(result.warnings.some((warning) => warning.includes("Chunked media summary into"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("Final synthesis generated"))).toBe(true);
   });
 
   it("reports OpenRouter summary failures without retrying Gemini", async () => {

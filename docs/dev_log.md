@@ -1,8 +1,26 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 01:50
+最後更新：2026-05-02 01:55
 
 ## 版本紀錄
+
+### 0.1.58-media-summary-final-synthesis - 2026-05-02 01:55
+
+範圍：
+- 校準長媒體 chunked summary 的最終輸出合約。
+
+主要變更：
+- 更新 `src/services/ai/media-summary-chunking.ts`，多 chunk 摘要不再直接拼接 `## Chunk N` 中間結果
+- 多 chunk 流程改為先產生內部 partial notes，再呼叫 summary provider 做 final synthesis，輸出單一最終摘要
+- 更新 `tests/unit/media-summary-chunking.test.ts`
+- 更新 `tests/integration/process-media.integration.test.ts`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`、`docs/media-acquisition-spec.md`
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/media-summary-chunking.test.ts tests/integration/process-media.integration.test.ts --passWithNoTests`
+- `npm run build:vault`
+- `git diff --check`
 
 ### 0.1.57-media-smoke-and-ffmpeg-location - 2026-05-02 01:50
 
