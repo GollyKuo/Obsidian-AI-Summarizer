@@ -76,6 +76,32 @@ describe("api-health-check", () => {
     });
   });
 
+  it("tests Mistral with chat completions", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ choices: [] }));
+
+    const result = await testAiApiAvailability({
+      kind: "summary",
+      provider: "mistral",
+      model: "mistral-small-latest",
+      apiKey: "mistral-key",
+      fetchImpl
+    });
+
+    expect(result.ok).toBe(true);
+    expect(fetchImpl).toHaveBeenCalledOnce();
+
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.mistral.ai/v1/chat/completions");
+    expect(init?.headers).toMatchObject({
+      Authorization: "Bearer mistral-key",
+      "Content-Type": "application/json"
+    });
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      model: "mistral-small-latest",
+      max_tokens: 8
+    });
+  });
+
   it("tests Gladia with the pre-recorded list endpoint", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse({ items: [] }));
 

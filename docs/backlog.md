@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 00:22
+最後更新：2026-05-02 01:01
 
 ## 用途
 
@@ -33,7 +33,7 @@
 目前順序：
 
 1. `CAP-202` source artifact 與 acquisition manifest 已完成第一輪校準：media URL 下載與 local media 匯入都會在 session 內保留可辨識原始/安全化檔名，`metadata.json` 也會記錄 source/derived/upload artifact 與 chunk metadata。下一步用 YouTube / podcast smoke 驗證實機結果。
-2. `CAP-203` 收斂 AI-ready artifact contract：統一 chunk 命名，量測 `balanced` profile 對 `normalized.wav` 的壓縮比例，並決定 VAD / 轉錄品質守門是 v1 實作或 vNext 規格。
+2. `CAP-203` 收斂 AI-ready artifact contract：chunk 命名已統一為 `chunk-0000.<ext>` 起；下一步量測 `balanced` profile 對 `normalized.wav` 的壓縮比例，並決定 VAD / 轉錄品質守門是 v1 實作或 vNext 規格。
 3. `CAP-205` 收斂大型媒體轉錄與摘要：Gemini inline 多 chunk 不能長期維持「一次 request 塞所有 inline_data」；v1 優先改成逐 chunk inline 轉錄後合併 transcript，再用乾淨合併 transcript 產出全局摘要。
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 分開命名，`transcript.md` 與 `subtitles.srt` 都要進入 session artifact lifecycle；`subtitles.srt` 必須保留在暫存資料夾。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、摘要失敗後重跑、local media、字幕與 artifact retention。
@@ -94,7 +94,7 @@
 狀態：`active`
 
 摘要：
-已建立 `process-media-url`、pre-upload compressor、Opus/AAC/FLAC fallback、長媒體 chunk 與 transcript-ready payload。下一步是量測 `balanced` profile、統一 chunk 命名，並決定 VAD / 品質守門的 v1 邊界。
+已建立 `process-media-url`、pre-upload compressor、Opus/AAC/FLAC fallback、長媒體 chunk 與 transcript-ready payload，且 chunk artifact 命名已統一為 `chunk-0000.<ext>` 起。下一步是量測 `balanced` profile，並決定 VAD / 品質守門的 v1 邊界。
 
 #### CAP-204 Local Media Flow 本機媒體流程
 

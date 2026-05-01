@@ -89,6 +89,7 @@ export default class AISummarizerPlugin extends Plugin {
       modelCatalog,
       retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
+      mistralApiKey: String(loadedSettings?.mistralApiKey ?? DEFAULT_SETTINGS.mistralApiKey),
       gladiaApiKey: String(loadedSettings?.gladiaApiKey ?? DEFAULT_SETTINGS.gladiaApiKey),
       ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
       ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)

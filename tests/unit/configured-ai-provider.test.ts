@@ -100,6 +100,50 @@ describe("configured AI providers", () => {
     });
   });
 
+  it("summarizes webpages with Mistral chat completions", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse({
+        choices: [{ message: { content: "## Summary\n\nMistral summary" } }]
+      })
+    );
+    const provider = createConfiguredSummaryProvider(
+      {
+        ...DEFAULT_SETTINGS,
+        mistralApiKey: "mistral-key"
+      },
+      { fetchImpl }
+    );
+
+    const result = await provider.summarizeWebpage(
+      {
+        metadata: {
+          title: "Article",
+          creatorOrAuthor: "Author",
+          platform: "Web",
+          source: "https://example.com",
+          created: "2026-04-25T00:00:00.000Z"
+        },
+        webpageText: "Article body",
+        summaryProvider: "mistral",
+        summaryModel: "mistral-small-latest"
+      },
+      new AbortController().signal
+    );
+
+    expect(result.summaryMarkdown).toContain("Mistral summary");
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.mistral.ai/v1/chat/completions");
+    expect(init?.headers).toMatchObject({
+      Authorization: "Bearer mistral-key",
+      "Content-Type": "application/json"
+    });
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      model: "mistral-small-latest",
+      messages: [{ role: "user" }],
+      temperature: 0.2
+    });
+  });
+
   it("reports OpenRouter empty output with response diagnostics", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       jsonResponse({

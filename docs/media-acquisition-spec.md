@@ -1,6 +1,6 @@
 # Media Acquisition Spec (TRACK-007)
 
-最後更新：2026-05-02 00:22
+最後更新：2026-05-02 01:01
 
 ## 目的
 
@@ -130,7 +130,7 @@
 - 目錄：`ai-upload/`
 - 檔名：
   - 單檔模式：`ai-upload.<ext>`
-  - 分段模式：`chunk-0001.<ext>`、`chunk-0002.<ext>`...
+  - 分段模式：`chunk-0000.<ext>`、`chunk-0001.<ext>`...
 - 說明：
   - AI 預設只接收 `ai-upload` 產物，不直接上傳 source artifact
   - `metadata.json` 需記錄 `uploadArtifactPaths`
@@ -337,10 +337,10 @@ podcast 與 direct media 不套用 YouTube 專屬格式選擇與 chunk retry 參
 
 新版的優點是 session isolation、vault 外 cache、typed error、runtime diagnostics、local media safe copy、AI-ready artifact、provider 拆分、長媒體內部分段處理與測試覆蓋都已成形。整體架構不需要回頭套用舊版流程。
 
-新版目前需要校準的地方已轉成 `docs/backlog.md` 的「近期優化路線：舊版對照後」，並在 `docs/backlog-active.md` 保留 release 收斂所需 checklist：
+新版目前的校準狀態已轉成 `docs/backlog.md` 的「近期優化路線：舊版對照後」，並在 `docs/backlog-active.md` 保留 release 收斂所需 checklist：
 
 1. `metadata.json` 已開始作為 artifact manifest：acquisition 寫入 source artifact，compression 回寫 `derivedArtifactPaths`、`uploadArtifactPaths`、chunk metadata、`selectedCodec` 與 `vadApplied`；後續 transcript/subtitle lineage 仍需在 CAP-206 補齊。
-2. 規格的 chunk 範例是 `chunk-0001` 起，實作與測試是 ffmpeg 預設的 `chunk-0000` 起，文件或實作需統一。
+2. chunk 命名起點已統一為 `chunk-0000.<ext>`，與 ffmpeg `chunk-%04d` 預設、實作與測試一致。
 3. `transcript.srt` 被規格描述為 UTF-8 SRT，但現行 recovery 會把 transcript markdown 寫入該路徑；已定案需拆成 `transcript.md` 與必保留的 `subtitles.srt`。
 4. VAD 與「轉錄品質守門後自動升級重跑」仍屬規格目標，現行 compressor 只做編碼失敗 fallback 與長度 chunking。
 5. Gemini inline 對多 chunk 已定案需改成逐 chunk request 後合併 transcript，避免一次送出所有 `inline_data` 造成 payload、timeout、503 或整批重試風險。

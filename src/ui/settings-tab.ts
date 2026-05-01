@@ -457,13 +457,67 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       : "建議填入穩定的 Gemini audio-capable 模型。";
   }
 
+  private getSummaryApiKey(): string {
+    if (this.plugin.settings.summaryProvider === "openrouter") {
+      return this.plugin.settings.openRouterApiKey;
+    }
+    if (this.plugin.settings.summaryProvider === "mistral") {
+      return this.plugin.settings.mistralApiKey;
+    }
+    return this.plugin.settings.apiKey;
+  }
+
+  private setSummaryApiKey(value: string): void {
+    if (this.plugin.settings.summaryProvider === "openrouter") {
+      this.plugin.settings.openRouterApiKey = value.trim();
+      this.invalidateModelDataListCache("openrouter");
+      return;
+    }
+    if (this.plugin.settings.summaryProvider === "mistral") {
+      this.plugin.settings.mistralApiKey = value.trim();
+      return;
+    }
+
+    this.plugin.settings.apiKey = value.trim();
+    this.invalidateModelDataListCache("gemini");
+  }
+
+  private getSummaryProviderLabel(): string {
+    if (this.plugin.settings.summaryProvider === "openrouter") {
+      return "OpenRouter";
+    }
+    if (this.plugin.settings.summaryProvider === "mistral") {
+      return "Mistral";
+    }
+    return "Gemini";
+  }
+
+  private getSummaryModelPlaceholder(): string {
+    if (this.plugin.settings.summaryProvider === "openrouter") {
+      return "qwen/qwen3.6-plus";
+    }
+    if (this.plugin.settings.summaryProvider === "mistral") {
+      return "mistral-small-latest";
+    }
+    return "gemini-3.1-flash-lite-preview";
+  }
+
+  private getSummaryApiKeyDescription(): string {
+    if (this.plugin.settings.summaryProvider === "openrouter") {
+      return "OpenRouter 摘要使用的 API Key。";
+    }
+    if (this.plugin.settings.summaryProvider === "mistral") {
+      return "Mistral 摘要使用的 API Key。";
+    }
+    return "Gemini 摘要會共用 Gemini API Key。";
+  }
+
   private async testSummaryApi(): Promise<void> {
-    const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
     await this.runApiTest("summary", {
       kind: "summary",
       provider: this.plugin.settings.summaryProvider,
       model: this.plugin.settings.summaryModel,
-      apiKey: isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey
+      apiKey: this.getSummaryApiKey()
     });
   }
 
@@ -636,7 +690,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     purpose: ModelPurpose
   ): "gemini" | "openrouter" | null {
     if (purpose === "summary") {
-      return provider === "openrouter" ? "openrouter" : "gemini";
+      if (provider === "openrouter") {
+        return "openrouter";
+      }
+      return provider === "gemini" ? "gemini" : null;
     }
 
     return provider === "gemini" ? "gemini" : null;
@@ -1009,24 +1066,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc(
-        this.plugin.settings.summaryProvider === "openrouter"
-          ? "OpenRouter 摘要使用的 API Key。"
-          : "Gemini 摘要會自動使用轉錄模型的 Gemini API Key。"
-      )
+      .setDesc(this.getSummaryApiKeyDescription())
       .addText((text) => {
-        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
         text
-          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
-          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getSummaryProviderLabel()} API Key`)
+          .setValue(this.getSummaryApiKey())
           .onChange(async (value) => {
-            if (isOpenRouter) {
-              this.plugin.settings.openRouterApiKey = value.trim();
-              this.invalidateModelDataListCache("openrouter");
-            } else {
-              this.plugin.settings.apiKey = value.trim();
-              this.invalidateModelDataListCache("gemini");
-            }
+            this.setSummaryApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           });
@@ -1143,11 +1189,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setDesc("摘要模型只處理文字輸入；媒體逐字稿會先由轉錄模型產生。")
       .addText((text) =>
         text
-          .setPlaceholder(
-            this.plugin.settings.summaryProvider === "openrouter"
-              ? "qwen/qwen3.6-plus"
-              : "gemini-3.1-flash-lite-preview"
-          )
+          .setPlaceholder(this.getSummaryModelPlaceholder())
           .setValue(this.plugin.settings.summaryModel)
           .onChange(async (value) => {
             this.plugin.settings.summaryModel = normalizeSummaryModel(
@@ -1165,24 +1207,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc(
-        this.plugin.settings.summaryProvider === "openrouter"
-          ? "OpenRouter 摘要使用的 API Key。"
-          : "Gemini 摘要會共用 Gemini API Key。"
-      )
+      .setDesc(this.getSummaryApiKeyDescription())
       .addText((text) => {
-        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
         text
-          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
-          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getSummaryProviderLabel()} API Key`)
+          .setValue(this.getSummaryApiKey())
           .onChange(async (value) => {
-            if (isOpenRouter) {
-              this.plugin.settings.openRouterApiKey = value.trim();
-              this.invalidateModelDataListCache("openrouter");
-            } else {
-              this.plugin.settings.apiKey = value.trim();
-              this.invalidateModelDataListCache("gemini");
-            }
+            this.setSummaryApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           });
@@ -1422,7 +1453,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；OpenRouter 適合已有逐字稿後只重跑摘要的路徑。")
+      .setDesc("Gemini 為預設；OpenRouter / Mistral 適合已有逐字稿後只重跑摘要的路徑。")
       .addDropdown((dropdown) => {
         for (const option of SUMMARY_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1467,11 +1498,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .addText((text) => {
         manageSummaryModelInputEl = text.inputEl;
         return text
-          .setPlaceholder(
-            this.plugin.settings.summaryProvider === "openrouter"
-              ? "qwen/qwen3.6-plus"
-              : "gemini-3.1-flash-lite-preview"
-          )
+          .setPlaceholder(this.getSummaryModelPlaceholder())
           .onChange((value) => {
             newSummaryModel = value;
           });
@@ -1507,24 +1534,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("API Key")
-      .setDesc(
-        this.plugin.settings.summaryProvider === "openrouter"
-          ? "OpenRouter 摘要使用的 API Key。"
-          : "Gemini 摘要會共用 Gemini API Key。"
-      )
+      .setDesc(this.getSummaryApiKeyDescription())
       .addText((text) => {
-        const isOpenRouter = this.plugin.settings.summaryProvider === "openrouter";
         text
-          .setPlaceholder(isOpenRouter ? "輸入 OpenRouter API Key" : "輸入 Gemini API Key")
-          .setValue(isOpenRouter ? this.plugin.settings.openRouterApiKey : this.plugin.settings.apiKey)
+          .setPlaceholder(`輸入 ${this.getSummaryProviderLabel()} API Key`)
+          .setValue(this.getSummaryApiKey())
           .onChange(async (value) => {
-            if (isOpenRouter) {
-              this.plugin.settings.openRouterApiKey = value.trim();
-              this.invalidateModelDataListCache("openrouter");
-            } else {
-              this.plugin.settings.apiKey = value.trim();
-              this.invalidateModelDataListCache("gemini");
-            }
+            this.setSummaryApiKey(value);
             await this.plugin.saveSettings();
             this.display();
           });
@@ -1542,7 +1558,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private renderAiModelSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("模型清單更新")
-      .setDesc("自動完成會使用 Gemini / OpenRouter 官方模型清單。按下更新可手動抓取最新資料。")
+      .setDesc("自動完成會使用 Gemini / OpenRouter 官方模型清單；Mistral 模型可手動輸入 model id。")
       .addButton((button) =>
         button
           .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新")

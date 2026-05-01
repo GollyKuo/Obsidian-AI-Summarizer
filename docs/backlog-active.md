@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 00:22
+最後更新：2026-05-02 01:01
 
 ## 用途
 
@@ -50,8 +50,8 @@
 
 - [ ] 完成 `balanced` profile 對 `normalized.wav` 的 3 組樣本量測，目標上傳量降低至少 70%。
 - [ ] 決定 VAD 與轉錄品質守門屬於 v1 實作或 vNext 規格；若不做 v1，從 active 驗收點移出。
-- [ ] 統一 chunk 命名起點：規格、測試與產物需一致使用 `chunk-0000.<ext>` 或 `chunk-0001.<ext>`。
-- [ ] 將 chunk 命名與壓縮量測結果同步到 [media-acquisition-spec.md](media-acquisition-spec.md)。
+- [x] 統一 chunk 命名起點：規格、測試與產物一致使用 `chunk-0000.<ext>` 起。（完成：2026-05-02 01:01）
+- [ ] 將 `balanced` profile 壓縮量測結果同步到 [media-acquisition-spec.md](media-acquisition-spec.md)。
 
 ### CAP-205 AI Processing Pipeline AI 處理管線
 

@@ -8,6 +8,7 @@ import type {
 export type ApiHealthCheckRequest =
   | ApiHealthCheckGeminiRequest
   | ApiHealthCheckGladiaRequest
+  | ApiHealthCheckMistralRequest
   | ApiHealthCheckOpenRouterRequest;
 
 interface ApiHealthCheckBaseRequest {
@@ -31,6 +32,12 @@ type ApiHealthCheckGeminiRequest =
 interface ApiHealthCheckOpenRouterRequest extends ApiHealthCheckBaseRequest {
   kind: "summary";
   provider: "openrouter";
+  model: SummaryModel;
+}
+
+interface ApiHealthCheckMistralRequest extends ApiHealthCheckBaseRequest {
+  kind: "summary";
+  provider: "mistral";
   model: SummaryModel;
 }
 
@@ -225,6 +232,58 @@ async function testOpenRouterApi(
   };
 }
 
+async function testMistralApi(
+  request: ApiHealthCheckMistralRequest
+): Promise<ApiHealthCheckResult> {
+  const fetchImpl = getFetchImplementation(request.fetchImpl);
+  if (!fetchImpl) {
+    return {
+      ok: false,
+      provider: request.provider,
+      model: request.model,
+      message: "目前環境不支援 fetch，無法測試 Mistral API。"
+    };
+  }
+
+  const response = await fetchWithTimeout(
+    fetchImpl,
+    "https://api.mistral.ai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${request.apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: request.model,
+        messages: [{ role: "user", content: "Reply with OK." }],
+        temperature: 0,
+        max_tokens: 8
+      })
+    },
+    request.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  );
+
+  if (!response.ok) {
+    const detail = await readErrorMessage(response);
+    return {
+      ok: false,
+      provider: request.provider,
+      model: request.model,
+      message: detail
+        ? `Mistral API 測試失敗（HTTP ${response.status}）：${detail}`
+        : `Mistral API 測試失敗（HTTP ${response.status}）。`
+    };
+  }
+
+  return {
+    ok: true,
+    provider: request.provider,
+    model: request.model,
+    message: `Mistral API 可用：${request.model}`
+  };
+}
+
 async function testGladiaApi(
   request: ApiHealthCheckGladiaRequest
 ): Promise<ApiHealthCheckResult> {
@@ -286,6 +345,9 @@ export async function testAiApiAvailability(
   try {
     if (request.provider === "openrouter") {
       return await testOpenRouterApi({ ...request, apiKey });
+    }
+    if (request.provider === "mistral") {
+      return await testMistralApi({ ...request, apiKey });
     }
     if (request.provider === "gladia") {
       return await testGladiaApi({ ...request, apiKey });

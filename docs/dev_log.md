@@ -1,8 +1,39 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 00:43
+最後更新：2026-05-02 01:15
 
 ## 版本紀錄
+
+### 0.1.55-mistral-summary-provider - 2026-05-02 01:15
+
+範圍：
+- 新增 Mistral API 作為摘要 AI provider。
+
+主要變更：
+- 更新 `src/domain/model-selection.ts` 與 `src/domain/settings.ts`，新增 `summaryProvider: mistral`、`mistralApiKey` 與預設 Mistral 摘要模型 `mistral-small-latest`
+- 更新 `src/services/ai/configured-ai-provider.ts`，摘要流程可透過 Mistral Chat Completions 產生網頁與媒體摘要
+- 更新 `src/services/ai/api-health-check.ts` 與 `src/ui/settings-tab.ts`，設定頁可保存並測試 Mistral API Key
+- 更新 `tests/unit/settings.test.ts`、`tests/unit/configured-ai-provider.test.ts`、`tests/unit/api-health-check.test.ts`
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/settings.test.ts tests/unit/configured-ai-provider.test.ts tests/unit/api-health-check.test.ts --passWithNoTests`
+
+### 0.1.54-cap-203-chunk-naming - 2026-05-02 01:01
+
+範圍：
+- 完成 `CAP-203` chunk artifact 命名起點校準。
+
+主要變更：
+- 將 AI upload 分段 artifact 標準明確定為 `chunk-0000.<ext>` 起，對齊 ffmpeg `chunk-%04d` 預設行為
+- 更新 `tests/unit/artifact-retention.test.ts` 的 retention fixture，避免測試範例仍暗示 `chunk-0001` 起算
+- 更新 `docs/media-acquisition-spec.md`，消除 `chunk-0001` 與 `chunk-0000` 的規格矛盾
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`，標記 chunk 命名統一完成，保留 `balanced` profile 量測為後續 open work
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/pre-upload-compressor.test.ts tests/unit/artifact-retention.test.ts --passWithNoTests`
+- `git diff --check`
 
 ### 0.1.53-cap-202-artifact-manifest - 2026-05-02 00:43
 

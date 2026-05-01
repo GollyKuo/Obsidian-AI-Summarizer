@@ -17,7 +17,7 @@ function makeInput(overrides: Partial<ArtifactRetentionInput> = {}): ArtifactRet
     },
     aiUploadArtifactPaths: [
       "D:\\cache\\session\\ai-upload\\ai-upload.ogg",
-      "D:\\cache\\session\\ai-upload\\chunk-0001.ogg"
+      "D:\\cache\\session\\ai-upload\\chunk-0000.ogg"
     ],
     ...overrides
   };

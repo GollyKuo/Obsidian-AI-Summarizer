@@ -1,4 +1,6 @@
 {
+  "0.1.55-mistral-summary-provider": "1.5.0",
+  "0.1.54-cap-203-chunk-naming": "1.5.0",
   "0.1.53-cap-202-artifact-manifest": "1.5.0",
   "0.1.49-transcription-node-import-fix": "1.5.0",
   "0.1.48-cap-504-model-catalog": "1.5.0",

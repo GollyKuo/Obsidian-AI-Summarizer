@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GLADIA_TRANSCRIPTION_MODEL,
+  DEFAULT_MISTRAL_SUMMARY_MODEL,
   DEFAULT_MODEL_CATALOG,
   DEFAULT_SUMMARY_MODEL,
   DEFAULT_SUMMARY_PROVIDER,
@@ -37,13 +38,15 @@ describe("settings", () => {
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-2.5-flash",
+      "mistral-small-latest"
     ]);
     expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.displayName)).toEqual([
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-2.5-flash",
+      "mistral-small-latest"
     ]);
     expect(DEFAULT_MODEL_CATALOG).toEqual(DEFAULT_SETTINGS.modelCatalog);
     expect(getTranscriptionModelOptions().map((option) => option.value)).toEqual([
@@ -80,6 +83,9 @@ describe("settings", () => {
     expect(normalizeSummaryModel("gemini", "custom-summary")).toBe("custom-summary");
     expect(normalizeSummaryModel("openrouter", "vendor/model")).toBe("vendor/model");
     expect(normalizeSummaryModel("openrouter", " ")).toBe("qwen/qwen3.6-plus");
+    expect(normalizeSummaryProvider("mistral")).toBe("mistral");
+    expect(normalizeSummaryModel("mistral", "mistral-large-latest")).toBe("mistral-large-latest");
+    expect(normalizeSummaryModel("mistral", " ")).toBe(DEFAULT_MISTRAL_SUMMARY_MODEL);
   });
 
   it("normalizes legacy retention settings into the two current choices", () => {
@@ -110,19 +116,28 @@ describe("settings", () => {
       displayName: "Gladia Default",
       modelId: "default"
     });
+    const mistralSummary = createModelCatalogEntry({
+      provider: "mistral",
+      purpose: "summary",
+      displayName: "Mistral Small",
+      modelId: "mistral-small-latest"
+    });
 
     expect(geminiTranscript).not.toBeNull();
     expect(openRouterSummary).not.toBeNull();
     expect(gladiaTranscript).not.toBeNull();
+    expect(mistralSummary).not.toBeNull();
 
     let catalog = normalizeModelCatalog([
       geminiTranscript,
       gladiaTranscript,
+      mistralSummary,
       openRouterSummary,
-      { provider: "openrouter", purpose: "transcription", modelId: "bad" }
+      { provider: "openrouter", purpose: "transcription", modelId: "bad" },
+      { provider: "mistral", purpose: "transcription", modelId: "bad" }
     ]);
 
-    expect(catalog).toHaveLength(3);
+    expect(catalog).toHaveLength(4);
     catalog = upsertModelCatalogEntry(catalog, {
       provider: "openrouter",
       purpose: "summary",
@@ -139,6 +154,9 @@ describe("settings", () => {
     expect(getSummaryModelOptions("openrouter", catalog).map((option) => option.label)).toEqual([
       "Qwen Updated"
     ]);
+    expect(getSummaryModelOptions("mistral", catalog).map((option) => option.value)).toEqual([
+      "mistral-small-latest"
+    ]);
 
     catalog = removeModelCatalogEntry(catalog, {
       provider: "openrouter",
@@ -146,6 +164,9 @@ describe("settings", () => {
       modelId: "qwen/qwen3.6-plus"
     });
     expect(getSummaryModelOptions("openrouter", catalog)).toEqual([]);
+    expect(getSummaryModelOptions("mistral", catalog).map((option) => option.label)).toEqual([
+      "Mistral Small"
+    ]);
   });
 
   it("keeps built-in Gemini transcription models while migrating selected custom models", () => {
@@ -169,7 +190,7 @@ describe("settings", () => {
         },
         { includeDefaults: true }
       )
-    ).toHaveLength(5);
+    ).toHaveLength(6);
 
     expect(
       ensureSelectedModelsInCatalog([], {
@@ -183,6 +204,7 @@ describe("settings", () => {
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
+      "mistral-small-latest",
       "gemini-custom-audio"
     ]);
 

@@ -1,8 +1,9 @@
 export type GeminiModel = string;
 export type OpenRouterSummaryModel = string;
+export type MistralSummaryModel = string;
 
 export type TranscriptionProvider = "gemini" | "gladia";
-export type SummaryProvider = "gemini" | "openrouter";
+export type SummaryProvider = "gemini" | "openrouter" | "mistral";
 export type ModelProvider = TranscriptionProvider | SummaryProvider;
 export type ModelPurpose = "transcription" | "summary";
 
@@ -26,7 +27,7 @@ export interface AiModelCatalogEntry {
   purpose: ModelPurpose;
   displayName: string;
   modelId: string;
-  source?: "user" | "openrouter";
+  source?: "user" | "openrouter" | "mistral";
   updatedAt?: string;
 }
 
@@ -34,6 +35,7 @@ export const GEMINI_MODEL_OPTIONS: readonly ModelOption<GeminiModel>[] = [];
 export const OPENROUTER_SUMMARY_MODEL_OPTIONS: readonly ModelOption<OpenRouterSummaryModel>[] = [];
 const LEGACY_GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3.0-flash-preview";
 const GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3-flash-preview";
+const MISTRAL_SMALL_LATEST_MODEL = "mistral-small-latest";
 
 export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [
   {
@@ -63,6 +65,13 @@ export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [
     displayName: "gemini-2.5-flash",
     modelId: "gemini-2.5-flash",
     source: "user"
+  },
+  {
+    provider: "mistral",
+    purpose: "summary",
+    displayName: MISTRAL_SMALL_LATEST_MODEL,
+    modelId: MISTRAL_SMALL_LATEST_MODEL,
+    source: "user"
   }
 ];
 
@@ -89,6 +98,11 @@ export const SUMMARY_PROVIDER_OPTIONS: readonly ProviderOption<SummaryProvider>[
     value: "openrouter",
     label: "OpenRouter",
     description: "Transcript-first text summarization via OpenRouter."
+  },
+  {
+    value: "mistral",
+    label: "Mistral",
+    description: "Transcript-first text summarization via Mistral Chat Completions."
   }
 ] as const;
 
@@ -98,6 +112,7 @@ export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = GEMINI_3_FLASH_PR
 export const DEFAULT_GLADIA_TRANSCRIPTION_MODEL: TranscriptionModel = "default";
 export const DEFAULT_GEMINI_SUMMARY_MODEL: GeminiModel = "gemini-3.1-flash-lite-preview";
 export const DEFAULT_OPENROUTER_SUMMARY_MODEL: OpenRouterSummaryModel = "qwen/qwen3.6-plus";
+export const DEFAULT_MISTRAL_SUMMARY_MODEL: MistralSummaryModel = MISTRAL_SMALL_LATEST_MODEL;
 export const DEFAULT_SUMMARY_MODEL: SummaryModel = DEFAULT_GEMINI_SUMMARY_MODEL;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -117,7 +132,7 @@ function normalizeKnownModelId(provider: ModelProvider, modelId: string): string
 }
 
 function isModelProvider(value: string): value is ModelProvider {
-  return value === "gemini" || value === "openrouter" || value === "gladia";
+  return value === "gemini" || value === "openrouter" || value === "mistral" || value === "gladia";
 }
 
 function isModelPurpose(value: string): value is ModelPurpose {
@@ -129,7 +144,7 @@ function isAllowedProviderPurpose(provider: ModelProvider, purpose: ModelPurpose
     return provider === "gemini" || provider === "gladia";
   }
 
-  return provider === "gemini" || provider === "openrouter";
+  return provider === "gemini" || provider === "openrouter" || provider === "mistral";
 }
 
 export function isSupportedGeminiModel(model: string): model is GeminiModel {
@@ -140,12 +155,18 @@ export function isSupportedOpenRouterSummaryModel(model: string): model is OpenR
   return model.trim().length > 0;
 }
 
+export function isSupportedMistralSummaryModel(model: string): model is MistralSummaryModel {
+  return model.trim().length > 0;
+}
+
 export function normalizeTranscriptionProvider(provider: string): TranscriptionProvider {
   return provider === "gemini" || provider === "gladia" ? provider : DEFAULT_TRANSCRIPTION_PROVIDER;
 }
 
 export function normalizeSummaryProvider(provider: string): SummaryProvider {
-  return provider === "gemini" || provider === "openrouter" ? provider : DEFAULT_SUMMARY_PROVIDER;
+  return provider === "gemini" || provider === "openrouter" || provider === "mistral"
+    ? provider
+    : DEFAULT_SUMMARY_PROVIDER;
 }
 
 export function normalizeTranscriptionModel(model: string): TranscriptionModel {
@@ -173,9 +194,13 @@ export function normalizeSummaryModel(provider: SummaryProvider, model: string):
     return normalizedModel;
   }
 
-  return provider === "openrouter"
-    ? DEFAULT_OPENROUTER_SUMMARY_MODEL
-    : DEFAULT_GEMINI_SUMMARY_MODEL;
+  if (provider === "openrouter") {
+    return DEFAULT_OPENROUTER_SUMMARY_MODEL;
+  }
+  if (provider === "mistral") {
+    return DEFAULT_MISTRAL_SUMMARY_MODEL;
+  }
+  return DEFAULT_GEMINI_SUMMARY_MODEL;
 }
 
 export function normalizeModelCatalog(value: unknown): AiModelCatalogEntry[] {
@@ -211,7 +236,10 @@ export function normalizeModelCatalog(value: unknown): AiModelCatalogEntry[] {
     seen.add(key);
 
     const displayName = normalizeModelText(candidate.displayName) || modelId;
-    const source = candidate.source === "openrouter" ? "openrouter" : "user";
+    const source =
+      candidate.source === "openrouter" || candidate.source === "mistral"
+        ? candidate.source
+        : "user";
     const updatedAt = normalizeModelText(candidate.updatedAt);
     entries.push({
       provider,
@@ -231,7 +259,7 @@ export function createModelCatalogEntry(input: {
   purpose: ModelPurpose;
   displayName?: string;
   modelId: string;
-  source?: "user" | "openrouter";
+  source?: "user" | "openrouter" | "mistral";
   updatedAt?: string;
 }): AiModelCatalogEntry | null {
   const modelId = normalizeKnownModelId(input.provider, input.modelId.trim());
