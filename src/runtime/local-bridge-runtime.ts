@@ -129,6 +129,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         downloadedPath: processResult.session.artifacts.downloadedPath,
         normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
         transcriptPath: processResult.session.artifacts.transcriptPath,
+        subtitlePath: processResult.session.artifacts.subtitlePath,
         metadataPath: processResult.session.artifacts.metadataPath,
         aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
         aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
@@ -186,6 +187,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         downloadedPath: processResult.session.artifacts.downloadedPath,
         normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
         transcriptPath: processResult.session.artifacts.transcriptPath,
+        subtitlePath: processResult.session.artifacts.subtitlePath,
         metadataPath: processResult.session.artifacts.metadataPath,
         aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
         aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths

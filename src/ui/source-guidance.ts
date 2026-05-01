@@ -48,6 +48,19 @@ const SOURCE_GUIDANCE: Record<SourceType, SourceGuidance> = {
       validation_error: "確認使用絕對路徑，檔案存在，且副檔名與大小都在支援範圍內。",
       runtime_unavailable: "先到設定頁確認本機 runtime 與 media cache root 診斷是否正常。"
     }
+  },
+  transcript_file: {
+    label: "逐字稿檔案",
+    placeholder: "D:\\MediaCache\\session\\transcript.md",
+    description: "選擇已產生的 transcript.md 或純文字逐字稿，跳過轉錄，只重跑摘要與 note 輸出。",
+    inputHint: "適合摘要失敗後重跑、改用不同摘要 provider，或手動修正逐字稿後重新整理。",
+    examples: ["transcript.md", "subtitles 轉成的純文字", "手動整理逐字稿"],
+    emptyValueHint: "請先輸入逐字稿檔案路徑。",
+    errorHints: {
+      validation_error: "確認使用絕對路徑，檔案存在，且副檔名為 .md 或 .txt。",
+      ai_failure: "確認摘要 provider/API key 可用，或換用較穩定的摘要模型後重試。",
+      note_write_failure: "確認輸出資料夾可寫入，或檢查同名筆記衝突處理。"
+    }
   }
 };
 

@@ -1,4 +1,9 @@
 {
+  "0.1.64-subtitle-boundary-docs": "1.5.0",
+  "0.1.63-long-media-summary-regression-gate": "1.5.0",
+  "0.1.62-transcript-file-summary-retry": "1.5.0",
+  "0.1.61-transcript-subtitle-lifecycle": "1.5.0",
+  "0.1.60-gemini-chunk-transcription": "1.5.0",
   "0.1.59-gladia-provider-smoke-record": "1.5.0",
   "0.1.58-media-summary-final-synthesis": "1.5.0",
   "0.1.57-media-smoke-and-ffmpeg-location": "1.5.0",

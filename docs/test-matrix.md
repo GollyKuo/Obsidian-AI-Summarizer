@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-05-02 02:22
+最後更新：2026-05-02 03:12
 
 ## Capability Matrix
 
@@ -10,7 +10,8 @@
 | `webpage` | mobile | none | `npm run smoke:mobile` | `gate:release` |
 | `media_url` | desktop | integration + unit | `npm run smoke:media-url` | `gate:local`, `gate:release` |
 | `local_media` | desktop | integration + unit | `npm run smoke:local-media` | `gate:local`, `gate:release` |
-| `media_url` / `local_media` | mobile | none | not supported in v1 | excluded |
+| `transcript_file` | desktop | integration + unit | manual via flow modal | `gate:local`, `gate:release` |
+| `media_url` / `local_media` / `transcript_file` | mobile | none | not supported in v1 | excluded |
 
 ## Manual Smoke Evidence
 
@@ -40,23 +41,55 @@ Balanced compression spot check is recorded in [media-acquisition-spec.md](media
 
 Additional check: final summaries did not expose `chunk` / `Chunk 1` / `part` processing markers.
 
+## Automated Regression Evidence
+
+### 2026-05-02 CAP-205 Gemini chunked transcription
+
+| Case | Test | Coverage |
+| --- | --- | --- |
+| Gemini multi chunk inline transcription | `tests/unit/configured-ai-provider.test.ts` | verifies each `ai-upload` chunk is sent as its own Gemini `inline_data` request and transcripts are merged in order |
+| Gemini partial transcript recovery diagnostics | `tests/unit/configured-ai-provider.test.ts` | verifies a failed later chunk reports chunk index, total chunks, completed chunk count and partial transcript markdown |
+| Orchestration partial transcript recovery | `tests/integration/process-media.integration.test.ts` | verifies partial transcript markdown is written to the recovery transcript path when transcription fails mid-run |
+
+### 2026-05-02 CAP-206 transcript/subtitle lifecycle
+
+| Case | Test | Coverage |
+| --- | --- | --- |
+| Transcript/subtitle final handoff | `tests/integration/process-media.integration.test.ts` | verifies `transcript.md` and UTF-8 `subtitles.srt` are written after transcription and remain after `delete_temp` completed cleanup |
+| Artifact manifest transcript lineage | `tests/unit/artifact-manifest.test.ts` | verifies manifest records `transcriptPath` and `subtitlePath` |
+| Retention protection | `tests/unit/artifact-retention.test.ts` | verifies completed and failed cleanup preserve final transcript/subtitle artifacts |
+
+### 2026-05-02 CAP-205 transcript-file summary retry
+
+| Case | Test | Coverage |
+| --- | --- | --- |
+| Transcript file summary retry | `tests/integration/process-transcript-file.integration.test.ts` | verifies `.md` / `.txt` transcript input skips transcription, reuses adjacent `metadata.json` when present, falls back with warning when metadata is unavailable, and writes a regenerated media note |
+| UI/source/template wiring | `tests/unit/source-guidance.test.ts`, `tests/unit/runtime-diagnostics.test.ts`, `tests/unit/template-library.test.ts` | verifies `transcript_file` copy, diagnostics readiness, and media-session template support |
+
+### 2026-05-02 CAP-401 long-media global summary gate
+
+| Case | Test | Coverage |
+| --- | --- | --- |
+| Long-media global summary regression | `tests/regression/media-summary-global.regression.test.ts` | verifies overlong transcripts use internal partial notes followed by final synthesis, strips internal `Chunk N` / `Part N` / `分段 N` labels from synthesis material, and writes only the clean final summary |
+
 ## Gate Intent
 
 - `gate:local`: 型別、單元測試、整合測試、production build
 - `gate:local:vault`: `gate:local` + 同步到測試 Vault 的 build
-- `gate:regression:desktop`: 守住 `webpage` 主線，避免 runtime / media 變更回歸
+- `gate:regression:desktop`: 守住 `webpage` 主線與長媒體全局摘要輸出，避免 runtime / media 變更回歸
 - `gate:release`: `gate:local` 後，執行 desktop/mobile smoke checklist
 
 ## Dependency Drift Policy
 
 參考：`docs/dependency-update-strategy.md`
 
-- drift `error`: `media_url` / `local_media` release blocked
+- drift `error`: `media_url` / `local_media` release blocked; `transcript_file` remains available if summary provider and note output are configured
 - drift `warning`: 可放行，但需在 `dev_log` 記錄風險
 - `webpage-only` 變更不因 drift `warning` 被阻塞
 
 ## Regression Focus
 
 - runtime unavailable 不得破壞 `webpage` 主線
+- 長媒體 partial notes 不得以 chunk/part/分段等內部技術標記進入最終筆記
 - media retention mode 不得影響 note 輸出
 - diagnostics / error reporting 變更不得讓錯誤落回 unknown path

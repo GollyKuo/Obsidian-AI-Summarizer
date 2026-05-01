@@ -5,7 +5,7 @@ import type {
   TranscriptionProvider
 } from "@domain/model-selection";
 
-export type SourceType = "media_url" | "webpage_url" | "local_media";
+export type SourceType = "media_url" | "webpage_url" | "local_media" | "transcript_file";
 export type RetentionMode = "delete_temp" | "keep_temp";
 
 export interface SourceMetadata {
@@ -59,6 +59,13 @@ export interface WebpageRequest {
   summaryModel: SummaryModel;
 }
 
+export interface TranscriptFileRequest {
+  sourceKind: "transcript_file";
+  sourceValue: string;
+  summaryProvider: SummaryProvider;
+  summaryModel: SummaryModel;
+}
+
 export interface MediaProcessResult {
   metadata: SourceMetadata;
   normalizedText: string;
@@ -68,6 +75,7 @@ export interface MediaProcessResult {
     downloadedPath: string;
     normalizedAudioPath: string;
     transcriptPath: string;
+    subtitlePath: string;
     metadataPath: string;
     aiUploadDirectory: string;
     aiUploadArtifactPaths: string[];

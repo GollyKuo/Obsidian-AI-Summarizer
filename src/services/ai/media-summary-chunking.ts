@@ -19,6 +19,10 @@ interface TextLimitResult {
 const DEFAULT_MAX_CHUNK_CHARACTERS = 6000;
 const DEFAULT_MAX_NORMALIZED_TEXT_CHARACTERS = 6000;
 const DEFAULT_MAX_NORMALIZED_TEXT_CHARACTERS_PER_CHUNK = 2000;
+const INTERNAL_PROCESSING_MARKER_LINE =
+  /^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?(?:chunk|part|分段)\s*\d+\s*[:：-]?\s*$/iu;
+const INTERNAL_PROCESSING_MARKER_PREFIX =
+  /^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?(?:chunk|part|分段)\s*\d+\s*[:：-]\s*/iu;
 
 function clampPositiveInteger(value: number | undefined, fallback: number): number {
   if (!Number.isFinite(value) || !value || value <= 0) {
@@ -109,6 +113,15 @@ function chunkTranscript(
   return chunks;
 }
 
+function removeInternalProcessingMarkers(summaryMarkdown: string): string {
+  return summaryMarkdown
+    .split(/\r?\n/g)
+    .filter((line) => !INTERNAL_PROCESSING_MARKER_LINE.test(line))
+    .map((line) => line.replace(INTERNAL_PROCESSING_MARKER_PREFIX, "").trimEnd())
+    .join("\n")
+    .trim();
+}
+
 function buildFinalSynthesisMaterial(partialSummaries: string[]): string {
   return [
     "以下為長媒體內部整理素材，請重新統整為單一最終摘要；不要保留素材編號、處理流程描述或中間整理痕跡。",
@@ -116,7 +129,7 @@ function buildFinalSynthesisMaterial(partialSummaries: string[]): string {
     ...partialSummaries.flatMap((summary, index) => [
       `### 摘要素材 ${index + 1}`,
       "",
-      summary.trim()
+      removeInternalProcessingMarkers(summary)
     ])
   ].join("\n").trim();
 }

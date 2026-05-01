@@ -33,6 +33,7 @@ export interface MediaDownloadArtifacts {
   downloadedPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  subtitlePath: string;
   metadataPath: string;
   aiUploadDirectory: string;
 }
@@ -654,6 +655,7 @@ async function buildDownloadResultWithMetadata(
         sourceArtifactPath: downloadedPath,
         normalizedAudioPath: session.artifacts.normalizedAudioPath,
         transcriptPath: session.artifacts.transcriptPath,
+        subtitlePath: session.artifacts.subtitlePath,
         warnings
       }),
       writeFile
@@ -734,7 +736,8 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
       const artifacts: MediaDownloadArtifacts = {
         downloadedPath: path.join(sessionDirectory, `downloaded${downloadExtension}`),
         normalizedAudioPath: path.join(sessionDirectory, "normalized.wav"),
-        transcriptPath: path.join(sessionDirectory, "transcript.srt"),
+        transcriptPath: path.join(sessionDirectory, "transcript.md"),
+        subtitlePath: path.join(sessionDirectory, "subtitles.srt"),
         metadataPath: path.join(sessionDirectory, "metadata.json"),
         aiUploadDirectory: path.join(sessionDirectory, "ai-upload")
       };

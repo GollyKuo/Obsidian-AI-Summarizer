@@ -7,6 +7,7 @@ import type {
   MediaSummaryInput,
   MediaTranscriptionInput,
   MediaTranscriptionResult,
+  TranscriptSegment,
   WebpageAiInput,
   WebpageSummaryResult
 } from "@domain/types";
@@ -522,6 +523,82 @@ async function readAudioPart(filePath: string): Promise<GeminiPart> {
   };
 }
 
+interface GeminiChunkTranscriptionFailureDiagnostics {
+  provider: "Gemini";
+  failureKind: "chunk_transcription_failed";
+  model: string;
+  failedChunkIndex: number;
+  totalChunks: number;
+  artifactPath: string;
+  completedChunkCount: number;
+  partialTranscriptMarkdown?: string;
+  upstreamCause?: unknown;
+}
+
+async function transcribeGeminiAudioArtifacts(input: {
+  apiKey: string;
+  model: string;
+  normalizedText: string;
+  artifactPaths: string[];
+  signal: AbortSignal;
+  fetchImpl?: typeof fetch;
+}): Promise<MediaTranscriptionResult> {
+  const transcriptChunks: string[] = [];
+  const transcriptSegments: TranscriptSegment[] = [];
+
+  for (let index = 0; index < input.artifactPaths.length; index += 1) {
+    const artifactPath = input.artifactPaths[index];
+    const audioPart = await readAudioPart(artifactPath);
+
+    try {
+      const transcriptMarkdown = await generateGeminiText({
+        apiKey: input.apiKey,
+        model: input.model,
+        parts: [{ text: buildTranscriptPrompt(input.normalizedText) }, audioPart],
+        signal: input.signal,
+        fetchImpl: input.fetchImpl
+      });
+
+      transcriptChunks.push(transcriptMarkdown);
+      transcriptSegments.push({
+        startMs: 0,
+        endMs: 0,
+        text: transcriptMarkdown
+      });
+    } catch (error) {
+      const upstreamCause = error instanceof SummarizerError ? error.causeValue : error;
+      const partialTranscriptMarkdown = transcriptChunks.join("\n\n").trim();
+      throw new SummarizerError({
+        category: error instanceof SummarizerError ? error.category : "ai_failure",
+        message: `Gemini transcription failed for AI upload chunk ${index + 1}/${input.artifactPaths.length}: ${getErrorMessage(error)}`,
+        recoverable: true,
+        cause: {
+          provider: "Gemini",
+          failureKind: "chunk_transcription_failed",
+          model: input.model,
+          failedChunkIndex: index,
+          totalChunks: input.artifactPaths.length,
+          artifactPath,
+          completedChunkCount: transcriptChunks.length,
+          partialTranscriptMarkdown: partialTranscriptMarkdown.length > 0 ? partialTranscriptMarkdown : undefined,
+          upstreamCause
+        } satisfies GeminiChunkTranscriptionFailureDiagnostics
+      });
+    }
+  }
+
+  const transcriptMarkdown = transcriptChunks.join("\n\n").trim();
+  return {
+    transcript: transcriptSegments,
+    transcriptMarkdown,
+    warnings: [
+      ...(input.artifactPaths.length > 1
+        ? [`Gemini transcription completed ${input.artifactPaths.length} AI upload artifact chunks with separate requests.`]
+        : [])
+    ]
+  };
+}
+
 export interface ConfiguredAiProviderOptions {
   fetchImpl?: typeof fetch;
   gladiaPollIntervalMs?: number;
@@ -631,30 +708,14 @@ export function createConfiguredTranscriptionProvider(
         });
       }
 
-      const audioParts = await Promise.all(aiUploadArtifactPaths.map((artifactPath) => readAudioPart(artifactPath)));
-      const transcriptMarkdown = await generateGeminiText({
+      return transcribeGeminiAudioArtifacts({
         apiKey: settings.apiKey,
         model: input.transcriptionModel,
-        parts: [{ text: buildTranscriptPrompt(input.normalizedText) }, ...audioParts],
+        normalizedText: input.normalizedText,
+        artifactPaths: aiUploadArtifactPaths,
         signal,
         fetchImpl: options.fetchImpl
       });
-
-      return {
-        transcript: [
-          {
-            startMs: 0,
-            endMs: 0,
-            text: transcriptMarkdown
-          }
-        ],
-        transcriptMarkdown,
-        warnings: [
-          ...(aiUploadArtifactPaths.length > 1
-            ? [`Transcribed ${aiUploadArtifactPaths.length} AI upload artifact chunks in one request.`]
-            : [])
-        ]
-      };
     }
   };
 }

@@ -301,6 +301,159 @@ describe("configured AI providers", () => {
     }
   });
 
+  it("transcribes Gemini AI upload chunks with separate requests and merges transcripts", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const firstAudioPath = path.join(tempDirectory, "chunk-0000.ogg");
+    const secondAudioPath = path.join(tempDirectory, "chunk-0001.ogg");
+    await writeFile(firstAudioPath, Buffer.from("first-audio"));
+    await writeFile(secondAudioPath, Buffer.from("second-audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} first chunk" }] } }]
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:01-00:00:02} second chunk" }] } }]
+          })
+        );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key"
+        },
+        { fetchImpl }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: firstAudioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [firstAudioPath, secondAudioPath],
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      );
+
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(result.transcriptMarkdown).toContain("first chunk");
+      expect(result.transcriptMarkdown).toContain("second chunk");
+      expect(result.transcript).toHaveLength(2);
+      expect(result.warnings).toContain(
+        "Gemini transcription completed 2 AI upload artifact chunks with separate requests."
+      );
+
+      const firstBody = JSON.parse(String(fetchImpl.mock.calls[0][1]?.body));
+      const secondBody = JSON.parse(String(fetchImpl.mock.calls[1][1]?.body));
+      expect(firstBody.contents[0].parts.filter((part: unknown) => "inline_data" in (part as object))).toHaveLength(1);
+      expect(secondBody.contents[0].parts.filter((part: unknown) => "inline_data" in (part as object))).toHaveLength(1);
+      expect(firstBody.contents[0].parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            inline_data: {
+              mime_type: "audio/ogg",
+              data: Buffer.from("first-audio").toString("base64")
+            }
+          })
+        ])
+      );
+      expect(secondBody.contents[0].parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            inline_data: {
+              mime_type: "audio/ogg",
+              data: Buffer.from("second-audio").toString("base64")
+            }
+          })
+        ])
+      );
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("reports Gemini chunk transcription failures with partial transcript diagnostics", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const firstAudioPath = path.join(tempDirectory, "chunk-0000.ogg");
+    const secondAudioPath = path.join(tempDirectory, "chunk-0001.ogg");
+    await writeFile(firstAudioPath, Buffer.from("first-audio"));
+    await writeFile(secondAudioPath, Buffer.from("second-audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} first chunk" }] } }]
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              error: {
+                message: "Gemini quota exhausted"
+              }
+            },
+            429
+          )
+        );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key"
+        },
+        { fetchImpl }
+      );
+
+      await expect(
+        provider.transcribeMedia(
+          {
+            metadata: {
+              title: "Media",
+              creatorOrAuthor: "Creator",
+              platform: "Local File",
+              source: firstAudioPath,
+              created: "2026-04-25T00:00:00.000Z"
+            },
+            normalizedText: "",
+            transcript: [],
+            aiUploadArtifactPaths: [firstAudioPath, secondAudioPath],
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash"
+          },
+          new AbortController().signal
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: expect.stringContaining("Gemini transcription failed for AI upload chunk 2/2"),
+        causeValue: expect.objectContaining({
+          provider: "Gemini",
+          failureKind: "chunk_transcription_failed",
+          failedChunkIndex: 1,
+          totalChunks: 2,
+          completedChunkCount: 1,
+          partialTranscriptMarkdown: expect.stringContaining("first chunk")
+        })
+      } satisfies Partial<SummarizerError>);
+
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("reports Gemini transcription capacity errors without retrying another model", async () => {
     const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
     const audioPath = path.join(tempDirectory, "ai-upload.ogg");

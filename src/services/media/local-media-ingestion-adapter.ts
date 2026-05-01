@@ -256,7 +256,8 @@ export function createLocalMediaIngestionAdapter(
       const artifacts: MediaDownloadArtifacts = {
         downloadedPath: buildLocalSourceArtifactPath(sessionDirectory, localSourcePath),
         normalizedAudioPath: path.join(sessionDirectory, "normalized.wav"),
-        transcriptPath: path.join(sessionDirectory, "transcript.srt"),
+        transcriptPath: path.join(sessionDirectory, "transcript.md"),
+        subtitlePath: path.join(sessionDirectory, "subtitles.srt"),
         metadataPath: path.join(sessionDirectory, "metadata.json"),
         aiUploadDirectory: path.join(sessionDirectory, "ai-upload")
       };
@@ -372,6 +373,7 @@ export function createLocalMediaIngestionAdapter(
             sourceArtifactPath: session.artifacts.downloadedPath,
             normalizedAudioPath: session.artifacts.normalizedAudioPath,
             transcriptPath: session.artifacts.transcriptPath,
+            subtitlePath: session.artifacts.subtitlePath,
             warnings
           }),
           writeFile

@@ -1,6 +1,6 @@
 # Release Gate
 
-最後更新：2026-04-24 10:06
+最後更新：2026-05-02 03:12
 
 ## 目標
 
@@ -66,7 +66,7 @@ CI 是 release gate 的固定化，不取代桌面端人工 smoke 檢查。
 
 ### Regression 失敗
 
-1. 優先修正 `webpage` 主線回歸
+1. 優先修正 `webpage` 主線或長媒體全局摘要回歸
 2. 重跑 `gate:regression:desktop`
 3. 再跑 `gate:release`
 

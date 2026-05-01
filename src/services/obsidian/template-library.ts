@@ -13,7 +13,7 @@ const BUILTIN_TEMPLATES: readonly BuiltinTemplateDefinition[] = [
     reference: "builtin:default",
     label: "預設摘要模板",
     description: "保留標準 frontmatter，並加上一段來源上下文區塊。",
-    supportedSourceTypes: ["webpage_url", "media_url", "local_media"],
+    supportedSourceTypes: ["webpage_url", "media_url", "local_media", "transcript_file"],
     body: [
       "> 由 AI Summarizer 產生",
       "",
@@ -41,7 +41,7 @@ const BUILTIN_TEMPLATES: readonly BuiltinTemplateDefinition[] = [
     reference: "builtin:media-session",
     label: "Media Session",
     description: "適合影音與逐字稿輸出，先留下媒體脈絡，再接摘要與 transcript。",
-    supportedSourceTypes: ["media_url", "local_media"],
+    supportedSourceTypes: ["media_url", "local_media", "transcript_file"],
     body: [
       "## Session",
       "",

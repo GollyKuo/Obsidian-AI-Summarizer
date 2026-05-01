@@ -24,7 +24,8 @@ function makeSession(): LocalMediaIngestionSession {
     artifacts: {
       downloadedPath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\downloaded.mp3",
       normalizedAudioPath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\normalized.wav",
-      transcriptPath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\transcript.srt",
+      transcriptPath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\transcript.md",
+      subtitlePath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\subtitles.srt",
       metadataPath: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\metadata.json",
       aiUploadDirectory: "D:\\media-cache\\vault-a\\20260423-140000-a1b2c3d4\\ai-upload"
     },
@@ -120,6 +121,8 @@ describe("processLocalMedia integration", () => {
     expect(result.transcriptReadyPayload.chunkDurationsMs).toEqual([180_000]);
     expect(result.transcriptReadyPayload.vadApplied).toBe(false);
     expect(result.transcriptReadyPayload.selectedCodec).toBe("aac");
+    expect(result.transcriptReadyPayload.transcriptPath).toBe(session.artifacts.transcriptPath);
+    expect(result.transcriptReadyPayload.subtitlePath).toBe(session.artifacts.subtitlePath);
     expect(result.transcriptReadyPayload.aiUploadDirectory).toBe(session.artifacts.aiUploadDirectory);
     expect(result.warnings).toHaveLength(2);
     expect(warnings).toEqual(result.warnings);

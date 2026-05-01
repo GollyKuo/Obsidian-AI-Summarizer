@@ -6,6 +6,7 @@ import type {
   MediaProcessResult,
   MediaSummaryResult,
   MediaTranscriptionResult,
+  TranscriptSegment,
   MediaUrlRequest,
   WriteResult
 } from "@domain/types";
@@ -20,6 +21,7 @@ import {
   createArtifactRetentionManager,
   type ArtifactLifecycleStatus
 } from "@services/media/artifact-retention";
+import { updateArtifactManifestWithTranscriptArtifacts } from "@services/media/artifact-manifest";
 
 type MediaRequest = MediaUrlRequest | LocalMediaRequest;
 
@@ -50,6 +52,95 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function formatSrtTimestamp(ms: number): string {
+  const normalizedMs = Math.max(0, Math.floor(ms));
+  const hours = Math.floor(normalizedMs / 3_600_000);
+  const minutes = Math.floor((normalizedMs % 3_600_000) / 60_000);
+  const seconds = Math.floor((normalizedMs % 60_000) / 1_000);
+  const milliseconds = normalizedMs % 1_000;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")},${String(milliseconds).padStart(3, "0")}`;
+}
+
+function stripTranscriptTimingMarkup(text: string): string {
+  return text
+    .split(/\r?\n/g)
+    .map((line) => line.replace(/^\s*\{[^}]+\}\s*/, "").trim())
+    .filter((line) => line.length > 0)
+    .join("\n");
+}
+
+function segmentsToSrt(transcript: TranscriptSegment[], transcriptMarkdown: string): string {
+  const segments = transcript.length > 0
+    ? transcript
+    : [{ startMs: 0, endMs: 1000, text: transcriptMarkdown }];
+
+  const cues = segments.map((segment, index) => {
+    const hasUsableTiming = Number.isFinite(segment.startMs) && Number.isFinite(segment.endMs) && segment.endMs > segment.startMs;
+    const startMs = hasUsableTiming ? segment.startMs : index * 1000;
+    const rawEndMs = Number.isFinite(segment.endMs) ? segment.endMs : startMs + 1000;
+    const endMs = hasUsableTiming && rawEndMs > startMs ? rawEndMs : startMs + 1000;
+    const text = stripTranscriptTimingMarkup(segment.text) || stripTranscriptTimingMarkup(transcriptMarkdown);
+
+    return [
+      String(index + 1),
+      `${formatSrtTimestamp(startMs)} --> ${formatSrtTimestamp(endMs)}`,
+      text
+    ].join("\n");
+  });
+
+  return `${cues.join("\n\n")}\n`;
+}
+
+async function writeTranscriptArtifacts(
+  mediaInput: MediaProcessResult,
+  transcription: MediaTranscriptionResult
+): Promise<void> {
+  const artifactCleanup = mediaInput.artifactCleanup;
+  if (!artifactCleanup) {
+    return;
+  }
+
+  try {
+    await mkdir(path.dirname(artifactCleanup.transcriptPath), { recursive: true });
+    await writeFile(artifactCleanup.transcriptPath, `${transcription.transcriptMarkdown.trim()}\n`, "utf8");
+    await writeFile(
+      artifactCleanup.subtitlePath,
+      segmentsToSrt(transcription.transcript, transcription.transcriptMarkdown),
+      "utf8"
+    );
+    await updateArtifactManifestWithTranscriptArtifacts(
+      artifactCleanup.metadataPath,
+      {
+        transcriptPath: artifactCleanup.transcriptPath,
+        subtitlePath: artifactCleanup.subtitlePath
+      }
+    );
+  } catch (error) {
+    throw new SummarizerError({
+      category: "note_write_failure",
+      message: `Transcript artifact handoff failed: ${getErrorMessage(error)}`,
+      recoverable: true,
+      cause: error
+    });
+  }
+}
+
+function getPartialTranscriptMarkdown(error: unknown): string | null {
+  if (!(error instanceof SummarizerError)) {
+    return null;
+  }
+
+  const cause = error.causeValue;
+  if (typeof cause !== "object" || cause === null) {
+    return null;
+  }
+
+  const partialTranscriptMarkdown = (cause as { partialTranscriptMarkdown?: unknown }).partialTranscriptMarkdown;
+  return typeof partialTranscriptMarkdown === "string" && partialTranscriptMarkdown.trim().length > 0
+    ? partialTranscriptMarkdown
+    : null;
+}
+
 async function persistTranscriptForRecovery(
   mediaInput: MediaProcessResult | null,
   transcription: MediaTranscriptionResult | null
@@ -66,6 +157,25 @@ async function persistTranscriptForRecovery(
     return [`Recovery transcript preserved for summary retry: ${transcriptPath}`];
   } catch (error) {
     return [`Recovery transcript preservation failed for ${transcriptPath}: ${getErrorMessage(error)}`];
+  }
+}
+
+async function persistPartialTranscriptForRecovery(
+  mediaInput: MediaProcessResult | null,
+  error: unknown
+): Promise<string[]> {
+  const transcriptPath = mediaInput?.artifactCleanup?.transcriptPath;
+  const partialTranscriptMarkdown = getPartialTranscriptMarkdown(error);
+  if (!transcriptPath || !partialTranscriptMarkdown) {
+    return [];
+  }
+
+  try {
+    await mkdir(path.dirname(transcriptPath), { recursive: true });
+    await writeFile(transcriptPath, `${partialTranscriptMarkdown.trim()}\n`, "utf8");
+    return [`Partial transcript preserved for transcription retry: ${transcriptPath}`];
+  } catch (writeError) {
+    return [`Partial transcript preservation failed for ${transcriptPath}: ${getErrorMessage(writeError)}`];
   }
 }
 
@@ -130,6 +240,8 @@ export async function processMedia(
     warnings.push(...transcription.warnings);
     emitWarnings(transcription.warnings, hooks);
 
+    await writeTranscriptArtifacts(mediaInput, transcription);
+
     const summaryRaw = await runJobStep(
       "summarizing",
       "Generating media summary",
@@ -193,7 +305,9 @@ export async function processMedia(
       warnings
     };
   } catch (error) {
-    const recoveryWarnings = await persistTranscriptForRecovery(mediaInput, transcriptionResult);
+    const recoveryWarnings = transcriptionResult
+      ? await persistTranscriptForRecovery(mediaInput, transcriptionResult)
+      : await persistPartialTranscriptForRecovery(mediaInput, error);
     emitWarnings(recoveryWarnings, hooks);
 
     if (mediaInput?.artifactCleanup) {

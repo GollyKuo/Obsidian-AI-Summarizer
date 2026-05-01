@@ -7,6 +7,7 @@ export interface MediaSessionArtifacts {
   downloadedPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  subtitlePath: string;
   metadataPath: string;
   aiUploadDirectory: string;
 }
@@ -68,10 +69,14 @@ function keepPathsForCompleted(input: ArtifactRetentionInput): string[] {
     return uniqueNonEmpty([
       input.artifacts.downloadedPath,
       input.artifacts.normalizedAudioPath,
-      input.artifacts.transcriptPath
+      input.artifacts.transcriptPath,
+      input.artifacts.subtitlePath
     ]);
   }
-  return [];
+  return uniqueNonEmpty([
+    input.artifacts.transcriptPath,
+    input.artifacts.subtitlePath
+  ]);
 }
 
 function keepPathsForIncomplete(input: ArtifactRetentionInput): string[] {
@@ -80,14 +85,16 @@ function keepPathsForIncomplete(input: ArtifactRetentionInput): string[] {
       input.artifacts.downloadedPath,
       input.artifacts.normalizedAudioPath,
       input.artifacts.transcriptPath,
+      input.artifacts.subtitlePath,
       input.artifacts.metadataPath
     ]);
   }
 
-  // For failed/cancelled runs, keep source + metadata + transcript for recovery diagnostics.
+  // For failed/cancelled runs, keep source + metadata + final transcript artifacts for recovery diagnostics.
   return uniqueNonEmpty([
     input.artifacts.downloadedPath,
     input.artifacts.transcriptPath,
+    input.artifacts.subtitlePath,
     input.artifacts.metadataPath
   ]);
 }
@@ -98,6 +105,7 @@ function buildRemoveTargets(input: ArtifactRetentionInput, keepPaths: string[]):
     toCleanupTarget(input.artifacts.downloadedPath, false),
     toCleanupTarget(input.artifacts.normalizedAudioPath, false),
     toCleanupTarget(input.artifacts.transcriptPath, false),
+    toCleanupTarget(input.artifacts.subtitlePath, false),
     toCleanupTarget(input.artifacts.metadataPath, false),
     ...input.aiUploadArtifactPaths.map((artifactPath) => toCleanupTarget(artifactPath, false)),
     toCleanupTarget(input.artifacts.aiUploadDirectory, true)
@@ -149,7 +157,7 @@ export function createArtifactRetentionManager(
       }
 
       if (input.lifecycleStatus !== "completed" && input.retentionMode === "delete_temp") {
-        warnings.push("Retention recovery boundary: preserved source, transcript, and metadata after non-completed run.");
+        warnings.push("Retention recovery boundary: preserved source, transcript, subtitles, and metadata after non-completed run.");
       }
 
       return warnings;

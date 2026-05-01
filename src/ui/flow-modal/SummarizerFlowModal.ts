@@ -1,7 +1,14 @@
 import { ButtonComponent, Modal, Setting } from "obsidian";
 import { SummarizerError, type ErrorCategory } from "@domain/errors";
-import type { LocalMediaRequest, MediaUrlRequest, SourceType, WebpageRequest } from "@domain/types";
+import type {
+  LocalMediaRequest,
+  MediaUrlRequest,
+  SourceType,
+  TranscriptFileRequest,
+  WebpageRequest
+} from "@domain/types";
 import { processMedia } from "@orchestration/process-media";
+import { processTranscriptFile } from "@orchestration/process-transcript-file";
 import { processWebpage } from "@orchestration/process-webpage";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import {
@@ -78,7 +85,7 @@ export class SummarizerFlowModal extends Modal {
     return electron?.dialog ?? electron?.remote?.dialog ?? null;
   }
 
-  private async pickLocalMediaFile(): Promise<void> {
+  private async pickLocalFile(): Promise<void> {
     const dialog = this.getDesktopDialog();
     if (!dialog) {
       this.resultMessage = "目前環境不支援檔案選擇器，請手動輸入本機檔案絕對路徑。";
@@ -86,14 +93,20 @@ export class SummarizerFlowModal extends Modal {
       return;
     }
 
+    const isTranscriptFile = this.sourceType === "transcript_file";
     const result = await dialog.showOpenDialog({
-      title: "選擇本機媒體檔案",
+      title: isTranscriptFile ? "選擇逐字稿檔案" : "選擇本機媒體檔案",
       properties: ["openFile"],
       filters: [
-        {
-          name: "Media",
-          extensions: ["mp3", "m4a", "wav", "flac", "mp4", "mov", "mkv"]
-        }
+        isTranscriptFile
+          ? {
+              name: "Transcript",
+              extensions: ["md", "txt"]
+            }
+          : {
+              name: "Media",
+              extensions: ["mp3", "m4a", "wav", "flac", "mp4", "mov", "mkv"]
+            }
       ]
     });
 
@@ -143,6 +156,7 @@ export class SummarizerFlowModal extends Modal {
           .addOption("webpage_url", "網頁 URL")
           .addOption("media_url", "媒體 URL")
           .addOption("local_media", "本機媒體")
+          .addOption("transcript_file", "逐字稿檔案")
           .setValue(this.sourceType)
           .onChange((value) => {
             const nextSourceType = value as SourceType;
@@ -165,15 +179,19 @@ export class SummarizerFlowModal extends Modal {
         });
       })
       .addButton((button) => {
-        button.setButtonText(this.sourceType === "local_media" ? "選擇檔案" : "填入範例");
+        button.setButtonText(
+          this.sourceType === "local_media" || this.sourceType === "transcript_file"
+            ? "選擇檔案"
+            : "填入範例"
+        );
         if (this.status === "running") {
           button.setDisabled(true);
           return;
         }
 
         button.onClick(() => {
-          if (this.sourceType === "local_media") {
-            void this.pickLocalMediaFile();
+          if (this.sourceType === "local_media" || this.sourceType === "transcript_file") {
+            void this.pickLocalFile();
             return;
           }
 
@@ -268,6 +286,35 @@ export class SummarizerFlowModal extends Modal {
     return { notePath: result.writeResult.notePath };
   }
 
+  private async runTranscriptFileFlow(signal: AbortSignal): Promise<{ notePath: string }> {
+    const result = await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: this.sourceValue,
+        summaryProvider: this.plugin.settings.summaryProvider,
+        summaryModel: this.plugin.settings.summaryModel
+      } satisfies TranscriptFileRequest,
+      {
+        summaryProvider: this.buildAiProvider(),
+        noteWriter: this.buildNoteWriter()
+      },
+      signal,
+      {
+        onStageChange: (_, message) => {
+          this.stageMessage = message;
+          this.render();
+        },
+        onWarning: (warning) => {
+          this.warningMessages.push(warning);
+          this.plugin.reportWarning("transcript_file_flow", warning);
+          this.render();
+        }
+      }
+    );
+
+    return { notePath: result.writeResult.notePath };
+  }
+
   private async runMediaFlow(signal: AbortSignal): Promise<{ notePath: string }> {
     const result = await processMedia(
       {
@@ -339,7 +386,9 @@ export class SummarizerFlowModal extends Modal {
       const result =
         this.sourceType === "webpage_url"
           ? await this.runWebpageFlow(this.abortController.signal)
-          : await this.runMediaFlow(this.abortController.signal);
+          : this.sourceType === "transcript_file"
+            ? await this.runTranscriptFileFlow(this.abortController.signal)
+            : await this.runMediaFlow(this.abortController.signal);
 
       this.status = "completed";
       this.stageMessage = "已完成";

@@ -13,6 +13,7 @@ export interface InitialArtifactManifestInput {
   sourceArtifactPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  subtitlePath: string;
   warnings: string[];
 }
 
@@ -30,6 +31,7 @@ export interface MediaArtifactManifest {
   sourceArtifactPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  subtitlePath: string;
   derivedArtifactPaths: string[];
   uploadArtifactPaths: string[];
   chunkCount: number;
@@ -56,6 +58,7 @@ export function buildInitialArtifactManifest(
     sourceArtifactPath: input.sourceArtifactPath,
     normalizedAudioPath: input.normalizedAudioPath,
     transcriptPath: input.transcriptPath,
+    subtitlePath: input.subtitlePath,
     derivedArtifactPaths: [],
     uploadArtifactPaths: [],
     chunkCount: 0,
@@ -64,6 +67,41 @@ export function buildInitialArtifactManifest(
     selectedCodec: null,
     warnings: input.warnings
   };
+}
+
+export async function updateArtifactManifestWithTranscriptArtifacts(
+  metadataPath: string,
+  input: {
+    transcriptPath: string;
+    subtitlePath: string;
+  },
+  writeFile: (targetPath: string, content: string) => Promise<void> = async (targetPath, content) => {
+    await fs.writeFile(targetPath, content, "utf8");
+  },
+  readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
+    return fs.readFile(targetPath, "utf8");
+  }
+): Promise<void> {
+  let rawManifest: string;
+  try {
+    rawManifest = await readFile(metadataPath);
+  } catch (error) {
+    if (error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+
+  const manifest = JSON.parse(rawManifest) as MediaArtifactManifest;
+  await writeArtifactManifest(
+    metadataPath,
+    {
+      ...manifest,
+      transcriptPath: input.transcriptPath,
+      subtitlePath: input.subtitlePath
+    },
+    writeFile
+  );
 }
 
 export async function writeArtifactManifest(

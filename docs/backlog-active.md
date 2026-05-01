@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 02:22
+最後更新：2026-05-02 03:18
 
 ## 用途
 
@@ -25,9 +25,9 @@
 - `CAP-202` 的 YouTube / direct media 下載 smoke 已補，可重現紀錄已寫入 smoke matrix。
 - `CAP-203` 的 `balanced` profile 3 組量測已達標；VAD 與轉錄品質守門移入 vNext，不再阻塞 v1。
 - Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider 實機 smoke 已由使用者回報通過，最終摘要未出現 chunk 標記。
-- 字幕檔已定案：`subtitles.srt` 必須保留在 session 暫存資料夾，不得被 `delete_temp` 成功清理移除。
+- 字幕檔已落地：`subtitles.srt` 會在轉錄完成後產生並保留在 session 暫存資料夾，不得被 `delete_temp` 成功清理移除。
 - 長媒體摘要已定案：chunk 只能是內部 token control / diagnostics，不得以 `chunk`、`part`、`分段` 等技術字樣出現在最終筆記。
-- Gemini 大型媒體 v1 優先採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；Gemini file upload 保留為 vNext 可選策略。
+- Gemini 大型媒體 v1 已採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；單段失敗時會保留已完成 partial transcript 作為 recovery artifact。
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
 
 ## Release Checklist
@@ -61,12 +61,12 @@
 
 - [x] 補 Gladia local media 實機 smoke：驗證本機音訊/影片可成功轉錄。（完成：2026-05-02 02:22）
 - [x] 補 Gladia 混合 provider smoke：驗證 Gladia 轉錄 + OpenRouter/Qwen 摘要可完整寫入筆記。（完成：2026-05-02 02:22）
-- [ ] 實作 Gemini 逐 chunk inline 轉錄合併：每個 `ai-upload` chunk 各自送 Gemini `inline_data` request，成功後依順序合併 transcript。
-- [ ] Gemini 逐 chunk inline 轉錄需保留 chunk-level diagnostics、partial transcript recovery、單段 retry 邊界與合併後的 `transcript.md` / `subtitles.srt` handoff。
+- [x] 實作 Gemini 逐 chunk inline 轉錄合併：每個 `ai-upload` chunk 各自送 Gemini `inline_data` request，成功後依順序合併 transcript。（完成：2026-05-02 02:28）
+- [x] Gemini 逐 chunk inline 轉錄需完成合併後的 `transcript.md` / `subtitles.srt` handoff；chunk-level diagnostics、partial transcript recovery 與單段 retry 邊界已先在 provider/orchestration 層落地。（完成：2026-05-02 02:44）
 - [x] 校準 `media-summary-chunking`：移除最終輸出的 `## Chunk N` 合併格式，改為內部 partial notes 後做 final synthesis。（完成：2026-05-02 01:55）
-- [ ] 若 transcript 過長必須二階段處理，只能產生內部 partial notes，再以 final synthesis 輸出單一連貫摘要。
+- [x] 若 transcript 過長必須二階段處理，只能產生內部 partial notes，再以 final synthesis 輸出單一連貫摘要。（完成：2026-05-02 03:12）
 - [x] 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段` 等技術標記，除非原始內容本身就在談這些詞。（完成：2026-05-02 02:22）
-- [ ] 定義手動 retry：轉錄成功但摘要失敗時，保留 transcript，並讓使用者明確選擇只重跑摘要。
+- [x] 定義並落地手動 retry：轉錄成功但摘要失敗時，可選 `transcript_file` 讀取保留的 `transcript.md` 或 `.txt`，跳過轉錄只重跑摘要與 note 輸出。（完成：2026-05-02 03:05）
 - [ ] Gemini file upload vNext 保留為可選 transcription strategy，另行定義 remote file lifecycle、取消、cleanup、privacy/retention 與錯誤診斷。
 
 ### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
@@ -74,23 +74,25 @@
 目標：
 筆記、逐字稿、字幕與暫存 artifact 有一致生命週期；該保留的檔案不會被清理流程刪掉。
 
-- [ ] 完成逐字稿雙輸出：逐字稿除寫入 Obsidian 筆記外，也要在 session 資料夾中保留完成版 `transcript.md`。
-- [ ] 實作真正 UTF-8 `subtitles.srt` 產生與保留，不得把 markdown transcript 寫入 `.srt`。
-- [ ] `transcript.md` 與 `subtitles.srt` 都要納入 `metadata.json` lineage。
-- [ ] `retentionMode: delete_temp` 成功清理時，仍不得移除必保留的逐字稿與字幕檔。
-- [ ] 補 cleanup / recovery / final handoff 安全檢查，確認字幕檔與逐字稿保留策略沒有被清理流程破壞。
-- [ ] 定義字幕產線 v1/vNext 邊界：`.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略。
+- [x] 完成逐字稿雙輸出：逐字稿除寫入 Obsidian 筆記外，也要在 session 資料夾中保留完成版 `transcript.md`。（完成：2026-05-02 02:44）
+- [x] 實作真正 UTF-8 `subtitles.srt` 產生與保留，不得把 markdown transcript 寫入 `.srt`。（完成：2026-05-02 02:44）
+- [x] `transcript.md` 與 `subtitles.srt` 都要納入 `metadata.json` lineage。（完成：2026-05-02 02:44）
+- [x] `retentionMode: delete_temp` 成功清理時，仍不得移除必保留的逐字稿與字幕檔。（完成：2026-05-02 02:44）
+- [x] 補 cleanup / recovery / final handoff 安全檢查，確認字幕檔與逐字稿保留策略沒有被清理流程破壞。（完成：2026-05-02 02:44）
+- [x] 定義字幕產線 v1/vNext 邊界：`.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略。（完成：2026-05-02 03:18）
 
 ### CAP-303 Documentation And User Manual 文件與使用手冊
 
 目標：
 使用者能理解 provider 選擇、長媒體策略、保留策略與失敗後怎麼恢復。
 
+- [x] 建立 UI 設計導覽文件，並從架構邊界、setup SOP、能力地圖、媒體規格與手冊加入引用。（完成：2026-05-02 03:18）
 - [ ] 補 Gladia 轉錄 provider 使用說明：API key 設定、建議使用情境、與 Gemini 轉錄取捨、常見錯誤與成本注意事項。
 - [ ] 補 Gemini 大型媒體策略說明：v1 逐 chunk inline 轉錄、vNext file upload、兩者風險與適用情境。
 - [ ] 補長媒體摘要說明：chunk 是內部處理，不會出現在最終摘要；必要時採 partial notes + final synthesis。
-- [ ] 補常見問題與疑難排解：轉錄失敗、摘要失敗、只重跑摘要、模型不可用、rate limit、成本預估。
-- [ ] 補使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片、已有逐字稿重跑摘要。
+- [ ] 補常見問題與疑難排解：轉錄失敗、摘要失敗、模型不可用、rate limit、成本預估。
+- [x] 補使用情境 walkthrough：已有逐字稿重跑摘要。（完成：2026-05-02 03:05）
+- [ ] 補使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片。
 - [ ] 補 artifact retention 說明：`transcript.md`、`subtitles.srt`、source artifact、derived artifact、upload artifact 在不同 retention mode 下的保留行為。
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
@@ -101,10 +103,10 @@
 - [x] 將 YouTube / direct media smoke 結果補入 smoke matrix。（完成：2026-05-02 01:50）
 - [x] 將 local media + Gladia 轉錄成功路徑補入 provider smoke matrix。（完成：2026-05-02 02:22）
 - [x] 將 Gladia 轉錄 + OpenRouter/Qwen 摘要混合 provider 路徑補入 smoke matrix。（完成：2026-05-02 02:22）
-- [ ] 新增 artifact manifest 驗證：source artifact、derived artifact、upload artifact、transcript、subtitle lineage 都可追蹤。
-- [ ] 新增 Gemini 逐 chunk inline 轉錄合併 regression gate。
-- [ ] 新增長媒體全局摘要 regression gate，確認最終輸出不含 chunk/part 技術標記。
-- [ ] 新增 transcript/subtitle lifecycle regression gate，確認 `delete_temp` 不會移除必保留字幕與逐字稿。
+- [x] 新增 artifact manifest 驗證：source artifact、derived artifact、upload artifact、transcript、subtitle lineage 都可追蹤。（完成：2026-05-02 02:44）
+- [x] 新增 Gemini 逐 chunk inline 轉錄合併 regression gate。（完成：2026-05-02 02:28）
+- [x] 新增長媒體全局摘要 regression gate，確認最終輸出不含 chunk/part 技術標記。（完成：2026-05-02 03:12）
+- [x] 新增 transcript/subtitle lifecycle regression gate，確認 `delete_temp` 不會移除必保留字幕與逐字稿。（完成：2026-05-02 02:44）
 
 ## 下一個切換點
 

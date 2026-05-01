@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-summarizer",
-  "version": "0.1.59-gladia-provider-smoke-record",
+  "version": "0.1.64-subtitle-boundary-docs",
   "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "main": "main.js",
   "scripts": {
@@ -24,9 +24,10 @@
     "check:build": "npm run build",
     "check:build:vault": "npm run build:vault",
     "test:regression:webpage": "vitest run --passWithNoTests tests/regression/webpage-flow.regression.test.ts",
+    "test:regression:media-summary": "vitest run --passWithNoTests tests/regression/media-summary-global.regression.test.ts",
     "gate:local": "npm run check:types && npm run check:test && npm run check:build",
     "gate:local:vault": "npm run check:types && npm run check:test && npm run check:build:vault",
-    "gate:regression:desktop": "npm run test:regression:webpage",
+    "gate:regression:desktop": "npm run test:regression:webpage && npm run test:regression:media-summary",
     "smoke:webpage": "node scripts/smoke-checklist.mjs --capability webpage",
     "smoke:media-url": "node scripts/smoke-checklist.mjs --capability media_url",
     "smoke:local-media": "node scripts/smoke-checklist.mjs --capability local_media",

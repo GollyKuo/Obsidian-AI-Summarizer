@@ -24,7 +24,8 @@ function makeSession(): MediaDownloadSession {
     artifacts: {
       downloadedPath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\downloaded.mp4",
       normalizedAudioPath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\normalized.wav",
-      transcriptPath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\transcript.srt",
+      transcriptPath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\transcript.md",
+      subtitlePath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\subtitles.srt",
       metadataPath: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\metadata.json",
       aiUploadDirectory: "D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\ai-upload"
     },
@@ -114,6 +115,8 @@ describe("LocalBridgeRuntimeProvider", () => {
     expect(result.transcript).toEqual([]);
     expect(result.aiUploadArtifactPaths).toEqual([`D:\\media-cache\\vault-a\\20260423-011500-a1b2c3d4\\ai-upload\\ai-upload.ogg`]);
     expect(result.artifactCleanup?.aiUploadArtifactPaths).toEqual(result.aiUploadArtifactPaths);
+    expect(result.artifactCleanup?.transcriptPath).toBe(session.artifacts.transcriptPath);
+    expect(result.artifactCleanup?.subtitlePath).toBe(session.artifacts.subtitlePath);
     expect(
       result.warnings.some((warning) => warning.includes("AI-ready media artifacts prepared"))
     ).toBe(true);
@@ -186,6 +189,8 @@ describe("LocalBridgeRuntimeProvider", () => {
     expect(result.transcript).toEqual([]);
     expect(result.aiUploadArtifactPaths).toEqual([`${localSession.artifacts.aiUploadDirectory}\\ai-upload.ogg`]);
     expect(result.artifactCleanup?.aiUploadArtifactPaths).toEqual(result.aiUploadArtifactPaths);
+    expect(result.artifactCleanup?.transcriptPath).toBe(localSession.artifacts.transcriptPath);
+    expect(result.artifactCleanup?.subtitlePath).toBe(localSession.artifacts.subtitlePath);
     expect(
       result.warnings.some((warning) => warning.includes("AI-ready media artifacts prepared"))
     ).toBe(true);

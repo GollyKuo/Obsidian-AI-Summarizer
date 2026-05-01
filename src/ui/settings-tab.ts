@@ -68,7 +68,7 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
   { id: "diagnostics", label: "診斷" }
 ];
 
-const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media"];
+const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
 const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
@@ -77,13 +77,15 @@ const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁 URL",
   media_url: "媒體 URL",
-  local_media: "本機媒體"
+  local_media: "本機媒體",
+  transcript_file: "逐字稿檔案"
 };
 
 const DIAGNOSTIC_CAPABILITY_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁摘要",
   media_url: "YouTube / 媒體網址",
-  local_media: "本機音訊 / 影片"
+  local_media: "本機音訊 / 影片",
+  transcript_file: "逐字稿重跑摘要"
 };
 
 const RETENTION_LABELS: Record<RetentionMode, string> = {

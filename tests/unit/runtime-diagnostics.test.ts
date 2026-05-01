@@ -75,6 +75,11 @@ describe("runtime diagnostics", () => {
           sourceType: "local_media",
           available: true,
           state: "ready"
+        }),
+        expect.objectContaining({
+          sourceType: "transcript_file",
+          available: true,
+          state: "ready"
         })
       ])
     );
@@ -107,6 +112,11 @@ describe("runtime diagnostics", () => {
       expect.arrayContaining([
         expect.objectContaining({
           sourceType: "media_url",
+          available: false,
+          state: "warning"
+        }),
+        expect.objectContaining({
+          sourceType: "transcript_file",
           available: false,
           state: "warning"
         })

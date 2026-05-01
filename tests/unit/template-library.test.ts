@@ -13,6 +13,10 @@ describe("template library", () => {
     expect(templates.some((template) => template.reference === "builtin:default")).toBe(true);
     expect(templates.some((template) => template.reference === "builtin:webpage-brief")).toBe(true);
     expect(templates.some((template) => template.reference === "builtin:media-session")).toBe(true);
+    expect(resolveBuiltinTemplate("builtin:media-session")).not.toBeNull();
+    expect(
+      templates.find((template) => template.reference === "builtin:media-session")?.supportedSourceTypes
+    ).toContain("transcript_file");
   });
 
   it("resolves builtin template bodies and descriptions", () => {
@@ -22,4 +26,3 @@ describe("template library", () => {
     expect(describeTemplateReference("")).toContain("預設 frontmatter");
   });
 });
-

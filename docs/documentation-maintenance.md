@@ -1,6 +1,6 @@
 # Documentation Maintenance
 
-最後更新：2026-05-02 00:43
+最後更新：2026-05-02 03:18
 
 ## 用途
 
@@ -20,6 +20,8 @@
   - 文件維護、backlog 同步與相關規格文件同步規則的正式來源。
 - `docs/architecture-boundary.md`
   - 架構邊界、責任分層與模組 ownership。
+- `docs/ui-design.md`
+  - flow modal、settings tab、progress/result、source guidance 與介面設計導覽。
 - `docs/parity-contract.md`
   - 與原 Python app 的能力對齊契約。
 - `docs/API_Instructions.md`
@@ -89,6 +91,16 @@
 - 更新 backlog 對應 capability。
 - 若涉及舊版行為對齊，更新 `docs/parity-contract.md`。
 
+### UI 或互動流程調整
+
+當 flow modal、settings tab、progress/result feedback、source guidance、診斷入口或使用者可見操作流程有變更時：
+
+- 更新 `docs/ui-design.md`。
+- 更新 `docs/Manual.md`。
+- 更新 backlog 對應 capability。
+- 若牽涉 media retention、recovery 或 artifact 呈現，更新 `docs/media-acquisition-spec.md`。
+- 若影響驗證方式，更新 `docs/test-matrix.md`、`docs/smoke-checklist.md` 或 `docs/release-gate.md`。
+
 ### 版本節點或完成紀錄
 
 當變更形成版本節點、重要完成項目或 release 候選時：
@@ -104,7 +116,7 @@
 - backlog：`docs/backlog.md`、`docs/backlog-active.md`、`docs/backlog-archive.md`
 - prompt 或 AI 規範：`docs/API_Instructions.md`
 - media acquisition / artifact / retention 規格：`docs/media-acquisition-spec.md`
-- 架構、parity、手冊、測試或 release gate：`docs/architecture-boundary.md`、`docs/parity-contract.md`、`docs/Manual.md`、`docs/test-matrix.md`、`docs/smoke-checklist.md`、`docs/release-gate.md`
+- 架構、UI、parity、手冊、測試或 release gate：`docs/architecture-boundary.md`、`docs/ui-design.md`、`docs/parity-contract.md`、`docs/Manual.md`、`docs/test-matrix.md`、`docs/smoke-checklist.md`、`docs/release-gate.md`
 
 ## 文件維護流程
 

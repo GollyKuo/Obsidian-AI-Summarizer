@@ -39,6 +39,7 @@ export interface LocalTranscriptReadyPayload {
   vadApplied: boolean;
   selectedCodec: PreUploadCompressionResult["selectedCodec"];
   transcriptPath: string;
+  subtitlePath: string;
   aiUploadDirectory: string;
   warnings: string[];
 }
@@ -102,6 +103,7 @@ function toTranscriptReadyPayload(
     vadApplied: preUploadResult.vadApplied,
     selectedCodec: preUploadResult.selectedCodec,
     transcriptPath: session.artifacts.transcriptPath,
+    subtitlePath: session.artifacts.subtitlePath,
     aiUploadDirectory: session.artifacts.aiUploadDirectory,
     warnings
   };

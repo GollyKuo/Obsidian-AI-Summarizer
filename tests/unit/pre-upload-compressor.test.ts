@@ -35,7 +35,8 @@ function makeSession(tempDirectory: string): MediaDownloadSession {
     artifacts: {
       downloadedPath: path.join(sessionDirectory, "downloaded.mp4"),
       normalizedAudioPath: path.join(sessionDirectory, "normalized.wav"),
-      transcriptPath: path.join(sessionDirectory, "transcript.srt"),
+      transcriptPath: path.join(sessionDirectory, "transcript.md"),
+      subtitlePath: path.join(sessionDirectory, "subtitles.srt"),
       metadataPath: path.join(sessionDirectory, "metadata.json"),
       aiUploadDirectory: path.join(sessionDirectory, "ai-upload")
     },
@@ -74,6 +75,7 @@ async function writeInitialManifest(session: MediaDownloadSession): Promise<void
       sourceArtifactPath: session.artifacts.downloadedPath,
       normalizedAudioPath: session.artifacts.normalizedAudioPath,
       transcriptPath: session.artifacts.transcriptPath,
+      subtitlePath: session.artifacts.subtitlePath,
       warnings: downloadResult.warnings
     }),
     async (targetPath, content) => {

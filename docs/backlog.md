@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 02:22
+最後更新：2026-05-02 02:44
 
 ## 用途
 
@@ -34,9 +34,9 @@
 
 1. `CAP-202` source artifact 與 acquisition manifest 已完成第一輪校準，並以 YouTube / direct media smoke 驗證實機下載結果；`ffmpegPath` 現會傳給 `yt-dlp --ffmpeg-location`，避免 PATH 沒有 ffmpeg 時 YouTube merge 失敗。
 2. `CAP-203` 收斂 AI-ready artifact contract：chunk 命名已統一為 `chunk-0000.<ext>` 起，`balanced` profile 3 組樣本相對 `normalized.wav` 均降低 83% 以上；VAD / 轉錄品質守門移入 vNext。
-3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 已通過；下一步是 Gemini inline 多 chunk 改成逐 chunk 轉錄後合併 transcript。
-4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 分開命名，`transcript.md` 與 `subtitles.srt` 都要進入 session artifact lifecycle；`subtitles.srt` 必須保留在暫存資料夾。
-5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、摘要失敗後重跑、local media、字幕與 artifact retention。
+3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 已通過；Gemini inline 多 chunk 已改成逐 chunk 轉錄後合併 transcript，且單段失敗會保留已完成 partial transcript；`transcript_file` 已可讀取保留逐字稿並只重跑摘要。
+4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
+5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
 
 ## Capability 總表
@@ -108,14 +108,14 @@
 狀態：`active`
 
 摘要：
-已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis，並移除 AI provider 自動 fallback。下一步是補手動只重跑摘要 UX，以及 Gemini 逐 chunk inline 轉錄合併。
+已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。長媒體全局摘要 regression gate 已補；下一步是補更多實機 smoke 紀錄與文件 walkthrough。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
 狀態：`active`
 
 摘要：
-已定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；已定案 `subtitles.srt` 必須保留在 session 暫存資料夾。下一步是落地 `transcript.md` / `subtitles.srt` 雙輸出、metadata lineage 與 cleanup 保護。
+已定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；`transcript.md` / `subtitles.srt` 雙輸出、metadata lineage、cleanup 保護，以及字幕產線 v1/vNext 邊界已落地。FFmpeg 軟字幕嵌入與含字幕影片保留策略已明確移入 vNext。
 
 ### User Experience 使用體驗
 
@@ -124,14 +124,14 @@
 狀態：`completed`
 
 摘要：
-最小 flow modal 已可承接既有 webpage flow。
+最小 flow modal 已可承接既有 webpage flow。介面設計導覽與後續討論入口見 [ui-design.md](ui-design.md)。
 
 #### CAP-302 Entry Points And Settings Experience 入口與設定體驗
 
 狀態：`completed`
 
 摘要：
-已完成 ribbon 入口、template UX、輸入引導與錯誤文案第一版。
+已完成 ribbon 入口、template UX、輸入引導與錯誤文案第一版。設定頁與 flow modal 的外觀/互動改動需回鏈 [ui-design.md](ui-design.md)。
 
 #### CAP-303 Documentation And User Manual 文件與使用手冊
 
@@ -147,7 +147,7 @@
 狀態：`active`
 
 摘要：
-已完成 capability-based 測試矩陣、smoke checklist 與 regression gate；Gladia media URL smoke 已通過。下一步需補 local media、mixed provider、artifact manifest、Gemini 逐 chunk inline、長媒體全局摘要與 transcript/subtitle lifecycle gate。
+已完成 capability-based 測試矩陣、smoke checklist 與 regression gate；YouTube / direct media smoke、Gladia local media / mixed provider smoke、Gemini 逐 chunk inline 轉錄、artifact manifest lineage、transcript/subtitle lifecycle regression、transcript-file summary retry integration 與長媒體全局摘要 regression gate 已補。下一步需補手動 smoke 補登。
 
 #### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
@@ -230,7 +230,7 @@
 
 候選第一批低風險來源：
 
-- `transcript_file`：`.srt` / `.vtt` / `.txt` 逐字稿，跳過轉錄直接摘要。
+- `transcript_file`：`.md` / `.txt` 逐字稿已先落地，跳過轉錄直接摘要；`.srt` / `.vtt` 解析保留為後續格式擴充。
 - `text_file` / `markdown_file`：`.txt` / `.md`，抽文字後直接摘要。
 - `clipboard_text`：貼上文字後直接摘要。
 - `obsidian_note`：目前筆記或指定筆記摘要。

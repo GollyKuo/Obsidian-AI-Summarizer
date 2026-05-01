@@ -1,5 +1,5 @@
 ﻿import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { SummarizerError } from "@domain/errors";
@@ -417,7 +417,8 @@ describe("processMedia integration", () => {
 
   it("preserves transcript artifact when summary fails", async () => {
     const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "process-media-recovery-"));
-    const transcriptPath = path.join(tempDirectory, "transcript.srt");
+    const transcriptPath = path.join(tempDirectory, "transcript.md");
+    const subtitlePath = path.join(tempDirectory, "subtitles.srt");
     const warnings: string[] = [];
 
     const runtimeProvider: RuntimeProvider = {
@@ -437,6 +438,7 @@ describe("processMedia integration", () => {
             downloadedPath: path.join(tempDirectory, "downloaded.mp4"),
             normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
             transcriptPath,
+            subtitlePath,
             metadataPath: path.join(tempDirectory, "metadata.json"),
             aiUploadDirectory: path.join(tempDirectory, "ai-upload"),
             aiUploadArtifactPaths: [path.join(tempDirectory, "ai-upload", "ai-upload.ogg")]
@@ -509,9 +511,255 @@ describe("processMedia integration", () => {
       });
 
       expect(await readFile(transcriptPath, "utf8")).toContain("recovered transcript");
+      expect(await readFile(subtitlePath, "utf8")).toContain("00:00:00,000 --> 00:00:01,000");
+      expect(await readFile(subtitlePath, "utf8")).toContain("recovered transcript");
       expect(warnings.some((warning) => warning.includes("Recovery transcript preserved"))).toBe(true);
       expect(
-        warnings.some((warning) => warning.includes("preserved source, transcript, and metadata"))
+        warnings.some((warning) => warning.includes("preserved source, transcript, subtitles, and metadata"))
+      ).toBe(true);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("writes transcript and subtitle artifacts and preserves them after completed cleanup", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "process-media-artifacts-"));
+    const transcriptPath = path.join(tempDirectory, "transcript.md");
+    const subtitlePath = path.join(tempDirectory, "subtitles.srt");
+    const metadataPath = path.join(tempDirectory, "metadata.json");
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        await mkdir(path.join(tempDirectory, "ai-upload"), { recursive: true });
+        await writeFile(
+          metadataPath,
+          `${JSON.stringify({
+            sessionId: "artifact-session",
+            sourceType: "youtube",
+            title: "Artifact Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            createdAt: "2026-05-02T00:00:00.000Z",
+            originalFilename: "downloaded.mp4",
+            downloadedPath: path.join(tempDirectory, "downloaded.mp4"),
+            sourceArtifactPath: path.join(tempDirectory, "downloaded.mp4"),
+            normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+            transcriptPath,
+            subtitlePath,
+            derivedArtifactPaths: [],
+            uploadArtifactPaths: [],
+            chunkCount: 0,
+            chunkDurationsMs: [],
+            vadApplied: false,
+            selectedCodec: null,
+            warnings: []
+          }, null, 2)}\n`,
+          "utf8"
+        );
+
+        return {
+          metadata: {
+            title: "Artifact Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=artifacts",
+            created: "2026-05-02T00:00:00.000Z"
+          },
+          normalizedText: "normalized-context",
+          transcript: [],
+          artifactCleanup: {
+            downloadedPath: path.join(tempDirectory, "downloaded.mp4"),
+            normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+            transcriptPath,
+            subtitlePath,
+            metadataPath,
+            aiUploadDirectory: path.join(tempDirectory, "ai-upload"),
+            aiUploadArtifactPaths: [path.join(tempDirectory, "ai-upload", "ai-upload.ogg")]
+          },
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    try {
+      const result = await processMedia(
+        {
+          sourceKind: "media_url",
+          sourceValue: "https://www.youtube.com/watch?v=artifacts",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
+          retentionMode: "delete_temp"
+        },
+        {
+          runtimeProvider,
+          transcriptionProvider: {
+            async transcribeMedia() {
+              return {
+                transcript: [
+                  { startMs: 0, endMs: 0, text: "{0m0s - 0m1s} first artifact transcript" },
+                  { startMs: 0, endMs: 0, text: "{0m1s - 0m2s} second artifact transcript" }
+                ],
+                transcriptMarkdown: "{0m0s - 0m1s} first artifact transcript\n{0m1s - 0m2s} second artifact transcript",
+                warnings: []
+              };
+            }
+          },
+          summaryProvider: {
+            async summarizeMedia() {
+              return {
+                summaryMarkdown: "Artifact summary",
+                warnings: []
+              };
+            },
+            async summarizeWebpage() {
+              throw new Error("should not execute");
+            }
+          },
+          noteWriter: {
+            async writeMediaNote() {
+              return {
+                notePath: "Summaries/Artifact Demo.md",
+                createdAt: "2026-05-02T00:00:00.000Z",
+                warnings: []
+              };
+            },
+            async writeWebpageNote() {
+              throw new Error("should not execute");
+            }
+          }
+        },
+        new AbortController().signal
+      );
+
+      expect(result.writeResult.notePath).toBe("Summaries/Artifact Demo.md");
+      expect(await readFile(transcriptPath, "utf8")).toContain("first artifact transcript");
+      const subtitleContent = await readFile(subtitlePath, "utf8");
+      expect(subtitleContent).toContain("1\n00:00:00,000 --> 00:00:01,000");
+      expect(subtitleContent).toContain("2\n00:00:01,000 --> 00:00:02,000");
+      expect(subtitleContent).toContain("second artifact transcript");
+
+      await expect(readFile(metadataPath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("preserves partial transcript artifact when chunked transcription fails", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "process-media-partial-recovery-"));
+    const transcriptPath = path.join(tempDirectory, "transcript.md");
+    const subtitlePath = path.join(tempDirectory, "subtitles.srt");
+    const warnings: string[] = [];
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        return {
+          metadata: {
+            title: "Partial Recovery Demo",
+            creatorOrAuthor: "Demo Channel",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=partial-recovery",
+            created: "2026-05-02T00:00:00.000Z"
+          },
+          normalizedText: "normalized-context",
+          transcript: [],
+          artifactCleanup: {
+            downloadedPath: path.join(tempDirectory, "downloaded.mp4"),
+            normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+            transcriptPath,
+            subtitlePath,
+            metadataPath: path.join(tempDirectory, "metadata.json"),
+            aiUploadDirectory: path.join(tempDirectory, "ai-upload"),
+            aiUploadArtifactPaths: [
+              path.join(tempDirectory, "ai-upload", "chunk-0000.ogg"),
+              path.join(tempDirectory, "ai-upload", "chunk-0001.ogg")
+            ]
+          },
+          aiUploadArtifactPaths: [
+            path.join(tempDirectory, "ai-upload", "chunk-0000.ogg"),
+            path.join(tempDirectory, "ai-upload", "chunk-0001.ogg")
+          ],
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    try {
+      await expect(
+        processMedia(
+          {
+            sourceKind: "media_url",
+            sourceValue: "https://www.youtube.com/watch?v=partial-recovery",
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash",
+            summaryProvider: "gemini",
+            summaryModel: "gemini-2.5-flash",
+            retentionMode: "delete_temp"
+          },
+          {
+            runtimeProvider,
+            transcriptionProvider: {
+              async transcribeMedia() {
+                throw new SummarizerError({
+                  category: "ai_failure",
+                  message: "Gemini transcription failed for AI upload chunk 2/2",
+                  recoverable: true,
+                  cause: {
+                    provider: "Gemini",
+                    failureKind: "chunk_transcription_failed",
+                    partialTranscriptMarkdown: "{0-1000} first chunk transcript"
+                  }
+                });
+              }
+            },
+            summaryProvider: {
+              async summarizeMedia() {
+                throw new Error("should not execute");
+              },
+              async summarizeWebpage() {
+                throw new Error("should not execute");
+              }
+            },
+            noteWriter: {
+              async writeMediaNote() {
+                throw new Error("should not execute");
+              },
+              async writeWebpageNote() {
+                throw new Error("should not execute");
+              }
+            }
+          },
+          new AbortController().signal,
+          {
+            onWarning: (warning) => {
+              warnings.push(warning);
+            }
+          }
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: "Gemini transcription failed for AI upload chunk 2/2"
+      });
+
+      expect(await readFile(transcriptPath, "utf8")).toContain("first chunk transcript");
+      expect(warnings.some((warning) => warning.includes("Partial transcript preserved"))).toBe(true);
+      expect(
+        warnings.some((warning) => warning.includes("preserved source, transcript, subtitles, and metadata"))
       ).toBe(true);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });

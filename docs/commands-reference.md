@@ -18,6 +18,8 @@ npm run typecheck
 npm run test
 npm run build
 npm run gate:local
+npm run test:regression:webpage
+npm run test:regression:media-summary
 npm run gate:regression:desktop
 ```
 
@@ -74,7 +76,7 @@ GitHub Actions: .github/workflows/release-gate.yml
 ## 使用規則
 
 - runtime / orchestration 變更：至少跑 `gate:local`
-- 影響 `webpage` 主線或共用契約時：加跑 `gate:regression:desktop`
+- 影響 `webpage` 主線、長媒體摘要或共用契約時：加跑 `gate:regression:desktop`
 - UI 變更：跑 `gate:local:vault`，再確認 `smoke:desktop`
 - 發版前：跑 `gate:release`，並同步更新 `docs/dev_log.md`
 - 使用者操作入口：`docs/Manual.md`

@@ -1,6 +1,6 @@
 ﻿# Smoke Checklist
 
-最後更新：2026-05-02 02:22
+最後更新：2026-05-02 03:05
 
 ## Scope
 
@@ -9,6 +9,7 @@
 - `webpage URL`
 - `media URL`
 - `local media`
+- `transcript file`
 
 若需確認每個 smoke 項目對應的端到端 AI 路由，請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
 
@@ -19,6 +20,7 @@
 | `webpage` | yes | yes | `npm run smoke:webpage` |
 | `media_url` | yes | no | `npm run smoke:media-url` |
 | `local_media` | yes | no | `npm run smoke:local-media` |
+| `transcript_file` | yes | no | manual via flow modal |
 | desktop bundle | yes | n/a | `npm run smoke:desktop` |
 | mobile bundle | webpage only | yes | `npm run smoke:mobile` |
 
@@ -106,3 +108,26 @@ Additional check: final summaries did not show chunk processing markers.
 - ingestion / compression / summary 主線可完成
 - note 正常寫入
 - 不支援格式或超限時顯示 `validation_error`
+
+## Transcript File
+
+前置：
+
+- 僅桌面版
+- 已有 `transcript.md` 或 `.txt` 絕對路徑
+- 摘要 provider API key 已設定
+
+步驟：
+
+1. 選擇 `transcript_file`
+2. 輸入逐字稿絕對路徑，或用 `選擇檔案`
+3. 執行流程
+4. 確認流程跳過轉錄，直接進入 summary
+5. 確認 Vault 內新增筆記，且筆記包含摘要與逐字稿
+
+驗收：
+
+- `.md` / `.txt` 逐字稿可重跑摘要
+- 同資料夾 `metadata.json` 存在時沿用原 media metadata
+- 缺少 `metadata.json` 時會用逐字稿檔名 fallback，並顯示 warning
+- 空逐字稿或非支援副檔名顯示 `validation_error`

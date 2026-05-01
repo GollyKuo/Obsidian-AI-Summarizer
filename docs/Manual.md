@@ -1,6 +1,6 @@
 # Manual
 
-最後更新：2026-04-24 16:24
+最後更新：2026-05-02 02:44
 
 ## 適用範圍
 
@@ -110,6 +110,8 @@ npm run build:vault:target
 
 1. 左側 ribbon 的 `AI 摘要器`
 2. command palette 的 `開啟 AI 摘要器`
+
+開發者若要調整 flow modal、設定頁、進度與結果畫面，請先參照 [ui-design.md](ui-design.md)，再同步更新本手冊的使用者可見流程。
 
 ## 設定頁
 
@@ -273,13 +275,22 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 1. 音訊轉錄與文字摘要的責任邊界更清楚。
 2. 可以用 Gemini 做轉錄，再用 Gemini、OpenRouter/Qwen 或 Mistral 做摘要。
-3. 後續可朝「保留 transcript、只重跑摘要」的 retry 策略前進。
+3. `transcript_file` 可讀取已保留或手動修正的逐字稿，跳過轉錄，只重跑摘要與筆記輸出。
 
 成本與品質取捨：
 
 1. 單一 provider 最簡單，設定成本最低。
 2. `Gemini -> Gemini` 是目前預設主線。
-3. `Gemini -> OpenRouter/Qwen` 或 `Gemini -> Mistral` 適合已有逐字稿、只想換摘要模型的情境。
+3. `Gemini -> OpenRouter/Qwen` 或 `Gemini -> Mistral` 適合已有逐字稿、只想換摘要模型的情境；此時可直接選 `逐字稿檔案`。
+
+### 長媒體摘要策略
+
+長媒體可能會先被切成多段處理，但這些段落只屬於內部 token control 與錯誤恢復，不是最終筆記結構。
+
+1. 轉錄階段會先合併逐字稿，再交給摘要階段。
+2. 如果逐字稿過長，摘要階段會先產生內部 partial notes。
+3. partial notes 之後一定會再做 final synthesis，輸出單一連貫摘要。
+4. 最終筆記不應出現 `Chunk 1`、`Part 1`、`分段 1` 這類處理標記。
 
 ### 輸出資料夾
 
@@ -291,8 +302,10 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 ### 媒體暫存檔保留
 
-1. `delete_temp`：流程完成後刪除暫存檔
-2. `keep_temp`：流程完成後保留原始下載、轉檔音訊與逐字稿
+1. `delete_temp`：流程完成後刪除 source artifact、`normalized.wav`、`ai-upload/` 與 `metadata.json`，但保留完成版 `transcript.md` 與 `subtitles.srt`
+2. `keep_temp`：流程完成後保留 source artifact、`normalized.wav`、`transcript.md` 與 `subtitles.srt`，並刪除 `ai-upload/` 與 `metadata.json`
+
+`transcript.md` 是完成版逐字稿；`subtitles.srt` 是 UTF-8 SRT 字幕檔。兩者都保留在 session 暫存資料夾，供摘要失敗 recovery、檢查轉錄結果與後續手動重跑使用。
 
 ### 媒體壓縮策略
 
@@ -322,6 +335,7 @@ v1 目前支援：
 1. `webpage_url`
 2. `media_url`
 3. `local_media`
+4. `transcript_file`
 
 ### 除錯模式
 
@@ -334,9 +348,9 @@ v1 目前支援：
 1. app surface：`desktop` 或 `mobile`
 2. `media cache root` 是否可用
 3. `yt-dlp` / `ffmpeg` / `ffprobe` 是否可用
-4. `webpage_url` / `media_url` / `local_media` capability 是否可用
+4. `webpage_url` / `media_url` / `local_media` / `transcript_file` capability 是否可用
 
-若 `media URL` 或 `local media` 無法執行，請先看這一區的結果。
+若 `media URL` 或 `local media` 無法執行，請先看這一區的結果。`transcript_file` 不需要 `yt-dlp` / `ffmpeg` / `ffprobe`，只需要可讀取逐字稿並可使用摘要 provider。
 
 ## 使用流程
 
@@ -379,6 +393,20 @@ v1 目前支援：
 
 1. `validation_error`：路徑不是合法絕對路徑，或格式不支援
 2. `runtime_unavailable`：本機 runtime 或 media cache root 不可用
+
+### Transcript File
+
+1. 開啟 `AI 摘要器`
+2. 選 `逐字稿檔案`
+3. 輸入 `transcript.md` 或 `.txt` 的絕對路徑，或點 `選擇檔案`
+4. 按 `開始摘要`
+5. 流程會讀取逐字稿，跳過轉錄，直接重跑 summary 與 note 輸出
+
+常見錯誤：
+
+1. `validation_error`：路徑不是合法絕對路徑、檔案不是 `.md` / `.txt`，或逐字稿內容為空
+2. `ai_failure`：摘要 provider 或模型不可用
+3. `note_write_failure`：輸出資料夾不可寫入或筆記輸出失敗
 
 ## Smoke Test
 

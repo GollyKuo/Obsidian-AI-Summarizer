@@ -11,7 +11,8 @@ function makeInput(overrides: Partial<ArtifactRetentionInput> = {}): ArtifactRet
     artifacts: {
       downloadedPath: "D:\\cache\\session\\downloaded.mp4",
       normalizedAudioPath: "D:\\cache\\session\\normalized.wav",
-      transcriptPath: "D:\\cache\\session\\transcript.srt",
+      transcriptPath: "D:\\cache\\session\\transcript.md",
+      subtitlePath: "D:\\cache\\session\\subtitles.srt",
       metadataPath: "D:\\cache\\session\\metadata.json",
       aiUploadDirectory: "D:\\cache\\session\\ai-upload"
     },
@@ -37,7 +38,8 @@ describe("artifact retention manager", () => {
     expect(warnings).toEqual([]);
     expect(removed).toContain("D:\\cache\\session\\downloaded.mp4");
     expect(removed).toContain("D:\\cache\\session\\normalized.wav");
-    expect(removed).toContain("D:\\cache\\session\\transcript.srt");
+    expect(removed).not.toContain("D:\\cache\\session\\transcript.md");
+    expect(removed).not.toContain("D:\\cache\\session\\subtitles.srt");
     expect(removed).toContain("D:\\cache\\session\\metadata.json");
     expect(removed).toContain("D:\\cache\\session\\ai-upload");
   });
@@ -53,11 +55,13 @@ describe("artifact retention manager", () => {
     expect(plan.keepPaths).toEqual([
       "D:\\cache\\session\\downloaded.mp4",
       "D:\\cache\\session\\normalized.wav",
-      "D:\\cache\\session\\transcript.srt"
+      "D:\\cache\\session\\transcript.md",
+      "D:\\cache\\session\\subtitles.srt"
     ]);
     expect(plan.removeTargets.some((target) => target.path.endsWith("downloaded.mp4"))).toBe(false);
     expect(plan.removeTargets.some((target) => target.path.endsWith("normalized.wav"))).toBe(false);
-    expect(plan.removeTargets.some((target) => target.path.endsWith("transcript.srt"))).toBe(false);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("transcript.md"))).toBe(false);
+    expect(plan.removeTargets.some((target) => target.path.endsWith("subtitles.srt"))).toBe(false);
     expect(plan.removeTargets.some((target) => target.path.endsWith("metadata.json"))).toBe(true);
     expect(plan.removeTargets.some((target) => target.path.endsWith("ai-upload"))).toBe(true);
   });
@@ -78,11 +82,12 @@ describe("artifact retention manager", () => {
     );
 
     expect(removed.some((target) => target.endsWith("downloaded.mp4"))).toBe(false);
-    expect(removed.some((target) => target.endsWith("transcript.srt"))).toBe(false);
+    expect(removed.some((target) => target.endsWith("transcript.md"))).toBe(false);
+    expect(removed.some((target) => target.endsWith("subtitles.srt"))).toBe(false);
     expect(removed.some((target) => target.endsWith("metadata.json"))).toBe(false);
     expect(removed.some((target) => target.endsWith("normalized.wav"))).toBe(true);
     expect(
-      warnings.some((warning) => warning.includes("Retention recovery boundary: preserved source, transcript, and metadata"))
+      warnings.some((warning) => warning.includes("Retention recovery boundary: preserved source, transcript, subtitles, and metadata"))
     ).toBe(true);
   });
 

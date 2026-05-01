@@ -205,6 +205,24 @@ function buildMediaCapabilityReason(
   };
 }
 
+function buildTranscriptFileCapabilityReason(
+  appSurface: AppSurface
+): Pick<CapabilityDiagnostics, "available" | "state" | "reason"> {
+  if (appSurface === "mobile") {
+    return {
+      available: false,
+      state: "warning",
+      reason: "Transcript file summary retry requires desktop filesystem access."
+    };
+  }
+
+  return {
+    available: true,
+    state: "ready",
+    reason: "Transcript file summary retry is available."
+  };
+}
+
 function computeOverallState(
   cacheRoot: CacheRootDiagnostics,
   dependencies: DependencyDiagnosticsSummary,
@@ -250,6 +268,8 @@ export async function collectRuntimeDiagnostics(
   const dependencies = await collectDependencyDiagnostics(settings.runtimeStrategy, dependencyChecker);
   const dependencyDrift = collectDependencyDriftDiagnostics(settings.runtimeStrategy, dependencies);
   const mediaCapability = buildMediaCapabilityReason(settings, cacheRoot, dependencies);
+  const appSurface = options.appSurface ?? "unknown";
+  const transcriptFileCapability = buildTranscriptFileCapabilityReason(appSurface);
 
   const capabilities: CapabilityDiagnostics[] = [
     {
@@ -265,6 +285,10 @@ export async function collectRuntimeDiagnostics(
     {
       sourceType: "local_media",
       ...mediaCapability
+    },
+    {
+      sourceType: "transcript_file",
+      ...transcriptFileCapability
     }
   ];
 
@@ -272,7 +296,7 @@ export async function collectRuntimeDiagnostics(
     checkedAt: new Date().toISOString(),
     overallState: computeOverallState(cacheRoot, dependencies, dependencyDrift, capabilities),
     environment: {
-      appSurface: options.appSurface ?? "unknown",
+      appSurface,
       platform: options.platform ?? process.platform,
       runtimeStrategy: settings.runtimeStrategy
     },

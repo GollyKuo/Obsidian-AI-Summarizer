@@ -1,8 +1,107 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 02:22
+最後更新：2026-05-02 03:18
 
 ## 版本紀錄
+
+### 0.1.65-ui-design-navigation-docs - 2026-05-02 03:18
+
+範圍：
+- 建立外觀介面與互動設計導覽文件。
+
+主要變更：
+- 新增 `docs/ui-design.md`，集中 flow modal、settings tab、source guidance、介面原則、驗證入口與待討論項
+- 從 `docs/architecture-boundary.md`、`docs/project-setup-sop.md`、`docs/backlog.md`、`docs/backlog-active.md`、`docs/media-acquisition-spec.md`、`docs/Manual.md` 加入導覽引用
+- 更新 `README.md` 與 `docs/documentation-maintenance.md`，把 UI 設計文件納入正式文件入口與同步規則
+
+驗證：
+- `git diff --check -- README.md docs\\documentation-maintenance.md docs\\dev_log.md docs\\ui-design.md docs\\architecture-boundary.md docs\\project-setup-sop.md docs\\backlog.md docs\\backlog-active.md docs\\media-acquisition-spec.md docs\\Manual.md`
+
+### 0.1.64-subtitle-boundary-docs - 2026-05-02 03:18
+
+範圍：
+- 收斂字幕產線 v1/vNext 邊界文件。
+
+主要變更：
+- 更新 `docs/media-acquisition-spec.md`，明確定義 v1 只輸出並保留 `subtitles.srt`，不做 FFmpeg mux、burn-in 或含字幕影片輸出
+- 將含字幕影片、soft subtitle mux、hard subtitle burn-in、`subtitledVideoPath` lineage 與對應 smoke checklist 明確列為 vNext
+- 更新 `docs/backlog-active.md`，關閉 `CAP-206` 字幕產線邊界待辦
+- 更新 `docs/backlog.md`，同步 CAP-206 摘要
+
+驗證：
+- 文件規格更新，未變更 runtime 程式碼
+
+### 0.1.63-long-media-summary-regression-gate - 2026-05-02 03:12
+
+範圍：
+- 補上長媒體全局摘要 regression gate。
+
+主要變更：
+- 更新 `src/services/ai/media-summary-chunking.ts`，final synthesis 前會清理內部 partial notes 的 `Chunk N`、`Part N`、`分段 N` 處理標籤
+- 新增 `tests/regression/media-summary-global.regression.test.ts`，驗證長 transcript 會走 internal partial notes + final synthesis，且最終寫入筆記不包含 chunk/part 技術標記
+- 新增 `test:regression:media-summary` script，並把它串進 `gate:regression:desktop`
+- 更新 `docs/backlog-active.md`、`docs/test-matrix.md`、`docs/Manual.md`、`docs/commands-reference.md`、`docs/release-gate.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test -- tests/unit/media-summary-chunking.test.ts tests/regression/media-summary-global.regression.test.ts`
+
+### 0.1.62-transcript-file-summary-retry - 2026-05-02 03:05
+
+範圍：
+- 新增保留逐字稿只重跑摘要的 `transcript_file` flow。
+
+主要變更：
+- 新增 `TranscriptFileRequest` 與 `processTranscriptFile` orchestration，支援讀取 `.md` / `.txt` 絕對路徑逐字稿，跳過 acquisition/transcription，只執行 summary 與 note write
+- 若逐字稿同資料夾有 `metadata.json`，會沿用 title、author、platform、source 與 createdAt；若缺失則用逐字稿檔名與路徑 fallback，並回報 warning
+- 更新 flow modal、設定頁、source guidance、runtime diagnostics 與內建模板支援 `transcript_file`
+- 新增 `tests/integration/process-transcript-file.integration.test.ts`
+- 更新 `docs/Manual.md`、`docs/backlog.md`、`docs/backlog-active.md`、`docs/architecture-boundary.md`、`docs/test-matrix.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test -- tests/integration/process-transcript-file.integration.test.ts tests/unit/source-guidance.test.ts tests/unit/runtime-diagnostics.test.ts tests/unit/template-library.test.ts`
+
+### 0.1.61-transcript-subtitle-lifecycle - 2026-05-02 02:44
+
+範圍：
+- 落地 `transcript.md` / `subtitles.srt` artifact lifecycle。
+
+主要變更：
+- 更新 media session artifacts，將完成版逐字稿固定為 `transcript.md`，並新增必保留的 `subtitles.srt`
+- 更新 `src/orchestration/process-media.ts`，轉錄完成後寫出 `transcript.md` 與 UTF-8 SRT cue 格式的 `subtitles.srt`
+- 更新 `src/services/media/artifact-retention.ts`，`delete_temp` 成功清理仍保留 `transcript.md` 與 `subtitles.srt`
+- 更新 `src/services/media/artifact-manifest.ts`，回寫 transcript/subtitle lineage
+- 更新 downloader/local ingestion/runtime/process handoff 型別與測試 fixture
+- 新增 `tests/unit/artifact-manifest.test.ts`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`、`docs/media-acquisition-spec.md`、`docs/test-matrix.md`、`docs/Manual.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npx vitest run tests/unit/artifact-manifest.test.ts tests/unit/artifact-retention.test.ts tests/integration/process-media.integration.test.ts --passWithNoTests`
+- `npx vitest run tests/unit/artifact-retention.test.ts tests/unit/pre-upload-compressor.test.ts tests/integration/process-media-url.integration.test.ts tests/integration/process-local-media.integration.test.ts tests/integration/process-media.integration.test.ts tests/unit/local-bridge-runtime.test.ts --passWithNoTests`
+- `npm run build:vault`
+- `git diff --check`
+
+### 0.1.60-gemini-chunk-transcription - 2026-05-02 02:28
+
+範圍：
+- 完成 Gemini 多 chunk inline 轉錄合併的第一輪落地。
+
+主要變更：
+- 更新 `src/services/ai/configured-ai-provider.ts`，Gemini 轉錄遇到多個 `ai-upload` artifact 時改為逐 chunk 發送 `inline_data` request，再依序合併 transcript
+- Gemini chunk 轉錄失敗時，錯誤 diagnostics 會保留 failed chunk index、total chunks、completed chunk count、artifact path 與 partial transcript markdown
+- 更新 `src/orchestration/process-media.ts`，轉錄階段中途失敗時可把 partial transcript 寫入 recovery transcript path
+- 更新 `tests/unit/configured-ai-provider.test.ts` 與 `tests/integration/process-media.integration.test.ts`
+- 更新 `docs/backlog.md`、`docs/backlog-active.md`、`docs/media-acquisition-spec.md`、`docs/test-matrix.md`
+
+驗證：
+- `npm run typecheck`
+- `npm run test`
+- `npx vitest run tests/unit/configured-ai-provider.test.ts tests/integration/process-media.integration.test.ts --passWithNoTests`
+- `npm run build:vault`
+- `git diff --check`
 
 ### 0.1.59-gladia-provider-smoke-record - 2026-05-02 02:22
 
