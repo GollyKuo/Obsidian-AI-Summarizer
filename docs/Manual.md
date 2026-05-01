@@ -217,6 +217,7 @@ Gemini 摘要模型下拉選單也會預先內建兩個官方 model ID：
 3. `管理模型` 輸入框與轉錄模型共用同一套 model datalist。
 4. 當 `summaryProvider = gemini` 時，autocomplete 會顯示 Gemini 官方模型候選。
 5. 當 `summaryProvider = openrouter` 時，autocomplete 會顯示 OpenRouter 官方模型候選，新增前也會再做一次官方資料校驗。
+6. 當 `summaryProvider = mistral` 且已填 `Mistral API Key` 時，autocomplete 會顯示 Mistral 官方模型候選，新增前也會再做一次官方資料校驗。
 
 ### OpenRouter API Key
 
@@ -232,11 +233,34 @@ Gemini 摘要模型下拉選單也會預先內建兩個官方 model ID：
 2. 它不是 audio transcription 主路徑，不負責直接吃音訊或影片。
 3. 若沒有切到 `summaryProvider = openrouter`，可以先不填 OpenRouter key。
 
+### Mistral API Key
+
+當 `summaryProvider = mistral` 時，設定頁會額外顯示 `Mistral API Key`。Mistral 的 autocomplete、模型清單更新與新增前校驗都會使用這個 key。
+
+第一版內建的 Mistral 摘要模型：
+
+1. `mistral-small-latest`
+
+Mistral 摘要模型建議：
+
+1. 實際可選模型以 `Mistral API Key` 呼叫 [`GET /v1/models`](https://docs.mistral.ai/api/endpoint/models) 回傳的清單為準；這個 API 會列出目前使用者可用的模型。
+2. 免費 `Experiment plan` 適合評估與原型，rate limit 較低；長文摘要先以可穩定跑完為優先，避免一開始就把高品質模型當大量批次預設。
+3. 日常長文摘要、免費帳號穩定使用：優先用 `mistral-small-latest`，或 autocomplete 顯示的 `mistral-small-2603`。Mistral Small 4 的 context 為 256k，價格壓力也低於 Large。
+4. 少量高價值長文、需要較完整結構與品質：若 autocomplete 顯示 `mistral-large-2512` 或 Large latest alias，可改用 Mistral Large 3；它同樣是 256k context，官方定位為 general-purpose 高性能模型，但免費帳號較容易遇到 rate limit。
+5. `mistral-medium-*` 不作為免費帳號預設建議；只有在你的帳號清單可見、實測摘要品質明顯優於 Small，且 rate limit 可接受時再加入。
+6. 若遇到 429、timeout 或長文摘要中斷，先退回 `mistral-small-latest`，並優先使用專案既有的 transcript-first / 分段摘要流程。
+
+限制：
+
+1. Mistral 目前只作為 transcript-first 的文字摘要路徑。
+2. 它不是 audio transcription 主路徑，不負責直接吃音訊或影片。
+3. 若沒有切到 `summaryProvider = mistral`，可以先不填 Mistral key。
+
 ### 模型清單更新與自動完成
 
 AI 模型頁有一個 `模型清單更新` 區塊。
 
-1. `更新` 會手動抓取 Gemini / OpenRouter 官方模型清單。
+1. `更新` 會手動抓取 Gemini / OpenRouter / Mistral 官方模型清單。
 2. 轉錄與摘要的 `管理模型` 輸入框共用同一個 datalist。
 3. 每次 focus、輸入、變更時都會即時觸發 autocomplete。
 4. 模型資料平常會快取 1 天；手動更新或 API key 變更會刷新對應資料。
@@ -248,14 +272,14 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 拆分後的好處：
 
 1. 音訊轉錄與文字摘要的責任邊界更清楚。
-2. 可以用 Gemini 做轉錄，再用 Gemini 或 OpenRouter/Qwen 做摘要。
+2. 可以用 Gemini 做轉錄，再用 Gemini、OpenRouter/Qwen 或 Mistral 做摘要。
 3. 後續可朝「保留 transcript、只重跑摘要」的 retry 策略前進。
 
 成本與品質取捨：
 
 1. 單一 provider 最簡單，設定成本最低。
 2. `Gemini -> Gemini` 是目前預設主線。
-3. `Gemini -> OpenRouter/Qwen` 適合已有逐字稿、只想換摘要模型的情境。
+3. `Gemini -> OpenRouter/Qwen` 或 `Gemini -> Mistral` 適合已有逐字稿、只想換摘要模型的情境。
 
 ### 輸出資料夾
 

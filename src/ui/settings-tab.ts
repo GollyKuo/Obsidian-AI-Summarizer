@@ -37,6 +37,11 @@ import {
   syncOpenRouterModelCatalog
 } from "@services/ai/openrouter-models";
 import type { OpenRouterModelRecord } from "@services/ai/openrouter-models";
+import {
+  fetchMistralModels,
+  searchMistralModels
+} from "@services/ai/mistral-models";
+import type { MistralModelRecord } from "@services/ai/mistral-models";
 import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
@@ -215,6 +220,9 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private openRouterModelsCache: OpenRouterModelRecord[] | null = null;
   private openRouterModelsFetchedAt = 0;
   private openRouterModelsRequest: Promise<OpenRouterModelRecord[]> | null = null;
+  private mistralModelsCache: MistralModelRecord[] | null = null;
+  private mistralModelsFetchedAt = 0;
+  private mistralModelsRequest: Promise<MistralModelRecord[]> | null = null;
 
   public constructor(app: App, plugin: AISummarizerPlugin) {
     super(app, plugin);
@@ -475,6 +483,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
     if (this.plugin.settings.summaryProvider === "mistral") {
       this.plugin.settings.mistralApiKey = value.trim();
+      this.invalidateModelDataListCache("mistral");
       return;
     }
 
@@ -601,7 +610,36 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private invalidateModelDataListCache(provider: "gemini" | "openrouter" | "all" = "all"): void {
+  private async loadMistralModels(): Promise<MistralModelRecord[]> {
+    if (
+      this.mistralModelsCache &&
+      Date.now() - this.mistralModelsFetchedAt < MODEL_AUTOCOMPLETE_CACHE_TTL_MS
+    ) {
+      return this.mistralModelsCache;
+    }
+
+    if (this.mistralModelsRequest) {
+      return this.mistralModelsRequest;
+    }
+
+    this.mistralModelsRequest = fetchMistralModels({
+      apiKey: this.plugin.settings.mistralApiKey
+    }).then((models) => {
+      this.mistralModelsCache = models;
+      this.mistralModelsFetchedAt = Date.now();
+      return models;
+    });
+
+    try {
+      return await this.mistralModelsRequest;
+    } finally {
+      this.mistralModelsRequest = null;
+    }
+  }
+
+  private invalidateModelDataListCache(
+    provider: "gemini" | "openrouter" | "mistral" | "all" = "all"
+  ): void {
     if (provider === "all" || provider === "gemini") {
       this.geminiModelsCache = null;
       this.geminiModelsFetchedAt = 0;
@@ -611,9 +649,14 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       this.openRouterModelsCache = null;
       this.openRouterModelsFetchedAt = 0;
     }
+
+    if (provider === "all" || provider === "mistral") {
+      this.mistralModelsCache = null;
+      this.mistralModelsFetchedAt = 0;
+    }
   }
 
-  private async refreshModelDataList(provider: "gemini" | "openrouter"): Promise<number> {
+  private async refreshModelDataList(provider: "gemini" | "openrouter" | "mistral"): Promise<number> {
     if (provider === "gemini") {
       const models = await fetchGeminiModels({
         apiKey: this.plugin.settings.apiKey
@@ -621,6 +664,16 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       this.geminiModelsCache = models;
       this.geminiModelsFetchedAt = Date.now();
       this.geminiModelsRequest = null;
+      return models.length;
+    }
+
+    if (provider === "mistral") {
+      const models = await fetchMistralModels({
+        apiKey: this.plugin.settings.mistralApiKey
+      });
+      this.mistralModelsCache = models;
+      this.mistralModelsFetchedAt = Date.now();
+      this.mistralModelsRequest = null;
       return models.length;
     }
 
@@ -645,6 +698,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       const refreshTasks: Array<Promise<string>> = [
         this.refreshModelDataList("openrouter").then((count) => `OpenRouter ${count} 筆`)
       ];
+
+      if (this.plugin.settings.mistralApiKey.trim().length > 0) {
+        refreshTasks.push(this.refreshModelDataList("mistral").then((count) => `Mistral ${count} 筆`));
+      } else {
+        this.invalidateModelDataListCache("mistral");
+        refreshTasks.push(Promise.resolve("Mistral 略過（未填 API Key）"));
+      }
 
       if (this.plugin.settings.apiKey.trim().length > 0) {
         refreshTasks.push(this.refreshModelDataList("gemini").then((count) => `Gemini ${count} 筆`));
@@ -688,10 +748,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private resolveManagedModelDataProvider(
     provider: SummaryProvider | TranscriptionProvider,
     purpose: ModelPurpose
-  ): "gemini" | "openrouter" | null {
+  ): "gemini" | "openrouter" | "mistral" | null {
     if (purpose === "summary") {
       if (provider === "openrouter") {
         return "openrouter";
+      }
+      if (provider === "mistral") {
+        return "mistral";
       }
       return provider === "gemini" ? "gemini" : null;
     }
@@ -721,7 +784,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private async updateManagedModelAutocomplete(
     query: string,
-    provider: "gemini" | "openrouter" | null
+    provider: "gemini" | "openrouter" | "mistral" | null
   ): Promise<void> {
     const dataListEl = this.getManagedModelDataListEl();
     dataListEl.replaceChildren();
@@ -731,10 +794,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
 
     try {
-      const suggestions =
-        provider === "openrouter"
-          ? searchOpenRouterModels(await this.loadOpenRouterModels(), query)
-          : searchGeminiModels(await this.loadGeminiModels(), query);
+      const suggestions = await this.searchManagedModels(provider, query);
 
       for (const suggestion of suggestions) {
         const optionEl = document.createElement("option");
@@ -744,16 +804,26 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.plugin.reportWarning(
-        provider === "openrouter" ? "openrouter_models" : "gemini_models",
-        message
-      );
+      this.plugin.reportWarning(`${provider}_models`, message);
     }
+  }
+
+  private async searchManagedModels(
+    provider: "gemini" | "openrouter" | "mistral",
+    query: string
+  ): Promise<Array<{ id: string; name: string }>> {
+    if (provider === "openrouter") {
+      return searchOpenRouterModels(await this.loadOpenRouterModels(), query);
+    }
+    if (provider === "mistral") {
+      return searchMistralModels(await this.loadMistralModels(), query);
+    }
+    return searchGeminiModels(await this.loadGeminiModels(), query);
   }
 
   private attachManagedModelAutocomplete(
     inputEl: HTMLInputElement,
-    resolveProvider: () => "gemini" | "openrouter" | null,
+    resolveProvider: () => "gemini" | "openrouter" | "mistral" | null,
     onValueChange: (value: string) => void
   ): void {
     inputEl.setAttribute("list", this.getManagedModelDataListEl().id);
@@ -1228,10 +1298,10 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
   }
 
-  private findOpenRouterModel(
-    models: Awaited<ReturnType<typeof fetchOpenRouterModels>>,
+  private findManagedModel<TModel extends { id: string; name: string }>(
+    models: readonly TModel[],
     query: string
-  ): Awaited<ReturnType<typeof fetchOpenRouterModels>>[number] | null {
+  ): TModel | null {
     const normalizedQuery = query.trim().toLowerCase().replace(/\s+/g, " ");
     return (
       models.find((model) => model.id.toLowerCase() === normalizedQuery) ??
@@ -1254,7 +1324,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (provider === "openrouter") {
       try {
         const models = await this.loadOpenRouterModels();
-        const matchedModel = this.findOpenRouterModel(models, modelInput);
+        const matchedModel = this.findManagedModel(models, modelInput);
         if (!matchedModel) {
           this.plugin.notify("OpenRouter 查無此模型，請確認 model id 或名稱。");
           return;
@@ -1281,6 +1351,40 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         const message = error instanceof Error ? error.message : String(error);
         this.plugin.notify(`OpenRouter 模型查詢失敗：${message}`);
         this.plugin.reportWarning("openrouter_models", message);
+        return;
+      }
+    }
+
+    if (provider === "mistral" && purpose === "summary" && this.plugin.settings.mistralApiKey.trim().length > 0) {
+      try {
+        const models = await this.loadMistralModels();
+        const matchedModel = this.findManagedModel(models, modelInput);
+        if (!matchedModel) {
+          this.plugin.notify("Mistral 查無此模型，請確認 model id 或名稱。");
+          return;
+        }
+
+        this.plugin.settings.modelCatalog = upsertModelCatalogEntry(
+          this.plugin.settings.modelCatalog,
+          {
+            provider,
+            purpose,
+            displayName: matchedModel.name,
+            modelId: matchedModel.id,
+            source: "mistral",
+            updatedAt: new Date().toISOString()
+          }
+        );
+        this.plugin.settings.summaryProvider = "mistral";
+        this.plugin.settings.summaryModel = matchedModel.id;
+        await this.plugin.saveSettings();
+        this.plugin.notify(`已加入 Mistral 模型：${matchedModel.name}`);
+        this.display();
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.plugin.notify(`Mistral 模型查詢失敗：${message}`);
+        this.plugin.reportWarning("mistral_models", message);
         return;
       }
     }
@@ -1558,7 +1662,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private renderAiModelSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("模型清單更新")
-      .setDesc("自動完成會使用 Gemini / OpenRouter 官方模型清單；Mistral 模型可手動輸入 model id。")
+      .setDesc("自動完成會使用 Gemini / OpenRouter / Mistral 官方模型清單；Mistral 需要先填 API Key。")
       .addButton((button) =>
         button
           .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新")

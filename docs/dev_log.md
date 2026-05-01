@@ -1,8 +1,25 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 01:15
+最後更新：2026-05-02 01:30
 
 ## 版本紀錄
+
+### 0.1.56-mistral-model-autocomplete - 2026-05-02 01:30
+
+範圍：
+- 補上 Mistral 摘要模型的官方模型清單自動完成。
+
+主要變更：
+- 新增 `src/services/ai/mistral-models.ts`，支援 Mistral `/v1/models` 讀取、chat-capable 模型篩選、alias 正規化與 autocomplete 搜尋
+- 更新 `src/ui/settings-tab.ts`，摘要 provider 選 Mistral 且已填 API Key 時，`管理模型` 輸入框會從 Mistral 官方模型清單自動完成並在新增前校驗
+- 更新 `docs/Manual.md`，補上 Mistral API Key、模型清單更新、自動完成與免費帳號長文摘要模型使用建議
+- 新增 `tests/unit/mistral-models.test.ts`
+
+驗證：
+- `npm run typecheck`
+- `npx vitest run tests/unit/mistral-models.test.ts tests/unit/settings.test.ts tests/unit/configured-ai-provider.test.ts tests/unit/api-health-check.test.ts --passWithNoTests`
+- `npm run build:vault`
+- `git diff --check`
 
 ### 0.1.55-mistral-summary-provider - 2026-05-02 01:15
 
