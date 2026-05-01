@@ -33,6 +33,8 @@
   - 日常工作主入口
 - [docs/backlog-archive.md](d:\程式開發\AI Summarizer\docs\backlog-archive.md)
   - 已完成能力與歷史參考
+- [docs/documentation-maintenance.md](d:\程式開發\AI Summarizer\docs\documentation-maintenance.md)
+  - backlog 與相關文件同步維護規則
 - [docs/dev_log.md](d:\程式開發\AI Summarizer\docs\dev_log.md)
   - 版本與里程碑紀錄
 - [docs/commands-reference.md](d:\程式開發\AI Summarizer\docs\commands-reference.md)
@@ -76,6 +78,7 @@ docs/
 1. 每日工作先讀 `docs/backlog-active.md`，以目前主線與近期細節為準。
 2. 要排程、重排優先序或看全局時，再讀 `docs/backlog.md`。
 3. 需要查完成歷史或舊能力邊界時，再讀 `docs/backlog-archive.md`。
+4. 功能或行為調整時，依 `docs/documentation-maintenance.md` 同步 backlog 與相關規格文件。
 
 ## 第一階段目標
 

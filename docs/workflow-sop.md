@@ -8,7 +8,7 @@
 4. 判斷 single-agent 或多 agent
 5. 明確改動 ownership
 6. 實作 + targeted 驗證
-7. 文件同步
+7. 依 `docs/documentation-maintenance.md` 做文件同步
 
 ## 實作前檢查
 
@@ -16,6 +16,7 @@
 - 是否碰到高風險區（parser/state/migration）
 - 是否需要手機驗證
 - 是否需要更新 `backlog.md` / `backlog-active.md` / `backlog-archive.md`
+- 是否需要更新相關規格文件（prompt、media acquisition、architecture、manual、test matrix、release gate）
 - 是否需要更新 `dev_log.md`
 
 ## 完成後檢查
