@@ -1,8 +1,24 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 14:30
+最後更新：2026-05-02 14:37
 
 ## 版本紀錄
+
+### 0.1.70-flow-modal-preflight-stages - 2026-05-02 14:37
+
+範圍：
+- 推進 `CAP-304 Flow Modal Minimal UI Adoption` Batch 3。
+
+主要變更：
+- 新增 Flow Modal Preflight Summary，顯示模板、輸出位置、暫存策略與媒體工具尚未檢查狀態
+- 將單行 `status | stage` 改為來源感知 stage list，依 `webpage_url`、`transcript_file`、媒體來源顯示不同階段
+- 新增 UI `cancelling` 狀態，取消中會固定 action row 並避免重複開始或重複取消
+- 更新 `docs/backlog-active.md`，關閉 `CAP-304` Batch 3 的 preflight、stage list 與 cancelling 待辦
+
+驗證：
+- `npm run typecheck`
+- `npm run build`
+- `npm run smoke:desktop`
 
 ### 0.1.69-flow-modal-source-input - 2026-05-02 14:30
 

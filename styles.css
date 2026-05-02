@@ -128,6 +128,83 @@
   margin-top: var(--ais-space-2);
 }
 
+.ai-summarizer-flow .ai-summarizer-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ais-inline-gap);
+}
+
+.ai-summarizer-flow .ai-summarizer-chip {
+  align-items: center;
+  background: var(--ais-surface-muted);
+  border: 1px solid var(--ais-border);
+  border-radius: var(--ais-radius-pill);
+  color: var(--ais-text-muted);
+  display: inline-flex;
+  min-height: 28px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0 var(--ais-space-3);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-panel {
+  border: 1px solid var(--ais-border);
+  border-radius: var(--ais-radius-md);
+  padding: var(--ais-panel-padding);
+  background: var(--ais-surface-muted);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-message {
+  margin: 0;
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-list {
+  display: grid;
+  gap: var(--ais-space-2);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-item {
+  align-items: center;
+  color: var(--ais-text-muted);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: var(--ais-space-2);
+  min-height: 24px;
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-marker {
+  background: var(--ais-surface);
+  border: 1px solid var(--ais-border-strong);
+  border-radius: 50%;
+  height: 10px;
+  justify-self: center;
+  width: 10px;
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-label {
+  overflow-wrap: anywhere;
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-item[data-state="current"] {
+  color: var(--ais-text);
+  font-weight: var(--font-medium);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-item[data-state="current"] .ai-summarizer-stage-marker {
+  background: var(--ais-accent);
+  border-color: var(--ais-accent);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-item[data-state="done"] {
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-item[data-state="done"] .ai-summarizer-stage-marker {
+  background: var(--ais-accent);
+  border-color: var(--ais-accent);
+  box-shadow: inset 0 0 0 2px var(--ais-surface-muted);
+}
+
 .ai-summarizer-flow .setting-item {
   border-color: var(--ais-border);
   padding: var(--ais-space-3) 0;
@@ -153,7 +230,6 @@
   text-overflow: ellipsis;
 }
 
-.ai-summarizer-flow .ai-summarizer-stage,
 .ai-summarizer-flow .ai-summarizer-warning,
 .ai-summarizer-flow .ai-summarizer-result {
   border: 1px solid var(--ais-border);

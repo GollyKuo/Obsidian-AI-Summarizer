@@ -1,5 +1,6 @@
 import { ButtonComponent, Modal } from "obsidian";
 import { SummarizerError, type ErrorCategory } from "@domain/errors";
+import type { JobStatus } from "@domain/jobs";
 import type {
   LocalMediaRequest,
   MediaUrlRequest,
@@ -25,9 +26,15 @@ import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
 import { describeTemplateReference } from "@services/obsidian/template-library";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
-type UiStatus = "idle" | "running" | "completed" | "failed" | "cancelled";
+type UiStatus = "idle" | "running" | "cancelling" | "completed" | "failed" | "cancelled";
 
 const SOURCE_TYPES: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
+const TERMINAL_STAGE_STATUSES: JobStatus[] = ["completed", "failed", "cancelled"];
+
+interface StageDescriptor {
+  id: JobStatus;
+  label: string;
+}
 
 interface OpenDialogResult {
   canceled: boolean;
@@ -48,6 +55,7 @@ export class SummarizerFlowModal extends Modal {
   private sourceType: SourceType;
   private sourceValue = "";
   private status: UiStatus = "idle";
+  private currentStageStatus: JobStatus = "idle";
   private stageMessage = "等待開始";
   private resultMessage = "";
   private warningMessages: string[] = [];
@@ -128,7 +136,7 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private selectSourceType(sourceType: SourceType): void {
-    if (sourceType === this.sourceType || this.status === "running") {
+    if (sourceType === this.sourceType || this.isBusy()) {
       return;
     }
 
@@ -165,6 +173,80 @@ export class SummarizerFlowModal extends Modal {
       : "填入範例";
   }
 
+  private isBusy(): boolean {
+    return this.status === "running" || this.status === "cancelling";
+  }
+
+  private getRetentionModeLabel(): string {
+    return this.plugin.settings.retentionMode === "keep_temp"
+      ? "保留暫存"
+      : "保留必要輸出";
+  }
+
+  private getOutputFolderLabel(): string {
+    const outputFolder = this.plugin.settings.outputFolder.trim();
+    return outputFolder.length > 0 ? outputFolder : "Vault 根目錄";
+  }
+
+  private shouldShowMediaReadiness(): boolean {
+    return this.sourceType === "media_url" || this.sourceType === "local_media";
+  }
+
+  private getStageDescriptors(): StageDescriptor[] {
+    const commonStart: StageDescriptor[] = [
+      { id: "validating", label: "驗證輸入" }
+    ];
+    const commonEnd: StageDescriptor[] = [
+      { id: "summarizing", label: "摘要" },
+      { id: "writing", label: "寫入筆記" },
+      { id: "completed", label: "完成" }
+    ];
+
+    if (this.sourceType === "webpage_url") {
+      return [
+        ...commonStart,
+        { id: "acquiring", label: "取得網頁內容" },
+        ...commonEnd
+      ];
+    }
+
+    if (this.sourceType === "transcript_file") {
+      return [
+        ...commonStart,
+        { id: "acquiring", label: "讀取逐字稿" },
+        ...commonEnd
+      ];
+    }
+
+    return [
+      ...commonStart,
+      {
+        id: "acquiring",
+        label: this.sourceType === "media_url" ? "取得媒體" : "準備本機媒體"
+      },
+      { id: "transcribing", label: "轉錄" },
+      ...commonEnd
+    ];
+  }
+
+  private getStageState(stageId: JobStatus, descriptors: StageDescriptor[]): "pending" | "current" | "done" {
+    if (this.status === "completed") {
+      return "done";
+    }
+
+    if (this.currentStageStatus === stageId) {
+      return "current";
+    }
+
+    if (this.currentStageStatus === "idle" || TERMINAL_STAGE_STATUSES.includes(this.currentStageStatus)) {
+      return "pending";
+    }
+
+    const currentIndex = descriptors.findIndex((stage) => stage.id === this.currentStageStatus);
+    const stageIndex = descriptors.findIndex((stage) => stage.id === stageId);
+    return currentIndex > stageIndex ? "done" : "pending";
+  }
+
   private renderSourceSelector(containerEl: HTMLElement): void {
     const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section" });
     const headingEl = sectionEl.createEl("h3", {
@@ -185,7 +267,7 @@ export class SummarizerFlowModal extends Modal {
         text: guidance.label
       });
       buttonEl.type = "button";
-      buttonEl.disabled = this.status === "running";
+      buttonEl.disabled = this.isBusy();
       buttonEl.setAttribute("role", "tab");
       buttonEl.setAttribute("aria-selected", String(isActive));
       buttonEl.setAttribute("data-active", String(isActive));
@@ -212,6 +294,7 @@ export class SummarizerFlowModal extends Modal {
       cls: "ai-summarizer-source-value"
     });
     inputEl.type = "text";
+    inputEl.disabled = this.isBusy();
     inputEl.placeholder = guidance.placeholder;
     inputEl.value = this.sourceValue;
     inputEl.addEventListener("input", () => {
@@ -223,7 +306,7 @@ export class SummarizerFlowModal extends Modal {
       text: this.getSourceActionLabel()
     });
     actionButtonEl.type = "button";
-    actionButtonEl.disabled = this.status === "running";
+    actionButtonEl.disabled = this.isBusy();
     actionButtonEl.addEventListener("click", () => {
       if (this.sourceType === "local_media" || this.sourceType === "transcript_file") {
         void this.pickLocalFile();
@@ -249,6 +332,57 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
+  private renderPreflightSummary(containerEl: HTMLElement): void {
+    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section ai-summarizer-preflight" });
+    sectionEl.createEl("h3", {
+      cls: "ai-summarizer-section-title",
+      text: "執行前摘要"
+    });
+
+    const chipsEl = sectionEl.createDiv({ cls: "ai-summarizer-chip-row" });
+    chipsEl.createSpan({
+      cls: "ai-summarizer-chip",
+      text: `模板：${describeTemplateReference(this.plugin.settings.templateReference)}`
+    });
+    chipsEl.createSpan({
+      cls: "ai-summarizer-chip",
+      text: `輸出：${this.getOutputFolderLabel()}`
+    });
+    chipsEl.createSpan({
+      cls: "ai-summarizer-chip",
+      text: `暫存：${this.getRetentionModeLabel()}`
+    });
+
+    if (this.shouldShowMediaReadiness()) {
+      chipsEl.createSpan({
+        cls: "ai-summarizer-chip",
+        text: "媒體工具：尚未檢查"
+      });
+    }
+  }
+
+  private renderStageStatus(containerEl: HTMLElement): void {
+    const descriptors = this.getStageDescriptors();
+    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section ai-summarizer-stage-panel" });
+    sectionEl.createEl("h3", {
+      cls: "ai-summarizer-section-title",
+      text: "進度"
+    });
+    sectionEl.createEl("p", {
+      cls: "ai-summarizer-stage-message",
+      text: this.status === "cancelling" ? "正在停止目前流程" : this.stageMessage
+    });
+
+    const listEl = sectionEl.createDiv({ cls: "ai-summarizer-stage-list" });
+    descriptors.forEach((stage) => {
+      const state = this.getStageState(stage.id, descriptors);
+      const itemEl = listEl.createDiv({ cls: "ai-summarizer-stage-item" });
+      itemEl.setAttribute("data-state", state);
+      itemEl.createSpan({ cls: "ai-summarizer-stage-marker" });
+      itemEl.createSpan({ cls: "ai-summarizer-stage-label", text: stage.label });
+    });
+  }
+
   private render(): void {
     const { contentEl } = this;
 
@@ -257,9 +391,8 @@ export class SummarizerFlowModal extends Modal {
     this.renderSourceSelector(contentEl);
     this.renderSourceInput(contentEl);
     this.renderSourceDetails(contentEl);
-
-    const stageEl = contentEl.createDiv({ cls: "ai-summarizer-stage" });
-    stageEl.setText(`狀態：${this.status} | 階段：${this.stageMessage}`);
+    this.renderPreflightSummary(contentEl);
+    this.renderStageStatus(contentEl);
 
     if (this.warningMessages.length > 0) {
       const warningEl = contentEl.createDiv({ cls: "ai-summarizer-warning" });
@@ -279,6 +412,10 @@ export class SummarizerFlowModal extends Modal {
     if (this.status === "running") {
       startButton.setDisabled(true);
       cancelButton.setDisabled(false);
+    } else if (this.status === "cancelling") {
+      startButton.setButtonText("正在停止");
+      startButton.setDisabled(true);
+      cancelButton.setDisabled(true);
     } else {
       startButton.setDisabled(false);
       cancelButton.setDisabled(true);
@@ -299,6 +436,7 @@ export class SummarizerFlowModal extends Modal {
     }
 
     this.abortController.abort();
+    this.status = "cancelling";
     this.stageMessage = "使用者取消中";
     this.render();
   }
@@ -319,7 +457,8 @@ export class SummarizerFlowModal extends Modal {
       },
       signal,
       {
-        onStageChange: (_, message) => {
+        onStageChange: (status, message) => {
+          this.currentStageStatus = status;
           this.stageMessage = message;
           this.render();
         },
@@ -348,7 +487,8 @@ export class SummarizerFlowModal extends Modal {
       },
       signal,
       {
-        onStageChange: (_, message) => {
+        onStageChange: (status, message) => {
+          this.currentStageStatus = status;
           this.stageMessage = message;
           this.render();
         },
@@ -386,7 +526,8 @@ export class SummarizerFlowModal extends Modal {
       },
       signal,
       {
-        onStageChange: (_, message) => {
+        onStageChange: (status, message) => {
+          this.currentStageStatus = status;
           this.stageMessage = message;
           this.render();
         },
@@ -411,12 +552,13 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private async startFlow(): Promise<void> {
-    if (this.status === "running") {
+    if (this.isBusy()) {
       return;
     }
 
     if (this.sourceValue.trim().length === 0) {
       this.status = "failed";
+      this.currentStageStatus = "failed";
       this.stageMessage = "等待輸入";
       this.resultMessage = getSourceGuidance(this.sourceType).emptyValueHint;
       this.render();
@@ -425,6 +567,7 @@ export class SummarizerFlowModal extends Modal {
 
     this.abortController = new AbortController();
     this.status = "running";
+    this.currentStageStatus = "idle";
     this.stageMessage = "準備執行";
     this.resultMessage = "";
     this.warningMessages = [];
@@ -439,6 +582,7 @@ export class SummarizerFlowModal extends Modal {
             : await this.runMediaFlow(this.abortController.signal);
 
       this.status = "completed";
+      this.currentStageStatus = "completed";
       this.stageMessage = "已完成";
       this.resultMessage = `已建立摘要筆記：${result.notePath}`;
       this.plugin.notify("摘要流程已完成。");
