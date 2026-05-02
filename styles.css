@@ -150,6 +150,10 @@
   margin-top: var(--ais-space-2);
 }
 
+.ai-summarizer-flow .ai-summarizer-warning-details li {
+  overflow-wrap: anywhere;
+}
+
 .ai-summarizer-flow .ai-summarizer-chip-row {
   display: flex;
   flex-wrap: wrap;
@@ -438,7 +442,6 @@
   border-color: var(--ais-accent);
 }
 
-.ai-summarizer-flow .ai-summarizer-warning,
 .ai-summarizer-flow .ai-summarizer-result-panel {
   border: 1px solid var(--ais-border);
   border-radius: var(--ais-radius-md);
@@ -447,10 +450,6 @@
   color: var(--ais-text);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
-}
-
-.ai-summarizer-flow .ai-summarizer-warning {
-  border-color: var(--ais-warning);
 }
 
 .ai-summarizer-flow .ai-summarizer-result-panel {

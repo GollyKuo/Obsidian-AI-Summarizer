@@ -354,6 +354,34 @@ export class SummarizerFlowModal extends Modal {
     }
   }
 
+  private localizeStageMessage(message: string): string {
+    const messages: Record<string, string> = {
+      "Validating webpage input": "驗證網頁輸入",
+      "Fetching webpage content": "取得網頁內容",
+      "Generating webpage summary": "摘要網頁內容",
+      "Writing webpage note into vault": "寫入筆記",
+      "Validating media input": "驗證媒體輸入",
+      "Processing media URL input": "取得媒體",
+      "Processing local media input": "準備本機媒體",
+      "Generating media transcript": "轉錄媒體內容",
+      "Generating media summary": "摘要媒體內容",
+      "Writing media note into vault": "寫入筆記",
+      "Validating media URL input": "驗證媒體 URL",
+      "Preparing media acquisition session": "準備媒體暫存工作區",
+      "Downloading media artifact": "下載媒體",
+      "Preparing AI-ready media artifacts": "準備 AI 可處理的媒體",
+      "Validating local media input": "驗證本機媒體",
+      "Preparing local media ingestion session": "準備本機媒體暫存工作區",
+      "Importing local media artifact": "匯入本機媒體",
+      "Validating transcript file input": "驗證逐字稿檔案",
+      "Reading transcript file": "讀取逐字稿",
+      "Regenerating summary from transcript": "依逐字稿重新摘要",
+      "Writing regenerated summary note into vault": "寫入筆記"
+    };
+
+    return messages[message] ?? message;
+  }
+
   private getStageDescriptors(): StageDescriptor[] {
     const commonStart: StageDescriptor[] = [
       { id: "validating", label: "驗證輸入" }
@@ -942,6 +970,23 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
+  private renderWarningDetails(containerEl: HTMLElement): void {
+    if (this.warningMessages.length === 0) {
+      return;
+    }
+
+    const detailsEl = containerEl.createEl("details", {
+      cls: "ai-summarizer-source-details ai-summarizer-warning-details"
+    });
+    detailsEl.createEl("summary", {
+      text: `Warnings (${this.warningMessages.length})`
+    });
+    const listEl = detailsEl.createEl("ul");
+    for (const warning of this.warningMessages) {
+      listEl.createEl("li", { text: warning });
+    }
+  }
+
   private render(): void {
     const { contentEl } = this;
 
@@ -957,10 +1002,7 @@ export class SummarizerFlowModal extends Modal {
       this.renderPrimaryActions(sectionEl);
     });
 
-    if (this.warningMessages.length > 0) {
-      const warningEl = contentEl.createDiv({ cls: "ai-summarizer-warning" });
-      warningEl.setText(`Warnings: ${this.warningMessages.join(" | ")}`);
-    }
+    this.renderWarningDetails(contentEl);
 
     this.renderResultPanel(contentEl);
   }
@@ -994,7 +1036,7 @@ export class SummarizerFlowModal extends Modal {
       {
         onStageChange: (status, message) => {
           this.currentStageStatus = status;
-          this.stageMessage = message;
+          this.stageMessage = this.localizeStageMessage(message);
           this.render();
         },
         onWarning: (warning) => {
@@ -1024,7 +1066,7 @@ export class SummarizerFlowModal extends Modal {
       {
         onStageChange: (status, message) => {
           this.currentStageStatus = status;
-          this.stageMessage = message;
+          this.stageMessage = this.localizeStageMessage(message);
           this.render();
         },
         onWarning: (warning) => {
@@ -1063,7 +1105,7 @@ export class SummarizerFlowModal extends Modal {
       {
         onStageChange: (status, message) => {
           this.currentStageStatus = status;
-          this.stageMessage = message;
+          this.stageMessage = this.localizeStageMessage(message);
           this.render();
         },
         onWarning: (warning) => {
