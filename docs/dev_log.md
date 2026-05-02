@@ -1,8 +1,28 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 15:37
+最後更新：2026-05-03 00:00
 
 ## 版本紀錄
+
+### 0.1.73-flashcard-interface-placeholder - 2026-05-03 00:00
+
+範圍：
+- 預留 `CAP-509 Flashcard Generation` 的 backlog、docs 與 Flow Modal 介面入口。
+
+主要變更：
+- 更新 `docs/backlog.md`，新增 `CAP-509 Flashcard Generation` parking capability
+- 新增 `docs/flashcard-generation-spec.md` 作為閃卡生成規則留白文件
+- 新增 `generateFlashcards` plugin setting，預設關閉並在載入時正規化
+- Flow Modal 的 `執行前摘要` 新增 `製作閃卡內容` checkbox，使用者變更後會自動記憶為下次預設
+- Flow Modal 的 `執行前摘要` 新增轉錄模型與摘要模型下拉選單，預設讀取 plugin settings，變更後自動記憶
+- 轉錄 / 摘要模型選擇改成 provider + model 兩層控制，模型清單依目前 provider 從使用者管理的 model catalog 篩選
+- 目前只保留 UI / settings interface，不改變摘要、筆記寫入或 AI pipeline
+
+驗證：
+- `npm run typecheck`
+- `npm run build`
+- `npm run smoke:desktop`
+- `npm run build:vault`
 
 ### 0.1.72-flow-modal-acceptance-checks - 2026-05-02 15:37
 

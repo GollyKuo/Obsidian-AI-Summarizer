@@ -2,8 +2,24 @@ import { ButtonComponent, Modal, TFile } from "obsidian";
 import type { ErrorCategory } from "@domain/errors";
 import type { JobStatus } from "@domain/jobs";
 import type {
+  SummaryModel,
+  SummaryProvider,
+  TranscriptionModel,
+  TranscriptionProvider
+} from "@domain/model-selection";
+import {
+  SUMMARY_PROVIDER_OPTIONS,
+  TRANSCRIPTION_PROVIDER_OPTIONS,
+  getFirstModelIdForProvider,
+  getSummaryModelOptions,
+  getTranscriptionModelOptions,
+  normalizeSummaryModel,
+  normalizeTranscriptionModelForProvider
+} from "@domain/settings";
+import type {
   LocalMediaRequest,
   MediaUrlRequest,
+  RetentionMode,
   SourceType,
   TranscriptFileRequest,
   WebpageRequest
@@ -23,13 +39,23 @@ import { createRuntimeProvider } from "@runtime/runtime-factory";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { ObsidianNoteWriter } from "@services/obsidian/note-writer";
 import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
-import { describeTemplateReference } from "@services/obsidian/template-library";
+import {
+  describeTemplateReference,
+  isBuiltinTemplateReference,
+  listBuiltinTemplates
+} from "@services/obsidian/template-library";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
 type UiStatus = "idle" | "running" | "cancelling" | "completed" | "failed" | "cancelled";
 
 const SOURCE_TYPES: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
 const TERMINAL_STAGE_STATUSES: JobStatus[] = ["completed", "failed", "cancelled"];
+const CUSTOM_TEMPLATE_OPTION = "__custom__";
+
+const RETENTION_LABELS: Record<RetentionMode, string> = {
+  delete_temp: "保留必要輸出",
+  keep_temp: "保留暫存"
+};
 
 interface StageDescriptor {
   id: JobStatus;
@@ -48,6 +74,18 @@ interface DesktopDialog {
     properties: string[];
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<OpenDialogResult>;
+}
+
+function getTemplateDropdownValue(templateReference: string): string {
+  if (templateReference.trim().length === 0) {
+    return "";
+  }
+
+  if (isBuiltinTemplateReference(templateReference)) {
+    return templateReference;
+  }
+
+  return CUSTOM_TEMPLATE_OPTION;
 }
 
 export class SummarizerFlowModal extends Modal {
@@ -69,7 +107,7 @@ export class SummarizerFlowModal extends Modal {
     this.sourceType = plugin.settings.lastSourceType;
     this.modalEl.addClass("ai-summarizer-flow");
     this.contentEl.addClass("ai-summarizer-flow-content");
-    this.setTitle("AI 摘要器");
+    this.setTitle("AI Summerizer");
   }
 
   public onOpen(): void {
@@ -209,15 +247,13 @@ export class SummarizerFlowModal extends Modal {
     return this.status === "running" || this.status === "cancelling";
   }
 
-  private getRetentionModeLabel(): string {
-    return this.plugin.settings.retentionMode === "keep_temp"
-      ? "保留暫存"
-      : "保留必要輸出";
-  }
-
-  private getOutputFolderLabel(): string {
-    const outputFolder = this.plugin.settings.outputFolder.trim();
-    return outputFolder.length > 0 ? outputFolder : "Vault 根目錄";
+  private createPreflightField(containerEl: HTMLElement, label: string): HTMLElement {
+    const fieldEl = containerEl.createDiv({ cls: "ai-summarizer-preflight-field" });
+    fieldEl.createEl("label", {
+      cls: "ai-summarizer-preflight-label",
+      text: label
+    });
+    return fieldEl;
   }
 
   private shouldShowMediaReadiness(): boolean {
@@ -392,7 +428,7 @@ export class SummarizerFlowModal extends Modal {
     const detailsEl = containerEl.createEl("details", {
       cls: "ai-summarizer-source-details"
     });
-    detailsEl.createEl("summary", { text: "查看來源限制" });
+    detailsEl.createEl("summary", { text: "來源限制" });
     const listEl = detailsEl.createEl("ul");
     listEl.createEl("li", { text: guidance.inputHint });
     listEl.createEl("li", { text: `常見來源：${guidance.examples.join("、")}` });
@@ -408,25 +444,202 @@ export class SummarizerFlowModal extends Modal {
       text: "執行前摘要"
     });
 
-    const chipsEl = sectionEl.createDiv({ cls: "ai-summarizer-chip-row" });
-    chipsEl.createSpan({
-      cls: "ai-summarizer-chip",
-      text: `模板：${describeTemplateReference(this.plugin.settings.templateReference)}`
+    const fieldsEl = sectionEl.createDiv({ cls: "ai-summarizer-preflight-fields" });
+
+    const templateFieldEl = this.createPreflightField(fieldsEl, "模板");
+    const templateSelectEl = templateFieldEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control"
     });
-    chipsEl.createSpan({
-      cls: "ai-summarizer-chip",
-      text: `輸出：${this.getOutputFolderLabel()}`
+    templateSelectEl.disabled = this.isBusy();
+    templateSelectEl.createEl("option", {
+      attr: { value: "" },
+      text: "預設 frontmatter"
     });
-    chipsEl.createSpan({
-      cls: "ai-summarizer-chip",
-      text: `暫存：${this.getRetentionModeLabel()}`
+    for (const template of listBuiltinTemplates()) {
+      templateSelectEl.createEl("option", {
+        attr: { value: template.reference },
+        text: template.label
+      });
+    }
+    templateSelectEl.createEl("option", {
+      attr: { value: CUSTOM_TEMPLATE_OPTION },
+      text: "自訂模板"
+    });
+    templateSelectEl.value = getTemplateDropdownValue(this.plugin.settings.templateReference);
+    templateSelectEl.addEventListener("change", () => {
+      const selectedValue = templateSelectEl.value;
+      if (selectedValue === CUSTOM_TEMPLATE_OPTION) {
+        if (
+          this.plugin.settings.templateReference.trim().length === 0 ||
+          isBuiltinTemplateReference(this.plugin.settings.templateReference)
+        ) {
+          this.plugin.settings.templateReference = "Templates/ai-summary-template.md";
+        }
+      } else {
+        this.plugin.settings.templateReference = selectedValue;
+      }
+
+      void this.plugin.saveSettings().then(() => {
+        this.render();
+      });
+    });
+
+    if (getTemplateDropdownValue(this.plugin.settings.templateReference) === CUSTOM_TEMPLATE_OPTION) {
+      const customTemplateInputEl = templateFieldEl.createEl("input", {
+        cls: "ai-summarizer-preflight-control ai-summarizer-preflight-template-path"
+      });
+      customTemplateInputEl.type = "text";
+      customTemplateInputEl.disabled = this.isBusy();
+      customTemplateInputEl.placeholder = "Templates/ai-summary-template.md";
+      customTemplateInputEl.value = this.plugin.settings.templateReference;
+      customTemplateInputEl.addEventListener("change", () => {
+        this.plugin.settings.templateReference = customTemplateInputEl.value.trim();
+        void this.plugin.saveSettings();
+      });
+    }
+
+    const transcriptionModelFieldEl = this.createPreflightField(fieldsEl, "轉錄");
+    const transcriptionModelControlsEl = transcriptionModelFieldEl.createDiv({
+      cls: "ai-summarizer-preflight-model-controls"
+    });
+    const transcriptionProviderSelectEl = transcriptionModelControlsEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control ai-summarizer-preflight-provider-control"
+    });
+    transcriptionProviderSelectEl.disabled = this.isBusy();
+    for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
+      transcriptionProviderSelectEl.createEl("option", {
+        attr: { value: option.value },
+        text: option.label
+      });
+    }
+    transcriptionProviderSelectEl.value = this.plugin.settings.transcriptionProvider;
+    transcriptionProviderSelectEl.addEventListener("change", () => {
+      const provider = transcriptionProviderSelectEl.value as TranscriptionProvider;
+      this.plugin.settings.transcriptionProvider = provider;
+      this.plugin.settings.transcriptionModel =
+        getFirstModelIdForProvider(this.plugin.settings.modelCatalog, provider, "transcription")
+        ?? normalizeTranscriptionModelForProvider(provider, "");
+      void this.plugin.saveSettings().then(() => {
+        this.render();
+      });
+    });
+
+    const transcriptionModelSelectEl = transcriptionModelControlsEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control"
+    });
+    transcriptionModelSelectEl.disabled = this.isBusy();
+    for (const option of getTranscriptionModelOptions(
+      this.plugin.settings.transcriptionProvider,
+      this.plugin.settings.modelCatalog,
+      this.plugin.settings.transcriptionModel
+    )) {
+      transcriptionModelSelectEl.createEl("option", {
+        attr: { value: option.value },
+        text: option.label
+      });
+    }
+    transcriptionModelSelectEl.value = this.plugin.settings.transcriptionModel;
+    transcriptionModelSelectEl.addEventListener("change", () => {
+      this.plugin.settings.transcriptionModel = transcriptionModelSelectEl.value as TranscriptionModel;
+      void this.plugin.saveSettings();
+    });
+
+    const summaryModelFieldEl = this.createPreflightField(fieldsEl, "摘要");
+    const summaryModelControlsEl = summaryModelFieldEl.createDiv({
+      cls: "ai-summarizer-preflight-model-controls"
+    });
+    const summaryProviderSelectEl = summaryModelControlsEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control ai-summarizer-preflight-provider-control"
+    });
+    summaryProviderSelectEl.disabled = this.isBusy();
+    for (const option of SUMMARY_PROVIDER_OPTIONS) {
+      summaryProviderSelectEl.createEl("option", {
+        attr: { value: option.value },
+        text: option.label
+      });
+    }
+    summaryProviderSelectEl.value = this.plugin.settings.summaryProvider;
+    summaryProviderSelectEl.addEventListener("change", () => {
+      const provider = summaryProviderSelectEl.value as SummaryProvider;
+      this.plugin.settings.summaryProvider = provider;
+      this.plugin.settings.summaryModel =
+        getFirstModelIdForProvider(this.plugin.settings.modelCatalog, provider, "summary")
+        ?? normalizeSummaryModel(provider, "");
+      void this.plugin.saveSettings().then(() => {
+        this.render();
+      });
+    });
+
+    const summaryModelSelectEl = summaryModelControlsEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control"
+    });
+    summaryModelSelectEl.disabled = this.isBusy();
+    for (const option of getSummaryModelOptions(
+      this.plugin.settings.summaryProvider,
+      this.plugin.settings.modelCatalog,
+      this.plugin.settings.summaryModel
+    )) {
+      summaryModelSelectEl.createEl("option", {
+        attr: { value: option.value },
+        text: option.label
+      });
+    }
+    summaryModelSelectEl.value = this.plugin.settings.summaryModel;
+    summaryModelSelectEl.addEventListener("change", () => {
+      this.plugin.settings.summaryModel = summaryModelSelectEl.value as SummaryModel;
+      void this.plugin.saveSettings();
+    });
+
+    const outputFieldEl = this.createPreflightField(fieldsEl, "輸出");
+    const outputInputEl = outputFieldEl.createEl("input", {
+      cls: "ai-summarizer-preflight-control"
+    });
+    outputInputEl.type = "text";
+    outputInputEl.disabled = this.isBusy();
+    outputInputEl.placeholder = "Vault 根目錄";
+    outputInputEl.value = this.plugin.settings.outputFolder;
+    outputInputEl.addEventListener("change", () => {
+      this.plugin.settings.outputFolder = outputInputEl.value.trim();
+      void this.plugin.saveSettings();
+    });
+
+    const retentionFieldEl = this.createPreflightField(fieldsEl, "暫存");
+    const retentionSelectEl = retentionFieldEl.createEl("select", {
+      cls: "ai-summarizer-preflight-control"
+    });
+    retentionSelectEl.disabled = this.isBusy();
+    for (const mode of Object.keys(RETENTION_LABELS) as RetentionMode[]) {
+      retentionSelectEl.createEl("option", {
+        attr: { value: mode },
+        text: RETENTION_LABELS[mode]
+      });
+    }
+    retentionSelectEl.value = this.plugin.settings.retentionMode;
+    retentionSelectEl.addEventListener("change", () => {
+      this.plugin.settings.retentionMode = retentionSelectEl.value as RetentionMode;
+      void this.plugin.saveSettings();
+    });
+
+    const flashcardFieldEl = this.createPreflightField(fieldsEl, "閃卡");
+    const flashcardControlEl = flashcardFieldEl.createEl("label", {
+      cls: "ai-summarizer-preflight-checkbox"
+    });
+    const flashcardCheckboxEl = flashcardControlEl.createEl("input");
+    flashcardCheckboxEl.type = "checkbox";
+    flashcardCheckboxEl.disabled = this.isBusy();
+    flashcardCheckboxEl.checked = this.plugin.settings.generateFlashcards;
+    flashcardControlEl.createSpan({ text: "製作閃卡內容" });
+    flashcardCheckboxEl.addEventListener("change", () => {
+      this.plugin.settings.generateFlashcards = flashcardCheckboxEl.checked;
+      void this.plugin.saveSettings();
     });
 
     if (this.shouldShowMediaReadiness()) {
-      chipsEl.createSpan({
+      const mediaReadinessEl = fieldsEl.createDiv({
         cls: "ai-summarizer-chip",
         text: "媒體工具：尚未檢查"
       });
+      mediaReadinessEl.setAttribute("aria-label", "媒體工具尚未檢查");
     }
   }
 
@@ -588,8 +801,9 @@ export class SummarizerFlowModal extends Modal {
     this.renderSourceSelector(contentEl);
     this.renderSourceInput(contentEl);
     this.renderSourceDetails(contentEl);
-    this.renderPreflightSummary(contentEl);
-    this.renderStageStatus(contentEl);
+    const statusLayoutEl = contentEl.createDiv({ cls: "ai-summarizer-status-layout" });
+    this.renderPreflightSummary(statusLayoutEl);
+    this.renderStageStatus(statusLayoutEl);
 
     if (this.warningMessages.length > 0) {
       const warningEl = contentEl.createDiv({ cls: "ai-summarizer-warning" });

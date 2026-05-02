@@ -88,6 +88,7 @@ export default class AISummarizerPlugin extends Plugin {
       summaryModel,
       modelCatalog,
       retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
+      generateFlashcards: loadedSettings?.generateFlashcards === true,
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),
       mistralApiKey: String(loadedSettings?.mistralApiKey ?? DEFAULT_SETTINGS.mistralApiKey),
       gladiaApiKey: String(loadedSettings?.gladiaApiKey ?? DEFAULT_SETTINGS.gladiaApiKey),

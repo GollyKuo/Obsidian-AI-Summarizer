@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 14:30
+最後更新：2026-05-03 00:00
 
 ## 用途
 
@@ -256,3 +256,17 @@ Done When：
 - 已產出 vNext input source matrix。
 - 已挑選第一批低風險來源進入 active backlog。
 - 架構上已有可重用的 text input pipeline 與 source descriptor contract。
+
+#### CAP-509 Flashcard Generation 閃卡內容生成
+
+狀態：`parking`
+
+摘要：
+保留摘要筆記完成後，依摘要內容再由 AI 產生閃卡資訊的擴充能力。第一階段只在 Flow Modal 的執行前摘要保留 `製作閃卡內容` 選項並記憶使用者偏好，不改變目前摘要、筆記寫入或 media pipeline。詳細閃卡格式、題型、數量、品質規則、輸出位置、與 Obsidian note / future spaced repetition plugin 的整合規格，先集中在 [flashcard-generation-spec.md](flashcard-generation-spec.md) 留白文件，待後續補齊。
+
+Done When：
+
+- 已定義閃卡生成規則、輸出格式與 note contract。
+- 已定義是否與摘要筆記同檔、附檔、或獨立筆記輸出。
+- 已將 Flow Modal `製作閃卡內容` 選項接入實際 AI pipeline。
+- 已補 unit / integration / smoke 驗收。

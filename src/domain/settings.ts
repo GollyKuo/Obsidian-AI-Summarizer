@@ -60,6 +60,7 @@ export interface AISummarizerPluginSettings {
   mediaCompressionProfile: MediaCompressionProfile;
   templateReference: string;
   retentionMode: RetentionMode;
+  generateFlashcards: boolean;
   runtimeStrategy: RuntimeStrategy;
   debugMode: boolean;
   lastSourceType: SourceType;
@@ -82,6 +83,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   mediaCompressionProfile: "balanced",
   templateReference: "",
   retentionMode: "delete_temp",
+  generateFlashcards: false,
   runtimeStrategy: "local_bridge",
   debugMode: false,
   lastSourceType: "webpage_url"

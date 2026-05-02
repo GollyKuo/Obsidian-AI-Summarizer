@@ -33,6 +33,7 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS.transcriptionModel).toBe(DEFAULT_TRANSCRIPTION_MODEL);
     expect(DEFAULT_SETTINGS.summaryProvider).toBe(DEFAULT_SUMMARY_PROVIDER);
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_SUMMARY_MODEL);
+    expect(DEFAULT_SETTINGS.generateFlashcards).toBe(false);
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_GEMINI_MODEL);
     expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.modelId)).toEqual([
       "gemini-3-flash-preview",
