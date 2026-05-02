@@ -104,6 +104,11 @@ async function defaultCommandExecutor(
     let timeoutHandle: NodeJS.Timeout | undefined;
 
     const child = spawn(command, args, {
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: "utf-8",
+        PYTHONUTF8: "1"
+      },
       windowsHide: true,
       detached: process.platform !== "win32",
       stdio: ["ignore", "pipe", "pipe"]
@@ -408,6 +413,8 @@ function buildYtDlpDownloadArgs(
   const ffmpegLocationArgs =
     ffmpegCommand.trim().length > 0 ? ["--ffmpeg-location", ffmpegCommand.trim()] : [];
   const args = [
+    "--encoding",
+    "utf-8",
     "--no-playlist",
     "--no-progress",
     ...ffmpegLocationArgs,
@@ -534,6 +541,10 @@ function isYtDlpPlaceholderValue(value: string): boolean {
   return lower.includes("|") && /^[a-z_|]+$/.test(lower);
 }
 
+function containsUnicodeReplacementCharacter(value: string): boolean {
+  return value.includes("\uFFFD");
+}
+
 function normalizeSourceTypePlatform(sourceType: MediaUrlSourceType): string {
   if (sourceType === "youtube") {
     return "YouTube";
@@ -589,12 +600,20 @@ function normalizeTitle(
   sourceType: MediaUrlSourceType
 ): string {
   const explicitTitle = rawTitle?.trim() ?? "";
-  if (explicitTitle.length > 0 && !isYtDlpPlaceholderValue(explicitTitle)) {
+  if (
+    explicitTitle.length > 0 &&
+    !isYtDlpPlaceholderValue(explicitTitle) &&
+    !containsUnicodeReplacementCharacter(explicitTitle)
+  ) {
     return explicitTitle;
   }
 
   const fileStem = path.basename(downloadedPath, path.extname(downloadedPath));
-  if (fileStem.length > 0 && fileStem.toLowerCase() !== "downloaded") {
+  if (
+    fileStem.length > 0 &&
+    fileStem.toLowerCase() !== "downloaded" &&
+    !containsUnicodeReplacementCharacter(fileStem)
+  ) {
     return fileStem.replace(/[_-]+/g, " ").trim();
   }
 

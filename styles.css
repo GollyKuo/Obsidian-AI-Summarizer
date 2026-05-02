@@ -150,8 +150,21 @@
   margin-top: var(--ais-space-2);
 }
 
-.ai-summarizer-flow .ai-summarizer-warning-details li {
+.ai-summarizer-flow .ai-summarizer-execution-details li {
   overflow-wrap: anywhere;
+}
+
+.ai-summarizer-flow .ai-summarizer-execution-result,
+.ai-summarizer-flow .ai-summarizer-execution-details .ai-summarizer-result-actions {
+  margin-top: var(--ais-space-3);
+}
+
+.ai-summarizer-flow .ai-summarizer-execution-subtitle {
+  color: var(--ais-text);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+  line-height: 1.3;
+  margin: var(--ais-space-3) 0 0;
 }
 
 .ai-summarizer-flow .ai-summarizer-chip-row {

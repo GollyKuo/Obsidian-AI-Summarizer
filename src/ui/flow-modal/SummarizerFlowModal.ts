@@ -814,11 +814,6 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private renderResultPanel(containerEl: HTMLElement): void {
-    if (this.status === "completed") {
-      this.renderCompletedPanel(containerEl);
-      return;
-    }
-
     if (this.status === "failed") {
       this.renderFailedPanel(containerEl);
       return;
@@ -829,19 +824,18 @@ export class SummarizerFlowModal extends Modal {
     }
   }
 
-  private renderCompletedPanel(containerEl: HTMLElement): void {
-    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-result-panel" });
-    panelEl.setAttribute("data-result", "completed");
-    panelEl.createEl("h3", {
+  private renderCompletedExecutionMessage(containerEl: HTMLElement): void {
+    const resultEl = containerEl.createDiv({ cls: "ai-summarizer-execution-result" });
+    resultEl.createEl("h3", {
       cls: "ai-summarizer-result-title",
       text: "已建立摘要筆記"
     });
-    panelEl.createEl("p", {
+    resultEl.createEl("p", {
       cls: "ai-summarizer-result-path",
       text: this.resultNotePath || "筆記路徑尚未回傳"
     });
 
-    const actionsEl = panelEl.createDiv({ cls: "ai-summarizer-result-actions" });
+    const actionsEl = resultEl.createDiv({ cls: "ai-summarizer-result-actions" });
     const openButton = new ButtonComponent(actionsEl);
     openButton.setButtonText("開啟筆記").setCta().onClick(() => {
       void this.openResultNote();
@@ -970,20 +964,35 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
-  private renderWarningDetails(containerEl: HTMLElement): void {
-    if (this.warningMessages.length === 0) {
+  private renderExecutionDetails(containerEl: HTMLElement): void {
+    const shouldShowCompletedResult = this.status === "completed";
+    if (!shouldShowCompletedResult && this.warningMessages.length === 0) {
       return;
     }
 
     const detailsEl = containerEl.createEl("details", {
-      cls: "ai-summarizer-source-details ai-summarizer-warning-details"
+      cls: "ai-summarizer-source-details ai-summarizer-execution-details"
     });
+    detailsEl.open = shouldShowCompletedResult;
     detailsEl.createEl("summary", {
-      text: `Warnings (${this.warningMessages.length})`
+      text: shouldShowCompletedResult
+        ? "執行訊息：已建立摘要筆記"
+        : `執行訊息：Warnings (${this.warningMessages.length})`
     });
-    const listEl = detailsEl.createEl("ul");
-    for (const warning of this.warningMessages) {
-      listEl.createEl("li", { text: warning });
+
+    if (shouldShowCompletedResult) {
+      this.renderCompletedExecutionMessage(detailsEl);
+    }
+
+    if (this.warningMessages.length > 0) {
+      detailsEl.createEl("h4", {
+        cls: "ai-summarizer-execution-subtitle",
+        text: "Warnings"
+      });
+      const listEl = detailsEl.createEl("ul");
+      for (const warning of this.warningMessages) {
+        listEl.createEl("li", { text: warning });
+      }
     }
   }
 
@@ -1002,7 +1011,7 @@ export class SummarizerFlowModal extends Modal {
       this.renderPrimaryActions(sectionEl);
     });
 
-    this.renderWarningDetails(contentEl);
+    this.renderExecutionDetails(contentEl);
 
     this.renderResultPanel(contentEl);
   }

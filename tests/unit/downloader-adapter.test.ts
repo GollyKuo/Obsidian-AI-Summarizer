@@ -293,7 +293,42 @@ describe("downloader adapter", () => {
 
       expect(result.downloadedPath).toBe(downloadedPath);
       expect(session.artifacts.downloadedPath).toBe(downloadedPath);
+      expect(capturedArgs).toContain("--encoding");
+      expect(capturedArgs).toContain("utf-8");
       expect(capturedArgs).toContain(path.join(session.sessionDirectory, "%(title).200B.%(ext)s"));
+    });
+  });
+
+  it("falls back to downloaded filename when podcast metadata title is mojibake", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareClassifiedSession(tempDirectory, {
+        normalizedUrl: "https://podcasts.apple.com/tw/podcast/demo-episode",
+        sourceType: "podcast",
+        host: "podcasts.apple.com"
+      });
+      const downloadedPath = path.join(session.sessionDirectory, "EP158. 修補萬物.mp3");
+
+      const adapter = createDownloaderAdapter({
+        commandExecutor: async () => {
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: [
+              "__META_TITLE__EP158. �����It���{",
+              "__META_CREATOR__Demo Podcast",
+              "__META_PLATFORM__Generic",
+              "__META_CREATED__20260501",
+              `__DOWNLOADED_PATH__${downloadedPath}`
+            ].join("\n"),
+            stderr: ""
+          };
+        }
+      });
+
+      const result = await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(result.metadata.title).toBe("EP158. 修補萬物");
+      expect(result.metadata.creatorOrAuthor).toBe("Demo Podcast");
+      expect(result.metadata.platform).toBe("Podcast");
     });
   });
 
