@@ -1,8 +1,25 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 14:37
+最後更新：2026-05-02 14:57
 
 ## 版本紀錄
+
+### 0.1.71-flow-modal-result-panels - 2026-05-02 14:57
+
+範圍：
+- 完成 `CAP-304 Flow Modal Minimal UI Adoption` Batch 4。
+
+主要變更：
+- 將 Flow Modal result message 改為 completed / failed / cancelled 三種 result panel
+- Completed panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次`
+- Failed panel 依 `ErrorCategory` 顯示使用者可行動的標題、建議與 `重試` / `前往診斷` / `改用逐字稿檔案` action
+- Cancelled panel 與 failed panel 視覺區分，若 warning 內有 recovery transcript path，可直接切到 `transcript_file`
+- 更新 `docs/backlog-active.md`，關閉 `CAP-304` Batch 4 的 result panel 待辦
+
+驗證：
+- `npm run typecheck`
+- `npm run build`
+- `npm run smoke:desktop`
 
 ### 0.1.70-flow-modal-preflight-stages - 2026-05-02 14:37
 

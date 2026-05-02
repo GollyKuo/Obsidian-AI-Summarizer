@@ -1,5 +1,5 @@
-import { ButtonComponent, Modal } from "obsidian";
-import { SummarizerError, type ErrorCategory } from "@domain/errors";
+import { ButtonComponent, Modal, TFile } from "obsidian";
+import type { ErrorCategory } from "@domain/errors";
 import type { JobStatus } from "@domain/jobs";
 import type {
   LocalMediaRequest,
@@ -58,6 +58,8 @@ export class SummarizerFlowModal extends Modal {
   private currentStageStatus: JobStatus = "idle";
   private stageMessage = "等待開始";
   private resultMessage = "";
+  private resultNotePath = "";
+  private failureCategory: ErrorCategory | "unknown" | null = null;
   private warningMessages: string[] = [];
   private abortController: AbortController | null = null;
 
@@ -100,6 +102,10 @@ export class SummarizerFlowModal extends Modal {
   private async pickLocalFile(): Promise<void> {
     const dialog = this.getDesktopDialog();
     if (!dialog) {
+      this.status = "failed";
+      this.currentStageStatus = "failed";
+      this.stageMessage = "等待輸入";
+      this.failureCategory = "validation_error";
       this.resultMessage = "目前環境不支援檔案選擇器，請手動輸入本機檔案絕對路徑。";
       this.render();
       return;
@@ -130,6 +136,30 @@ export class SummarizerFlowModal extends Modal {
     this.render();
   }
 
+  private async copyTextToClipboard(text: string, successMessage: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      this.plugin.notify(successMessage);
+    } catch (error) {
+      this.plugin.reportWarning("flow_modal", `Clipboard copy failed: ${error instanceof Error ? error.message : String(error)}`);
+      this.plugin.notify("無法複製到剪貼簿。");
+    }
+  }
+
+  private async openResultNote(): Promise<void> {
+    if (!this.resultNotePath) {
+      return;
+    }
+
+    const file = this.plugin.app.vault.getAbstractFileByPath(this.resultNotePath);
+    if (file instanceof TFile) {
+      await this.plugin.app.workspace.getLeaf(false).openFile(file);
+      return;
+    }
+
+    this.plugin.notify(`找不到筆記：${this.resultNotePath}`);
+  }
+
   private async persistLastSourceType(sourceType: SourceType): Promise<void> {
     this.plugin.settings.lastSourceType = sourceType;
     await this.plugin.saveSettings();
@@ -143,6 +173,8 @@ export class SummarizerFlowModal extends Modal {
     this.sourceType = sourceType;
     this.sourceValue = "";
     this.resultMessage = "";
+    this.resultNotePath = "";
+    this.failureCategory = null;
     this.warningMessages = [];
     void this.persistLastSourceType(sourceType);
     this.render();
@@ -245,6 +277,43 @@ export class SummarizerFlowModal extends Modal {
     const currentIndex = descriptors.findIndex((stage) => stage.id === this.currentStageStatus);
     const stageIndex = descriptors.findIndex((stage) => stage.id === stageId);
     return currentIndex > stageIndex ? "done" : "pending";
+  }
+
+  private findRecoveryTranscriptPath(): string {
+    const recoveryWarning = this.warningMessages.find((warning) =>
+      warning.includes("transcript preserved") && warning.includes(":")
+    );
+    if (!recoveryWarning) {
+      return "";
+    }
+
+    const [, pathPart = ""] = recoveryWarning.split(/:\s+/, 2);
+    return pathPart.trim();
+  }
+
+  private getFailedTitle(): string {
+    switch (this.failureCategory) {
+      case "validation_error":
+        return "輸入需要修正";
+      case "runtime_unavailable":
+        return "執行環境尚未準備完成";
+      case "download_failure":
+        return "媒體下載失敗";
+      case "ai_failure":
+        return "AI 處理失敗";
+      case "note_write_failure":
+        return "筆記寫入失敗";
+      case "cancellation":
+        return "流程已取消";
+      default:
+        return "摘要流程失敗";
+    }
+  }
+
+  private getFailedSuggestion(): string {
+    const category = this.failureCategory ?? "unknown";
+    return getSourceErrorHint(this.sourceType, category)
+      ?? "先檢查輸入值、設定頁診斷摘要與 plugin log，再決定是否需要重試。";
   }
 
   private renderSourceSelector(containerEl: HTMLElement): void {
@@ -383,6 +452,134 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
+  private renderResultPanel(containerEl: HTMLElement): void {
+    if (this.status === "completed") {
+      this.renderCompletedPanel(containerEl);
+      return;
+    }
+
+    if (this.status === "failed") {
+      this.renderFailedPanel(containerEl);
+      return;
+    }
+
+    if (this.status === "cancelled") {
+      this.renderCancelledPanel(containerEl);
+    }
+  }
+
+  private renderCompletedPanel(containerEl: HTMLElement): void {
+    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-result-panel" });
+    panelEl.setAttribute("data-result", "completed");
+    panelEl.createEl("h3", {
+      cls: "ai-summarizer-result-title",
+      text: "已建立摘要筆記"
+    });
+    panelEl.createEl("p", {
+      cls: "ai-summarizer-result-path",
+      text: this.resultNotePath || "筆記路徑尚未回傳"
+    });
+
+    const actionsEl = panelEl.createDiv({ cls: "ai-summarizer-result-actions" });
+    const openButton = new ButtonComponent(actionsEl);
+    openButton.setButtonText("開啟筆記").setCta().onClick(() => {
+      void this.openResultNote();
+    });
+
+    const copyButton = new ButtonComponent(actionsEl);
+    copyButton.setButtonText("複製路徑").onClick(() => {
+      if (this.resultNotePath) {
+        void this.copyTextToClipboard(this.resultNotePath, "已複製筆記路徑。");
+      }
+    });
+
+    const rerunButton = new ButtonComponent(actionsEl);
+    rerunButton.setButtonText("再摘要一次").onClick(() => {
+      void this.startFlow();
+    });
+  }
+
+  private renderFailedPanel(containerEl: HTMLElement): void {
+    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-result-panel" });
+    panelEl.setAttribute("data-result", "failed");
+    panelEl.createEl("h3", {
+      cls: "ai-summarizer-result-title",
+      text: this.getFailedTitle()
+    });
+    panelEl.createEl("p", {
+      cls: "ai-summarizer-result-message",
+      text: this.resultMessage
+    });
+    panelEl.createEl("p", {
+      cls: "ai-summarizer-result-suggestion",
+      text: `建議：${this.getFailedSuggestion()}`
+    });
+
+    const actionsEl = panelEl.createDiv({ cls: "ai-summarizer-result-actions" });
+    const retryButton = new ButtonComponent(actionsEl);
+    retryButton.setButtonText("重試").setCta().onClick(() => {
+      void this.startFlow();
+    });
+
+    const diagnosticsButton = new ButtonComponent(actionsEl);
+    diagnosticsButton.setButtonText("前往診斷").onClick(() => {
+      this.plugin.openSettingsTab();
+    });
+
+    const recoveryPath = this.findRecoveryTranscriptPath();
+    if (recoveryPath || this.failureCategory === "ai_failure") {
+      const transcriptButton = new ButtonComponent(actionsEl);
+      transcriptButton.setButtonText("改用逐字稿檔案").onClick(() => {
+        this.sourceType = "transcript_file";
+        this.sourceValue = recoveryPath;
+        this.status = "idle";
+        this.currentStageStatus = "idle";
+        this.stageMessage = "等待開始";
+        this.resultMessage = "";
+        this.failureCategory = null;
+        void this.persistLastSourceType("transcript_file");
+        this.render();
+      });
+    }
+  }
+
+  private renderCancelledPanel(containerEl: HTMLElement): void {
+    const recoveryPath = this.findRecoveryTranscriptPath();
+    const panelEl = containerEl.createDiv({ cls: "ai-summarizer-result-panel" });
+    panelEl.setAttribute("data-result", "cancelled");
+    panelEl.createEl("h3", {
+      cls: "ai-summarizer-result-title",
+      text: "已取消"
+    });
+    panelEl.createEl("p", {
+      cls: "ai-summarizer-result-message",
+      text: recoveryPath
+        ? "已保留可恢復的逐字稿，可改用逐字稿檔案重新摘要。"
+        : "流程已停止；若稍後找到 transcript.md，可改用逐字稿檔案重新摘要。"
+    });
+
+    const actionsEl = panelEl.createDiv({ cls: "ai-summarizer-result-actions" });
+    if (recoveryPath) {
+      const transcriptButton = new ButtonComponent(actionsEl);
+      transcriptButton.setButtonText("改用逐字稿檔案").setCta().onClick(() => {
+        this.sourceType = "transcript_file";
+        this.sourceValue = recoveryPath;
+        this.status = "idle";
+        this.currentStageStatus = "idle";
+        this.stageMessage = "等待開始";
+        this.resultMessage = "";
+        this.failureCategory = null;
+        void this.persistLastSourceType("transcript_file");
+        this.render();
+      });
+    }
+
+    const closeButton = new ButtonComponent(actionsEl);
+    closeButton.setButtonText("關閉").onClick(() => {
+      this.close();
+    });
+  }
+
   private render(): void {
     const { contentEl } = this;
 
@@ -399,8 +596,7 @@ export class SummarizerFlowModal extends Modal {
       warningEl.setText(`Warnings: ${this.warningMessages.join(" | ")}`);
     }
 
-    const resultEl = contentEl.createDiv({ cls: "ai-summarizer-result" });
-    resultEl.setText(this.resultMessage);
+    this.renderResultPanel(contentEl);
 
     const actionsEl = contentEl.createDiv({ cls: "ai-summarizer-actions" });
     const startButton = new ButtonComponent(actionsEl);
@@ -542,15 +738,6 @@ export class SummarizerFlowModal extends Modal {
     return { notePath: result.writeResult.notePath };
   }
 
-  private buildErrorResultMessage(category: ErrorCategory | "unknown", modalMessage: string): string {
-    const hint = getSourceErrorHint(this.sourceType, category);
-    if (!hint) {
-      return modalMessage;
-    }
-
-    return `${modalMessage}\n\n建議：${hint}`;
-  }
-
   private async startFlow(): Promise<void> {
     if (this.isBusy()) {
       return;
@@ -560,6 +747,7 @@ export class SummarizerFlowModal extends Modal {
       this.status = "failed";
       this.currentStageStatus = "failed";
       this.stageMessage = "等待輸入";
+      this.failureCategory = "validation_error";
       this.resultMessage = getSourceGuidance(this.sourceType).emptyValueHint;
       this.render();
       return;
@@ -570,6 +758,8 @@ export class SummarizerFlowModal extends Modal {
     this.currentStageStatus = "idle";
     this.stageMessage = "準備執行";
     this.resultMessage = "";
+    this.resultNotePath = "";
+    this.failureCategory = null;
     this.warningMessages = [];
     this.render();
 
@@ -584,7 +774,8 @@ export class SummarizerFlowModal extends Modal {
       this.status = "completed";
       this.currentStageStatus = "completed";
       this.stageMessage = "已完成";
-      this.resultMessage = `已建立摘要筆記：${result.notePath}`;
+      this.resultNotePath = result.notePath;
+      this.resultMessage = "";
       this.plugin.notify("摘要流程已完成。");
       this.plugin.reportInfo(`${this.sourceType}_flow`, `Created note: ${result.notePath}`);
     } catch (error) {
@@ -598,7 +789,8 @@ export class SummarizerFlowModal extends Modal {
         this.stageMessage = "執行失敗";
       }
 
-      this.resultMessage = this.buildErrorResultMessage(report.category, report.modalMessage);
+      this.failureCategory = report.category;
+      this.resultMessage = report.modalMessage;
     } finally {
       this.abortController = null;
       this.render();

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 14:37
+最後更新：2026-05-02 14:57
 
 ## 用途
 
@@ -110,9 +110,9 @@
 - [x] Batch 3：新增 Preflight Summary，顯示 note template、output folder、retention mode 使用者語意，以及媒體來源的 dependency readiness / 尚未檢查狀態。（完成：2026-05-02 14:37）
 - [x] Batch 3：將單行 `status | stage` 改成來源感知 stage list；`webpage_url` 不顯示媒體階段，`transcript_file` 不顯示轉錄階段，`media_url` / `local_media` 顯示媒體準備與轉錄。（完成：2026-05-02 14:37）
 - [x] Batch 3：取消流程顯示獨立 `cancelling` 狀態，保留 action row 位置穩定，避免使用者以為取消按鈕無效。（完成：2026-05-02 14:37）
-- [ ] Batch 4：completed result panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次` 或等效 action。
-- [ ] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。
-- [ ] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。
+- [x] Batch 4：completed result panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次` 或等效 action。（完成：2026-05-02 14:57）
+- [x] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。（完成：2026-05-02 14:57）
+- [x] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。（完成：2026-05-02 14:57）
 - [ ] 驗收：依 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 檢查 scope、dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width、accessibility。
 - [ ] 驗收：UI 變更後跑 `npm run smoke:desktop`；窄寬度以 visual QA 檢查，mobile runtime / limitation 文案改由 `CAP-501` 驗收。
 

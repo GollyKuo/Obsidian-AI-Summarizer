@@ -1,6 +1,6 @@
 {
   "name": "obsidian-ai-summarizer",
-  "version": "0.1.70-flow-modal-preflight-stages",
+  "version": "0.1.71-flow-modal-result-panels",
   "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "main": "main.js",
   "scripts": {
