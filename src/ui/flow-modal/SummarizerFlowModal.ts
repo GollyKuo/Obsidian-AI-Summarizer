@@ -327,6 +327,10 @@ export class SummarizerFlowModal extends Modal {
     return this.mediaDiagnostics.dependencies.message;
   }
 
+  private shouldShowMediaDiagnosticsEntry(): boolean {
+    return this.getMediaReadinessState() === "error";
+  }
+
   private async refreshMediaReadiness(): Promise<void> {
     if (this.mediaDiagnosticsLoading || this.isBusy()) {
       return;
@@ -740,6 +744,20 @@ export class SummarizerFlowModal extends Modal {
       mediaReadinessEl.addEventListener("click", () => {
         void this.refreshMediaReadiness();
       });
+
+      if (this.shouldShowMediaDiagnosticsEntry()) {
+        const diagnosticsButtonEl = flashcardRowEl.createEl("button", {
+          cls: "ai-summarizer-media-diagnostics-link",
+          text: "診斷"
+        });
+        diagnosticsButtonEl.type = "button";
+        diagnosticsButtonEl.disabled = this.isBusy();
+        diagnosticsButtonEl.setAttribute("aria-label", "前往媒體工具診斷設定");
+        diagnosticsButtonEl.setAttribute("title", "前往設定頁查看媒體工具診斷");
+        diagnosticsButtonEl.addEventListener("click", () => {
+          this.plugin.openSettingsTab();
+        });
+      }
     }
   }
 

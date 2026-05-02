@@ -225,7 +225,11 @@
 
 .ai-summarizer-flow .ai-summarizer-media-readiness {
   cursor: pointer;
-  font: inherit;
+  font-size: var(--font-ui-small);
+  line-height: 1.2;
+  min-height: 24px;
+  padding: 0 var(--ais-space-2);
+  white-space: nowrap;
 }
 
 .ai-summarizer-flow .ai-summarizer-media-readiness[data-state="ready"] {
@@ -244,6 +248,29 @@
 }
 
 .ai-summarizer-flow .ai-summarizer-media-readiness:disabled {
+  cursor: default;
+}
+
+.ai-summarizer-flow .ai-summarizer-media-diagnostics-link {
+  background: transparent;
+  border: 1px solid var(--ais-border);
+  border-radius: var(--ais-control-radius);
+  box-shadow: none;
+  color: var(--ais-text-muted);
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  line-height: 1.2;
+  min-height: 24px;
+  padding: 0 var(--ais-space-2);
+}
+
+.ai-summarizer-flow .ai-summarizer-media-diagnostics-link:not(:disabled):hover {
+  background: var(--interactive-hover);
+  border-color: var(--ais-border-strong);
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-media-diagnostics-link:disabled {
   cursor: default;
 }
 
