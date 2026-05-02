@@ -64,6 +64,15 @@ const SOURCE_GUIDANCE: Record<SourceType, SourceGuidance> = {
   }
 };
 
+const FALLBACK_ERROR_HINTS: Record<ErrorCategory, string> = {
+  validation_error: "確認輸入值符合目前來源格式，修正後再重試。",
+  runtime_unavailable: "先到設定頁的診斷區確認目前來源需要的本機執行環境是否可用。",
+  download_failure: "確認連結仍可存取；若來源限制下載，可改用本機媒體或逐字稿檔案。",
+  ai_failure: "確認 API key、provider 與模型可用；若已有 transcript.md，可改用逐字稿檔案重跑摘要。",
+  note_write_failure: "確認輸出資料夾存在且可寫入，並檢查是否有同名筆記衝突。",
+  cancellation: "流程已停止；可修正輸入或改用已保留的逐字稿後重新執行。"
+};
+
 export function getSourceGuidance(sourceType: SourceType): SourceGuidance {
   return SOURCE_GUIDANCE[sourceType];
 }
@@ -76,5 +85,5 @@ export function getSourceErrorHint(
     return "先檢查輸入值、設定頁診斷摘要與 plugin log，再決定是否需要重試。";
   }
 
-  return SOURCE_GUIDANCE[sourceType].errorHints[category] ?? null;
+  return SOURCE_GUIDANCE[sourceType].errorHints[category] ?? FALLBACK_ERROR_HINTS[category];
 }

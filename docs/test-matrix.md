@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-05-02 14:01
+最後更新：2026-05-02 15:37
 
 ## Capability Matrix
 
@@ -29,6 +29,15 @@ Required coverage when `CAP-304` changes UI/CSS/source guidance/result actions:
 - Running, cancelling, completed and failed states are visually distinct.
 - Completed result provides note action; failed result provides source-aware next action.
 - Narrow/mobile-like width does not depend on hover-only controls.
+
+Automated/static evidence recorded on 2026-05-02:
+
+- `npm run typecheck`
+- `npm run test -- tests/unit/source-guidance.test.ts`
+- `npm run build`
+- `npm run smoke:desktop`
+- Scoped CSS grep confirmed Flow Modal selectors remain under `.ai-summarizer-flow`; no global `body`, `.modal`, `.theme-dark`, `.theme-light`, `.mt-*`, or `.afc-*` namespace override was introduced.
+- Manual Obsidian dark/light and narrow-width visual QA is still required before closing the visual QA checklist.
 
 ### 2026-05-02 CAP-202 / CAP-203 media URL smoke
 

@@ -1,8 +1,25 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 14:57
+最後更新：2026-05-02 15:37
 
 ## 版本紀錄
+
+### 0.1.72-flow-modal-acceptance-checks - 2026-05-02 15:37
+
+範圍：
+- 補 `CAP-304 Flow Modal Minimal UI Adoption` 自動化與靜態驗收紀錄。
+
+主要變更：
+- 補齊 `source-guidance.ts` 的全域 `ErrorCategory` fallback 建議，讓 failed result panel 對 validation、runtime unavailable、download failure、AI failure、note write failure、cancellation 都有可行動建議
+- 更新 `tests/unit/source-guidance.test.ts`，驗證 AI failure 與 note write failure fallback 建議
+- 更新 `docs/backlog-active.md`，關閉 `CAP-304` 的 `npm run smoke:desktop` 驗收項，保留 Obsidian 實機 visual QA 未完成
+- 更新 `docs/test-matrix.md`，補上 `CAP-304` 自動化 / 靜態驗收證據與 manual visual QA 待辦
+
+驗證：
+- `npm run typecheck`
+- `npm run test -- tests/unit/source-guidance.test.ts`
+- `npm run build`
+- `npm run smoke:desktop`
 
 ### 0.1.71-flow-modal-result-panels - 2026-05-02 14:57
 

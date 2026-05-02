@@ -13,6 +13,8 @@ describe("source guidance", () => {
     expect(getSourceErrorHint("media_url", "download_failure")).toContain("連結可能失效");
     expect(getSourceErrorHint("local_media", "validation_error")).toContain("絕對路徑");
     expect(getSourceErrorHint("transcript_file", "validation_error")).toContain(".md");
+    expect(getSourceErrorHint("media_url", "ai_failure")).toContain("API key");
+    expect(getSourceErrorHint("webpage_url", "note_write_failure")).toContain("輸出資料夾");
     expect(getSourceErrorHint("webpage_url", "unknown")).toContain("plugin log");
   });
 });
