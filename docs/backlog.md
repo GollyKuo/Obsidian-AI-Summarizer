@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 14:01
+最後更新：2026-05-02 14:30
 
 ## 用途
 
@@ -38,7 +38,7 @@
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
-7. `CAP-304` 進入下一輪 active UX 主線：依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 從除錯式表單重構為單頁分區任務介面；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。
+7. `CAP-304` 進入下一輪 active UX 主線：依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 從除錯式表單重構為單頁分區任務介面；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 
 ## Capability 總表
 
@@ -146,7 +146,7 @@
 狀態：`active`
 
 摘要：
-依 [features/ui-design.md](../features/ui-design.md) 與 [features/implementation-guide.md](../features/implementation-guide.md)，保留單一 `AI 摘要器` Flow Modal，但將資訊架構重排為 Header、Source Selector、Source Input、Preflight Summary、Stage Status、Warning/Result、Action Row。第一輪目標是建立 `.ai-summarizer-flow` scope、`--ais-*` token mapping、來源 segmented control、短文案與 details disclosure、階段列表、completed/failed/cancelled action，並用 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 驗收 dark/light、長路徑、running/cancelled/completed/failed 與 narrow width。
+依 [features/ui-design.md](../features/ui-design.md) 與 [features/implementation-guide.md](../features/implementation-guide.md)，保留單一 `AI 摘要器` Flow Modal，但將資訊架構重排為 Header、Source Selector、Source Input、Preflight Summary、Stage Status、Warning/Result、Action Row。第一輪目標是建立 `.ai-summarizer-flow` scope、`--ais-*` token mapping、來源 segmented control、短文案與 details disclosure、階段列表、completed/failed/cancelled action，並用 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 驗收 dark/light、長路徑、running/cancelled/completed/failed 與 narrow width。若牽涉 mobile runtime、mobile limitation 或平台替代流程文案，移入 `CAP-501`，不在本 capability 重複定義。
 
 #### CAP-305 Settings Tab Minimal UI Polish 設定頁 Minimal UI 收斂
 
@@ -192,7 +192,7 @@
 狀態：`parking`
 
 摘要：
-保留 mobile runtime 契約與平台策略，但不是目前 release blocker。
+保留 mobile runtime 契約、平台策略與 mobile limitation 文案，但不是目前 release blocker。桌面限定的本機媒體、媒體 URL 依賴、檔案選擇器不可用說明、替代上傳策略與跨平台媒體處理能力，都統一在本 capability 規劃；`CAP-304` 只處理 Flow Modal 自身的桌面與窄寬度 UI 結構。
 
 #### CAP-502 Internationalization 多國語系
 

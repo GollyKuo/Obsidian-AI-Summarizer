@@ -1,8 +1,41 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 14:01
+最後更新：2026-05-02 14:30
 
 ## 版本紀錄
+
+### 0.1.69-flow-modal-source-input - 2026-05-02 14:30
+
+範圍：
+- 推進 `CAP-304 Flow Modal Minimal UI Adoption` Batch 2。
+
+主要變更：
+- 將 mobile runtime / limitation 文案責任收斂到 `CAP-501`，`CAP-304` 只保留 Flow Modal 桌面與窄寬度 UI 結構
+- 將 Flow Modal 來源 dropdown 改成四來源同時可見的 compact segmented control
+- 重排 Source Input 區塊，讓 URL/path input 與 `填入範例` / `選擇檔案` action 在窄寬度下可換行
+- 將來源限制、常見來源與目前 note 模板移入 details disclosure，主畫面保留短說明
+- 更新 `docs/backlog-active.md`，關閉 `CAP-304` Batch 2 的來源與輸入區待辦
+
+驗證：
+- `npm run typecheck`
+- `npm run build`
+- `npm run smoke:desktop`
+
+### 0.1.68-flow-modal-scope-tokens - 2026-05-02 14:11
+
+範圍：
+- 開始 `CAP-304 Flow Modal Minimal UI Adoption` Batch 1。
+
+主要變更：
+- 更新 `docs/backlog.md`，補上窄寬度 UI 與 `CAP-501` mobile runtime 的排程邊界
+- 在 Flow Modal root 加上 `.ai-summarizer-flow` scope
+- 新增 `styles.css`，建立第一版 `--ais-*` token mapping 與 scoped Flow Modal 基礎樣式
+- 更新 `docs/backlog-active.md`，關閉 `CAP-304` Batch 1 的 scope 與 token 待辦
+
+驗證：
+- `npm run typecheck`
+- `npm run build`
+- `npm run smoke:desktop`
 
 ### 0.1.67-ui-implementation-backlog - 2026-05-02 14:01
 

@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 14:01
+最後更新：2026-05-02 14:30
 
 ## 用途
 
@@ -102,11 +102,11 @@
 目標：
 依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 重構成單頁分區任務介面，改善來源可見性、執行前摘要、長任務階段、完成/失敗/取消 action 與 Obsidian dark/light 可讀性；不得把 runtime、file writing 或 orchestration 邏輯放進 UI。
 
-- [ ] Batch 1：建立 Flow Modal root scope class `.ai-summarizer-flow`，新增或整理只作用於 AI Summarizer UI 的 style scope，不覆寫 Obsidian 全域 `.modal`、`.setting-item`、`body`、`.theme-dark` 或 `.theme-light`。
-- [ ] Batch 1：建立第一版 `--ais-*` token mapping，底層使用 Obsidian CSS variables；確認 dark/light theme 下基本文字、surface、border、accent、danger 都可讀。
-- [ ] Batch 2：將來源 dropdown 改成 compact segmented control，四個來源 `webpage_url`、`media_url`、`local_media`、`transcript_file` 同時可見，active state 與 keyboard focus 可辨識。
-- [ ] Batch 2：重排 Source Input 區塊，讓 URL/path input 佔主要寬度，`填入範例` / `選擇檔案` action 在窄視窗可換行，長 URL 與 Windows path 不造成 overflow。
-- [ ] Batch 2：收斂 `source-guidance.ts` 與 Flow Modal 主畫面文案；主畫面只保留短說明，支援格式、artifact lifecycle、dependency detail 放到 details disclosure。
+- [x] Batch 1：建立 Flow Modal root scope class `.ai-summarizer-flow`，新增或整理只作用於 AI Summarizer UI 的 style scope，不覆寫 Obsidian 全域 `.modal`、`.setting-item`、`body`、`.theme-dark` 或 `.theme-light`。（完成：2026-05-02 14:11）
+- [x] Batch 1：建立第一版 `--ais-*` token mapping，底層使用 Obsidian CSS variables；確認 dark/light theme 下基本文字、surface、border、accent、danger 都可讀。（完成：2026-05-02 14:11）
+- [x] Batch 2：將來源 dropdown 改成 compact segmented control，四個來源 `webpage_url`、`media_url`、`local_media`、`transcript_file` 同時可見，active state 與 keyboard focus 可辨識。（完成：2026-05-02 14:30）
+- [x] Batch 2：重排 Source Input 區塊，讓 URL/path input 佔主要寬度，`填入範例` / `選擇檔案` action 在窄視窗可換行，長 URL 與 Windows path 不造成 overflow。（完成：2026-05-02 14:30）
+- [x] Batch 2：收斂 `source-guidance.ts` 與 Flow Modal 主畫面文案；主畫面只保留短說明，支援格式、artifact lifecycle、dependency detail 放到 details disclosure。（完成：2026-05-02 14:30）
 - [ ] Batch 3：新增 Preflight Summary，顯示 note template、output folder、retention mode 使用者語意，以及媒體來源的 dependency readiness / 尚未檢查狀態。
 - [ ] Batch 3：將單行 `status | stage` 改成來源感知 stage list；`webpage_url` 不顯示媒體階段，`transcript_file` 不顯示轉錄階段，`media_url` / `local_media` 顯示媒體準備與轉錄。
 - [ ] Batch 3：取消流程顯示獨立 `cancelling` 狀態，保留 action row 位置穩定，避免使用者以為取消按鈕無效。
@@ -114,7 +114,7 @@
 - [ ] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。
 - [ ] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。
 - [ ] 驗收：依 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 檢查 scope、dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width、accessibility。
-- [ ] 驗收：UI 變更後跑 `npm run smoke:desktop`；若涉及 mobile limitation 文案或 narrow layout，補 `npm run smoke:mobile`。
+- [ ] 驗收：UI 變更後跑 `npm run smoke:desktop`；窄寬度以 visual QA 檢查，mobile runtime / limitation 文案改由 `CAP-501` 驗收。
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 

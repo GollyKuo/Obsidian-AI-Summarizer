@@ -1,4 +1,4 @@
-import { ButtonComponent, Modal, Setting } from "obsidian";
+import { ButtonComponent, Modal } from "obsidian";
 import { SummarizerError, type ErrorCategory } from "@domain/errors";
 import type {
   LocalMediaRequest,
@@ -26,6 +26,8 @@ import { describeTemplateReference } from "@services/obsidian/template-library";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
 type UiStatus = "idle" | "running" | "completed" | "failed" | "cancelled";
+
+const SOURCE_TYPES: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
 
 interface OpenDialogResult {
   canceled: boolean;
@@ -55,6 +57,8 @@ export class SummarizerFlowModal extends Modal {
     super(plugin.app);
     this.plugin = plugin;
     this.sourceType = plugin.settings.lastSourceType;
+    this.modalEl.addClass("ai-summarizer-flow");
+    this.contentEl.addClass("ai-summarizer-flow-content");
     this.setTitle("AI 摘要器");
   }
 
@@ -123,6 +127,19 @@ export class SummarizerFlowModal extends Modal {
     await this.plugin.saveSettings();
   }
 
+  private selectSourceType(sourceType: SourceType): void {
+    if (sourceType === this.sourceType || this.status === "running") {
+      return;
+    }
+
+    this.sourceType = sourceType;
+    this.sourceValue = "";
+    this.resultMessage = "";
+    this.warningMessages = [];
+    void this.persistLastSourceType(sourceType);
+    this.render();
+  }
+
   private buildRuntimeProvider(): RuntimeProvider {
     return createRuntimeProvider(this.plugin.settings.runtimeStrategy);
   }
@@ -142,73 +159,104 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
+  private getSourceActionLabel(): string {
+    return this.sourceType === "local_media" || this.sourceType === "transcript_file"
+      ? "選擇檔案"
+      : "填入範例";
+  }
+
+  private renderSourceSelector(containerEl: HTMLElement): void {
+    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section" });
+    const headingEl = sectionEl.createEl("h3", {
+      cls: "ai-summarizer-section-title",
+      text: "輸入來源"
+    });
+    headingEl.id = "ai-summarizer-source-selector-title";
+
+    const tabsEl = sectionEl.createDiv({ cls: "ai-summarizer-source-tabs" });
+    tabsEl.setAttribute("role", "tablist");
+    tabsEl.setAttribute("aria-labelledby", headingEl.id);
+
+    SOURCE_TYPES.forEach((sourceType) => {
+      const guidance = getSourceGuidance(sourceType);
+      const isActive = sourceType === this.sourceType;
+      const buttonEl = tabsEl.createEl("button", {
+        cls: "ai-summarizer-source-tab",
+        text: guidance.label
+      });
+      buttonEl.type = "button";
+      buttonEl.disabled = this.status === "running";
+      buttonEl.setAttribute("role", "tab");
+      buttonEl.setAttribute("aria-selected", String(isActive));
+      buttonEl.setAttribute("data-active", String(isActive));
+      buttonEl.addEventListener("click", () => {
+        this.selectSourceType(sourceType);
+      });
+    });
+  }
+
+  private renderSourceInput(containerEl: HTMLElement): void {
+    const guidance = getSourceGuidance(this.sourceType);
+    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section ai-summarizer-source-input" });
+    sectionEl.createEl("h3", {
+      cls: "ai-summarizer-section-title",
+      text: guidance.label
+    });
+    sectionEl.createEl("p", {
+      cls: "ai-summarizer-source-description",
+      text: guidance.description
+    });
+
+    const rowEl = sectionEl.createDiv({ cls: "ai-summarizer-input-row" });
+    const inputEl = rowEl.createEl("input", {
+      cls: "ai-summarizer-source-value"
+    });
+    inputEl.type = "text";
+    inputEl.placeholder = guidance.placeholder;
+    inputEl.value = this.sourceValue;
+    inputEl.addEventListener("input", () => {
+      this.sourceValue = inputEl.value.trim();
+    });
+
+    const actionButtonEl = rowEl.createEl("button", {
+      cls: "ai-summarizer-secondary-action",
+      text: this.getSourceActionLabel()
+    });
+    actionButtonEl.type = "button";
+    actionButtonEl.disabled = this.status === "running";
+    actionButtonEl.addEventListener("click", () => {
+      if (this.sourceType === "local_media" || this.sourceType === "transcript_file") {
+        void this.pickLocalFile();
+        return;
+      }
+
+      this.sourceValue = guidance.placeholder;
+      this.render();
+    });
+  }
+
+  private renderSourceDetails(containerEl: HTMLElement): void {
+    const guidance = getSourceGuidance(this.sourceType);
+    const detailsEl = containerEl.createEl("details", {
+      cls: "ai-summarizer-source-details"
+    });
+    detailsEl.createEl("summary", { text: "查看來源限制" });
+    const listEl = detailsEl.createEl("ul");
+    listEl.createEl("li", { text: guidance.inputHint });
+    listEl.createEl("li", { text: `常見來源：${guidance.examples.join("、")}` });
+    listEl.createEl("li", {
+      text: `目前 note 模板：${describeTemplateReference(this.plugin.settings.templateReference)}`
+    });
+  }
+
   private render(): void {
     const { contentEl } = this;
-    const guidance = getSourceGuidance(this.sourceType);
 
     contentEl.empty();
 
-    new Setting(contentEl)
-      .setName("輸入類型")
-      .setDesc("三種輸入都走同一個 AI 摘要入口，但背後會接不同的 acquisition / extraction pipeline。")
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("webpage_url", "網頁 URL")
-          .addOption("media_url", "媒體 URL")
-          .addOption("local_media", "本機媒體")
-          .addOption("transcript_file", "逐字稿檔案")
-          .setValue(this.sourceType)
-          .onChange((value) => {
-            const nextSourceType = value as SourceType;
-            this.sourceType = nextSourceType;
-            this.sourceValue = "";
-            this.resultMessage = "";
-            this.warningMessages = [];
-            void this.persistLastSourceType(nextSourceType);
-            this.render();
-          });
-      });
-
-    new Setting(contentEl)
-      .setName(guidance.label)
-      .setDesc(guidance.description)
-      .addText((text) => {
-        text.setPlaceholder(guidance.placeholder).setValue(this.sourceValue);
-        text.onChange((value) => {
-          this.sourceValue = value.trim();
-        });
-      })
-      .addButton((button) => {
-        button.setButtonText(
-          this.sourceType === "local_media" || this.sourceType === "transcript_file"
-            ? "選擇檔案"
-            : "填入範例"
-        );
-        if (this.status === "running") {
-          button.setDisabled(true);
-          return;
-        }
-
-        button.onClick(() => {
-          if (this.sourceType === "local_media" || this.sourceType === "transcript_file") {
-            void this.pickLocalFile();
-            return;
-          }
-
-          this.sourceValue = guidance.placeholder;
-          this.render();
-        });
-      });
-
-    contentEl.createEl("p", {
-      text: `輸入提示：${guidance.inputHint}`
-    });
-    contentEl.createEl("p", {
-      text: `常見來源：${guidance.examples.join("、")}`
-    });
-    contentEl.createEl("p", {
-      text: `目前 note 模板：${describeTemplateReference(this.plugin.settings.templateReference)}`
-    });
+    this.renderSourceSelector(contentEl);
+    this.renderSourceInput(contentEl);
+    this.renderSourceDetails(contentEl);
 
     const stageEl = contentEl.createDiv({ cls: "ai-summarizer-stage" });
     stageEl.setText(`狀態：${this.status} | 階段：${this.stageMessage}`);
