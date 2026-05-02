@@ -23,6 +23,6 @@ describe("template library", () => {
     expect(isBuiltinTemplateReference("builtin:webpage-brief")).toBe(true);
     expect(resolveBuiltinTemplate("builtin:webpage-brief")).toContain("## Capture");
     expect(describeTemplateReference("builtin:media-session")).toContain("內建模板");
-    expect(describeTemplateReference("")).toContain("預設 frontmatter");
+    expect(describeTemplateReference("")).toContain("預設 YAML");
   });
 });

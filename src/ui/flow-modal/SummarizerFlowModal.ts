@@ -34,6 +34,10 @@ import {
 } from "@services/ai/configured-ai-provider";
 import { BasicMetadataExtractor } from "@services/web/metadata-extractor";
 import { FetchWebpageExtractor } from "@services/web/webpage-extractor";
+import {
+  collectRuntimeDiagnostics,
+  type RuntimeDiagnosticsSummary
+} from "@services/media/runtime-diagnostics";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import { createRuntimeProvider } from "@runtime/runtime-factory";
 import type { NoteWriter } from "@services/obsidian/note-writer";
@@ -54,7 +58,7 @@ const CUSTOM_TEMPLATE_OPTION = "__custom__";
 
 const RETENTION_LABELS: Record<RetentionMode, string> = {
   delete_temp: "保留必要輸出",
-  keep_temp: "保留暫存"
+  keep_temp: "保留媒體暫存"
 };
 
 interface StageDescriptor {
@@ -100,6 +104,9 @@ export class SummarizerFlowModal extends Modal {
   private failureCategory: ErrorCategory | "unknown" | null = null;
   private warningMessages: string[] = [];
   private abortController: AbortController | null = null;
+  private mediaDiagnostics: RuntimeDiagnosticsSummary | null = null;
+  private mediaDiagnosticsError: string | null = null;
+  private mediaDiagnosticsLoading = false;
 
   public constructor(plugin: AISummarizerPlugin) {
     super(plugin.app);
@@ -258,6 +265,89 @@ export class SummarizerFlowModal extends Modal {
 
   private shouldShowMediaReadiness(): boolean {
     return this.sourceType === "media_url" || this.sourceType === "local_media";
+  }
+
+  private detectAppSurface(): "desktop" | "mobile" {
+    return this.getDesktopDialog() ? "desktop" : "mobile";
+  }
+
+  private getMediaReadinessState(): "unchecked" | "checking" | "ready" | "warning" | "error" {
+    if (this.mediaDiagnosticsLoading) {
+      return "checking";
+    }
+    if (this.mediaDiagnosticsError) {
+      return "error";
+    }
+    if (!this.mediaDiagnostics) {
+      return "unchecked";
+    }
+
+    const capability = this.mediaDiagnostics.capabilities.find(
+      (candidate) => candidate.sourceType === this.sourceType
+    );
+    const state = capability?.state ?? this.mediaDiagnostics.overallState;
+    return state === "skipped" ? "warning" : state;
+  }
+
+  private getMediaReadinessText(): string {
+    const state = this.getMediaReadinessState();
+    if (state === "checking") {
+      return "媒體工具：檢查中";
+    }
+    if (state === "ready") {
+      return "媒體工具：可用";
+    }
+    if (state === "warning") {
+      return "媒體工具：需注意";
+    }
+    if (state === "error") {
+      return this.mediaDiagnosticsError ? "媒體工具：檢查失敗" : "媒體工具：不可用";
+    }
+    return "媒體工具：點擊檢查";
+  }
+
+  private getMediaReadinessTooltip(): string {
+    const state = this.getMediaReadinessState();
+    if (state === "checking") {
+      return "正在檢查 yt-dlp、ffmpeg、ffprobe 與媒體暫存資料夾。";
+    }
+    if (this.mediaDiagnosticsError) {
+      return this.mediaDiagnosticsError;
+    }
+    if (!this.mediaDiagnostics) {
+      return "點擊檢查媒體 URL / 本機媒體所需的 yt-dlp、ffmpeg、ffprobe 與媒體暫存資料夾。";
+    }
+
+    const capability = this.mediaDiagnostics.capabilities.find(
+      (candidate) => candidate.sourceType === this.sourceType
+    );
+    if (capability) {
+      return capability.reason;
+    }
+    return this.mediaDiagnostics.dependencies.message;
+  }
+
+  private async refreshMediaReadiness(): Promise<void> {
+    if (this.mediaDiagnosticsLoading || this.isBusy()) {
+      return;
+    }
+
+    this.mediaDiagnosticsLoading = true;
+    this.mediaDiagnosticsError = null;
+    this.render();
+
+    try {
+      this.mediaDiagnostics = await collectRuntimeDiagnostics(this.plugin.settings, {
+        appSurface: this.detectAppSurface()
+      });
+    } catch (error) {
+      const report = this.plugin.reportError("runtime_diagnostics", error);
+      this.mediaDiagnostics = null;
+      this.mediaDiagnosticsError = report.modalMessage;
+    } finally {
+      this.mediaDiagnosticsLoading = false;
+      this.render();
+    }
   }
 
   private getStageDescriptors(): StageDescriptor[] {
@@ -453,7 +543,7 @@ export class SummarizerFlowModal extends Modal {
     templateSelectEl.disabled = this.isBusy();
     templateSelectEl.createEl("option", {
       attr: { value: "" },
-      text: "預設 frontmatter"
+      text: "預設 YAML"
     });
     for (const template of listBuiltinTemplates()) {
       templateSelectEl.createEl("option", {
@@ -621,7 +711,10 @@ export class SummarizerFlowModal extends Modal {
     });
 
     const flashcardFieldEl = this.createPreflightField(fieldsEl, "閃卡");
-    const flashcardControlEl = flashcardFieldEl.createEl("label", {
+    const flashcardRowEl = flashcardFieldEl.createDiv({
+      cls: "ai-summarizer-preflight-inline-row"
+    });
+    const flashcardControlEl = flashcardRowEl.createEl("label", {
       cls: "ai-summarizer-preflight-checkbox"
     });
     const flashcardCheckboxEl = flashcardControlEl.createEl("input");
@@ -635,15 +728,22 @@ export class SummarizerFlowModal extends Modal {
     });
 
     if (this.shouldShowMediaReadiness()) {
-      const mediaReadinessEl = fieldsEl.createDiv({
-        cls: "ai-summarizer-chip",
-        text: "媒體工具：尚未檢查"
+      const mediaReadinessEl = flashcardRowEl.createEl("button", {
+        cls: "ai-summarizer-chip ai-summarizer-media-readiness",
+        text: this.getMediaReadinessText()
       });
-      mediaReadinessEl.setAttribute("aria-label", "媒體工具尚未檢查");
+      mediaReadinessEl.type = "button";
+      mediaReadinessEl.disabled = this.isBusy() || this.mediaDiagnosticsLoading;
+      mediaReadinessEl.setAttribute("data-state", this.getMediaReadinessState());
+      mediaReadinessEl.setAttribute("aria-label", this.getMediaReadinessTooltip());
+      mediaReadinessEl.setAttribute("title", this.getMediaReadinessTooltip());
+      mediaReadinessEl.addEventListener("click", () => {
+        void this.refreshMediaReadiness();
+      });
     }
   }
 
-  private renderStageStatus(containerEl: HTMLElement): void {
+  private renderStageStatus(containerEl: HTMLElement, renderActions?: (containerEl: HTMLElement) => void): void {
     const descriptors = this.getStageDescriptors();
     const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section ai-summarizer-stage-panel" });
     sectionEl.createEl("h3", {
@@ -663,6 +763,8 @@ export class SummarizerFlowModal extends Modal {
       itemEl.createSpan({ cls: "ai-summarizer-stage-marker" });
       itemEl.createSpan({ cls: "ai-summarizer-stage-label", text: stage.label });
     });
+
+    renderActions?.(sectionEl);
   }
 
   private renderResultPanel(containerEl: HTMLElement): void {
@@ -793,26 +895,8 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
-  private render(): void {
-    const { contentEl } = this;
-
-    contentEl.empty();
-
-    this.renderSourceSelector(contentEl);
-    this.renderSourceInput(contentEl);
-    this.renderSourceDetails(contentEl);
-    const statusLayoutEl = contentEl.createDiv({ cls: "ai-summarizer-status-layout" });
-    this.renderPreflightSummary(statusLayoutEl);
-    this.renderStageStatus(statusLayoutEl);
-
-    if (this.warningMessages.length > 0) {
-      const warningEl = contentEl.createDiv({ cls: "ai-summarizer-warning" });
-      warningEl.setText(`Warnings: ${this.warningMessages.join(" | ")}`);
-    }
-
-    this.renderResultPanel(contentEl);
-
-    const actionsEl = contentEl.createDiv({ cls: "ai-summarizer-actions" });
+  private renderPrimaryActions(containerEl: HTMLElement): void {
+    const actionsEl = containerEl.createDiv({ cls: "ai-summarizer-actions" });
     const startButton = new ButtonComponent(actionsEl);
     startButton.setButtonText("開始摘要").setCta();
 
@@ -838,6 +922,29 @@ export class SummarizerFlowModal extends Modal {
     cancelButton.onClick(() => {
       this.cancelFlow();
     });
+  }
+
+  private render(): void {
+    const { contentEl } = this;
+
+    contentEl.empty();
+
+    this.renderSourceSelector(contentEl);
+    this.renderSourceInput(contentEl);
+    this.renderSourceDetails(contentEl);
+    const statusLayoutEl = contentEl.createDiv({ cls: "ai-summarizer-status-layout" });
+    this.renderPreflightSummary(statusLayoutEl);
+    const statusSideEl = statusLayoutEl.createDiv({ cls: "ai-summarizer-status-side" });
+    this.renderStageStatus(statusSideEl, (sectionEl) => {
+      this.renderPrimaryActions(sectionEl);
+    });
+
+    if (this.warningMessages.length > 0) {
+      const warningEl = contentEl.createDiv({ cls: "ai-summarizer-warning" });
+      warningEl.setText(`Warnings: ${this.warningMessages.join(" | ")}`);
+    }
+
+    this.renderResultPanel(contentEl);
   }
 
   private cancelFlow(): void {

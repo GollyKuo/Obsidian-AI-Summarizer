@@ -314,19 +314,19 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 ### 輸出模板
 
-v1 目前支援：
+模板的完整規格、內建模板內容、placeholder 與輸出結構，請以 [template-spec.md](template-spec.md) 為準。本手冊只保留操作導覽，避免兩處文件不同步。
 
-1. 預設 frontmatter
-2. 內建模板
-3. 自訂模板路徑
+目前支援：
 
-內建模板：
+1. 預設 YAML
+2. 內建模板：`預設摘要模板`、`Webpage Brief`、`Media Session`
+3. 自訂模板
 
-1. `builtin:default`
-2. `builtin:webpage-brief`
-3. `builtin:media-session`
+操作方式：
 
-自訂模板請填入 vault 內相對路徑。
+1. 在 Settings Tab 的 `模板與提示` 設定預設模板，或在 Flow Modal 的 `執行前摘要` 臨時切換並記憶為下次預設。
+2. 選 `自訂模板` 時，請填入 vault 內相對路徑，例如 `Templates/ai-summary-template.md`。
+3. 自訂模板可使用 `{{title}}`、`{{creatorOrAuthor}}`、`{{platform}}`、`{{source}}`、`{{created}}` placeholder；詳細規則見 [template-spec.md](template-spec.md)。
 
 ### 預設輸入類型
 

@@ -1761,7 +1761,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       .setName("模板來源")
       .setDesc("可使用內建模板或指定 vault 內的自訂模板。")
       .addDropdown((dropdown) => {
-        dropdown.addOption("", "預設 frontmatter");
+        dropdown.addOption("", "預設 YAML");
         for (const template of builtinTemplates) {
           dropdown.addOption(template.reference, template.label);
         }

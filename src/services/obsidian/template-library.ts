@@ -66,7 +66,7 @@ export function resolveBuiltinTemplate(templateReference: string): string | null
 
 export function describeTemplateReference(templateReference: string): string {
   if (templateReference.trim().length === 0) {
-    return "使用預設 frontmatter 輸出。";
+    return "使用預設 YAML 輸出。";
   }
 
   const builtinTemplate = BUILTIN_TEMPLATES.find((template) => template.reference === templateReference);

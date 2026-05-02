@@ -10,6 +10,9 @@
   --ais-text-faint: var(--text-faint);
   --ais-accent: var(--interactive-accent);
   --ais-accent-hover: var(--interactive-accent-hover);
+  --ais-accent-soft: color-mix(in srgb, var(--ais-accent) 14%, var(--ais-surface));
+  --ais-accent-soft-hover: color-mix(in srgb, var(--ais-accent) 20%, var(--ais-surface));
+  --ais-accent-border: color-mix(in srgb, var(--ais-accent) 48%, var(--ais-border));
   --ais-on-accent: var(--text-on-accent);
   --ais-danger: var(--text-error);
   --ais-warning: var(--text-warning);
@@ -65,10 +68,10 @@
 
 .ai-summarizer-flow .ai-summarizer-source-tab {
   align-items: center;
-  background: var(--interactive-normal);
+  background: var(--ais-surface);
   border: 1px solid var(--ais-border);
   border-radius: var(--ais-control-radius);
-  box-shadow: var(--input-shadow, none);
+  box-shadow: none;
   color: var(--ais-text-muted);
   display: inline-flex;
   justify-content: center;
@@ -83,10 +86,10 @@
 }
 
 .ai-summarizer-flow .ai-summarizer-source-tab[data-active="true"] {
-  background: var(--ais-accent);
-  border-color: var(--ais-accent);
-  box-shadow: var(--input-shadow, none);
-  color: var(--ais-on-accent);
+  background: var(--ais-accent-soft);
+  border-color: var(--ais-accent-border);
+  box-shadow: none;
+  color: var(--ais-text);
 }
 
 .ai-summarizer-flow .ai-summarizer-source-tab:not(:disabled):hover {
@@ -96,9 +99,9 @@
 }
 
 .ai-summarizer-flow .ai-summarizer-source-tab[data-active="true"]:not(:disabled):hover {
-  background: var(--ais-accent-hover);
-  border-color: var(--ais-accent-hover);
-  color: var(--ais-on-accent);
+  background: var(--ais-accent-soft-hover);
+  border-color: var(--ais-accent);
+  color: var(--ais-text);
 }
 
 .ai-summarizer-flow .ai-summarizer-source-tab:disabled {
@@ -168,7 +171,9 @@
 
 .ai-summarizer-flow .ai-summarizer-preflight-fields {
   display: grid;
-  gap: var(--ais-space-2);
+  align-content: space-between;
+  flex: 1;
+  gap: clamp(var(--ais-space-2), 1.2vh, var(--ais-space-3));
   min-width: 0;
 }
 
@@ -176,7 +181,7 @@
   align-items: center;
   display: grid;
   gap: var(--ais-space-2);
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   min-width: 0;
 }
 
@@ -187,6 +192,9 @@
 }
 
 .ai-summarizer-flow .ai-summarizer-preflight-control {
+  background: var(--ais-surface);
+  border: 1px solid var(--ais-border);
+  box-shadow: none;
   min-height: var(--ais-control-height);
   min-width: 0;
   width: 100%;
@@ -195,12 +203,48 @@
 .ai-summarizer-flow .ai-summarizer-preflight-model-controls {
   display: grid;
   gap: var(--ais-space-2);
-  grid-template-columns: minmax(96px, 0.55fr) minmax(0, 1fr);
+  grid-template-columns: minmax(88px, 0.48fr) minmax(0, 1fr);
   min-width: 0;
 }
 
 .ai-summarizer-flow .ai-summarizer-preflight-provider-control {
   width: 100%;
+}
+
+.ai-summarizer-flow .ai-summarizer-preflight-inline-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ais-space-2);
+  min-width: 0;
+}
+
+.ai-summarizer-flow .ai-summarizer-preflight-inline-row .ai-summarizer-chip {
+  margin-left: auto;
+}
+
+.ai-summarizer-flow .ai-summarizer-media-readiness {
+  cursor: pointer;
+  font: inherit;
+}
+
+.ai-summarizer-flow .ai-summarizer-media-readiness[data-state="ready"] {
+  border-color: color-mix(in srgb, var(--text-success) 45%, var(--ais-border));
+  color: var(--text-success);
+}
+
+.ai-summarizer-flow .ai-summarizer-media-readiness[data-state="warning"] {
+  border-color: color-mix(in srgb, var(--ais-warning) 50%, var(--ais-border));
+  color: var(--ais-warning);
+}
+
+.ai-summarizer-flow .ai-summarizer-media-readiness[data-state="error"] {
+  border-color: color-mix(in srgb, var(--ais-danger) 48%, var(--ais-border));
+  color: var(--ais-danger);
+}
+
+.ai-summarizer-flow .ai-summarizer-media-readiness:disabled {
+  cursor: default;
 }
 
 .ai-summarizer-flow .ai-summarizer-preflight-checkbox {
@@ -221,13 +265,23 @@
 }
 
 .ai-summarizer-flow .ai-summarizer-status-layout {
-  align-items: start;
+  align-items: stretch;
   display: grid;
   gap: var(--ais-section-gap);
-  grid-template-columns: minmax(0, 1.45fr) minmax(220px, 0.85fr);
+  grid-template-columns: minmax(0, 1.65fr) minmax(220px, 0.8fr);
 }
 
 .ai-summarizer-flow .ai-summarizer-status-layout > .ai-summarizer-section {
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+}
+
+.ai-summarizer-flow .ai-summarizer-status-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ais-section-gap);
+  height: 100%;
   min-width: 0;
 }
 
@@ -237,6 +291,11 @@
   border-radius: var(--ais-radius-md);
   padding: var(--ais-panel-padding);
   background: var(--ais-surface-muted);
+  box-sizing: border-box;
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-panel {
+  height: 100%;
 }
 
 .ai-summarizer-flow .ai-summarizer-stage-message {
@@ -246,6 +305,11 @@
 .ai-summarizer-flow .ai-summarizer-stage-list {
   display: grid;
   gap: var(--ais-space-2);
+}
+
+.ai-summarizer-flow .ai-summarizer-stage-panel .ai-summarizer-actions {
+  margin-top: auto;
+  padding-top: var(--ais-space-2);
 }
 
 .ai-summarizer-flow .ai-summarizer-stage-item {
@@ -313,6 +377,38 @@
 .ai-summarizer-flow input {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ai-summarizer-flow button {
+  box-shadow: none;
+}
+
+.ai-summarizer-flow .ai-summarizer-secondary-action,
+.ai-summarizer-flow .ai-summarizer-actions button,
+.ai-summarizer-flow .ai-summarizer-result-actions button {
+  background: var(--ais-surface);
+  border: 1px solid var(--ais-border);
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-secondary-action:not(:disabled):hover,
+.ai-summarizer-flow .ai-summarizer-actions button:not(:disabled):hover,
+.ai-summarizer-flow .ai-summarizer-result-actions button:not(:disabled):hover {
+  background: var(--interactive-hover);
+  border-color: var(--ais-border-strong);
+}
+
+.ai-summarizer-flow .ai-summarizer-actions button.mod-cta,
+.ai-summarizer-flow .ai-summarizer-result-actions button.mod-cta {
+  background: var(--ais-accent-soft);
+  border-color: var(--ais-accent-border);
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-actions button.mod-cta:not(:disabled):hover,
+.ai-summarizer-flow .ai-summarizer-result-actions button.mod-cta:not(:disabled):hover {
+  background: var(--ais-accent-soft-hover);
+  border-color: var(--ais-accent);
 }
 
 .ai-summarizer-flow .ai-summarizer-warning,
