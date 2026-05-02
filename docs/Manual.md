@@ -111,7 +111,7 @@ npm run build:vault:target
 1. 左側 ribbon 的 `AI 摘要器`
 2. command palette 的 `開啟 AI 摘要器`
 
-開發者若要調整 flow modal、設定頁、進度與結果畫面，請先參照 [ui-design.md](ui-design.md)，再同步更新本手冊的使用者可見流程。
+開發者若要調整 flow modal、設定頁、進度與結果畫面，請先參照 [features/ui-design.md](../features/ui-design.md)，再同步更新本手冊的使用者可見流程。
 
 ## 設定頁
 

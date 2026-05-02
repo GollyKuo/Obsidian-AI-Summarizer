@@ -71,7 +71,7 @@ src/
 - `ui/`
   - modal、settings tab、progress、result feedback
   - 不直接碰 runtime adapter
-  - 介面設計與互動導覽見 [ui-design.md](ui-design.md)
+  - 介面設計與互動導覽見 [features/ui-design.md](../features/ui-design.md)
 - `domain/`
   - source request types
   - metadata / transcript / summary / note input types

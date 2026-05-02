@@ -19,7 +19,7 @@
 2. workflow 有狀態轉換需求，React 較適合管理 flow state。
 3. 但 React 只限於 `ui/`，不得接管 orchestration 與 runtime。
 
-後續外觀介面、互動流程與導覽引用集中在 [ui-design.md](ui-design.md)。本 SOP 只保留早期技術選型與骨架決策。
+後續外觀介面、互動流程與導覽引用集中在 [features/ui-design.md](../features/ui-design.md)。本 SOP 只保留早期技術選型與骨架決策。
 
 ## Step 2：建立最小目錄
 

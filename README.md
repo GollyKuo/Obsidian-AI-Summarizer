@@ -25,7 +25,7 @@
   - 安裝、設定、smoke test 與 vault sync 操作手冊
 - [docs/architecture-boundary.md](d:\程式開發\AI Summarizer\docs\architecture-boundary.md)
   - 專案分層、依賴方向、高風險區與 AI 工作流程圖
-- [docs/ui-design.md](d:\程式開發\AI Summarizer\docs\ui-design.md)
+- [features/ui-design.md](features/ui-design.md)
   - flow modal、設定頁、progress/result 與介面設計導覽
 - [docs/parity-contract.md](d:\程式開發\AI Summarizer\docs\parity-contract.md)
   - 與既有 Python app 需要對等保留的產品契約
@@ -69,7 +69,7 @@ docs/
 
 1. `docs/parity-contract.md`
 2. `docs/architecture-boundary.md`
-3. `docs/ui-design.md`
+3. `features/ui-design.md`
 4. `docs/backlog-active.md`
 5. `docs/backlog.md`
 6. `Discussion.md`

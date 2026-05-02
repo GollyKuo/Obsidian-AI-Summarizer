@@ -1,8 +1,22 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 03:18
+最後更新：2026-05-02 13:51
 
 ## 版本紀錄
+
+### 0.1.66-ui-features-docs - 2026-05-02 13:51
+
+範圍：
+- 將 UI 設計資料集中到 `features/` 文件包。
+
+主要變更：
+- 將完整 UI 設計導覽從 `docs/ui-design.md` 移到 `features/ui-design.md`
+- 將 minimal UI 設計文件包收斂在 `features/`，目前保留 `ui-design.md`、`implementation-guide.md`、`visual-qa-checklist.md` 與 README
+- 保留 `docs/ui-design.md` 作為舊路徑相容入口
+- 更新 README、架構邊界、setup SOP、backlog、媒體規格、Manual 與文件維護規則中的 UI 設計連結
+
+驗證：
+- 文件結構更新，未變更 runtime 程式碼
 
 ### 0.1.65-ui-design-navigation-docs - 2026-05-02 03:18
 

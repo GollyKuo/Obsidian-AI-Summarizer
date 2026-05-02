@@ -1,6 +1,6 @@
 # Documentation Maintenance
 
-最後更新：2026-05-02 03:18
+最後更新：2026-05-02 13:51
 
 ## 用途
 
@@ -20,8 +20,14 @@
   - 文件維護、backlog 同步與相關規格文件同步規則的正式來源。
 - `docs/architecture-boundary.md`
   - 架構邊界、責任分層與模組 ownership。
-- `docs/ui-design.md`
+- `features/README.md`
+  - UI feature design 文件包入口。
+- `features/ui-design.md`
   - flow modal、settings tab、progress/result、source guidance 與介面設計導覽。
+- `features/implementation-guide.md`
+  - UI 實作指南，集中 minimal UI 原則、token、元件 recipe、layout pattern 與導入批次。
+- `features/visual-qa-checklist.md`
+  - UI 重構後的手動驗收清單。
 - `docs/parity-contract.md`
   - 與原 Python app 的能力對齊契約。
 - `docs/API_Instructions.md`
@@ -95,7 +101,8 @@
 
 當 flow modal、settings tab、progress/result feedback、source guidance、診斷入口或使用者可見操作流程有變更時：
 
-- 更新 `docs/ui-design.md`。
+- 更新 `features/ui-design.md`。
+- 若變更涉及 token、component recipe、layout 或視覺驗收，也同步更新 `features/` 下的對應文件。
 - 更新 `docs/Manual.md`。
 - 更新 backlog 對應 capability。
 - 若牽涉 media retention、recovery 或 artifact 呈現，更新 `docs/media-acquisition-spec.md`。
@@ -116,7 +123,7 @@
 - backlog：`docs/backlog.md`、`docs/backlog-active.md`、`docs/backlog-archive.md`
 - prompt 或 AI 規範：`docs/API_Instructions.md`
 - media acquisition / artifact / retention 規格：`docs/media-acquisition-spec.md`
-- 架構、UI、parity、手冊、測試或 release gate：`docs/architecture-boundary.md`、`docs/ui-design.md`、`docs/parity-contract.md`、`docs/Manual.md`、`docs/test-matrix.md`、`docs/smoke-checklist.md`、`docs/release-gate.md`
+- 架構、UI、parity、手冊、測試或 release gate：`docs/architecture-boundary.md`、`features/ui-design.md`、`features/**`、`docs/parity-contract.md`、`docs/Manual.md`、`docs/test-matrix.md`、`docs/smoke-checklist.md`、`docs/release-gate.md`
 
 ## 文件維護流程
 

@@ -124,14 +124,14 @@
 狀態：`completed`
 
 摘要：
-最小 flow modal 已可承接既有 webpage flow。介面設計導覽與後續討論入口見 [ui-design.md](ui-design.md)。
+最小 flow modal 已可承接既有 webpage flow。介面設計導覽與後續討論入口見 [features/ui-design.md](../features/ui-design.md)。
 
 #### CAP-302 Entry Points And Settings Experience 入口與設定體驗
 
 狀態：`completed`
 
 摘要：
-已完成 ribbon 入口、template UX、輸入引導與錯誤文案第一版。設定頁與 flow modal 的外觀/互動改動需回鏈 [ui-design.md](ui-design.md)。
+已完成 ribbon 入口、template UX、輸入引導與錯誤文案第一版。設定頁與 flow modal 的外觀/互動改動需回鏈 [features/ui-design.md](../features/ui-design.md)。
 
 #### CAP-303 Documentation And User Manual 文件與使用手冊
 
