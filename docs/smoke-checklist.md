@@ -1,6 +1,6 @@
 ﻿# Smoke Checklist
 
-最後更新：2026-05-02 03:05
+最後更新：2026-05-02 14:01
 
 ## Scope
 
@@ -10,6 +10,7 @@
 - `media URL`
 - `local media`
 - `transcript file`
+- Flow Modal minimal UI visual QA
 
 若需確認每個 smoke 項目對應的端到端 AI 路由，請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
 
@@ -21,6 +22,7 @@
 | `media_url` | yes | no | `npm run smoke:media-url` |
 | `local_media` | yes | no | `npm run smoke:local-media` |
 | `transcript_file` | yes | no | manual via flow modal |
+| `flow_modal_minimal_ui` | yes | mobile-like narrow viewport | manual via visual QA |
 | desktop bundle | yes | n/a | `npm run smoke:desktop` |
 | mobile bundle | webpage only | yes | `npm run smoke:mobile` |
 
@@ -63,6 +65,31 @@ Additional check: final summaries did not show chunk processing markers.
 - 流程可走完 `validating -> acquiring -> summarizing -> writing`
 - 成功訊息與 note path 可在 modal 看見
 - 若有 warning，可在 UI 與 log 觀測
+
+## Flow Modal Minimal UI
+
+前置：
+
+- plugin 可正常載入
+- 可開啟 `AI 摘要器` modal
+- 參照 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md)
+
+步驟：
+
+1. 依序切換 `webpage_url`、`media_url`、`local_media`、`transcript_file`
+2. 檢查來源選擇、來源說明、placeholder、輸入 action 是否跟著來源更新
+3. 輸入長 URL、長 Windows path、長 template path，確認不 overflow
+4. 執行一條可成功的 smoke flow，確認 running stage、completed result 與 note path action
+5. 觸發一條 validation error 或 runtime unavailable，確認 failed result 有使用者可行的下一步
+6. 在較窄視窗或 mobile-like 寬度重看 source selector、input row、action row、result panel
+
+驗收：
+
+- Flow Modal 不再像除錯表單，四種來源一眼可見
+- preflight summary、stage status、warning/result、action row 視覺層級清楚
+- completed / failed / cancelled 有不同結果呈現
+- dark/light theme 文字、border、accent 都可讀
+- 不依賴 hover 才能發現關鍵 action
 
 ## Media URL
 

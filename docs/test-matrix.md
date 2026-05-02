@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-05-02 03:12
+最後更新：2026-05-02 14:01
 
 ## Capability Matrix
 
@@ -12,8 +12,23 @@
 | `local_media` | desktop | integration + unit | `npm run smoke:local-media` | `gate:local`, `gate:release` |
 | `transcript_file` | desktop | integration + unit | manual via flow modal | `gate:local`, `gate:release` |
 | `media_url` / `local_media` / `transcript_file` | mobile | none | not supported in v1 | excluded |
+| `flow_modal_minimal_ui` | desktop + mobile-like narrow viewport | unit for source guidance / diagnostics when touched | [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) + `npm run smoke:desktop` | `gate:local:vault` for implementation work |
 
 ## Manual Smoke Evidence
+
+### CAP-304 Flow Modal minimal UI visual QA
+
+Manual QA source: [features/visual-qa-checklist.md](../features/visual-qa-checklist.md)
+
+Required coverage when `CAP-304` changes UI/CSS/source guidance/result actions:
+
+- Flow Modal scope does not pollute Obsidian global UI.
+- Obsidian dark/light themes remain readable.
+- Four source types are visible and source-specific guidance updates correctly.
+- Long URL, long Windows path and long template path do not overflow.
+- Running, cancelling, completed and failed states are visually distinct.
+- Completed result provides note action; failed result provides source-aware next action.
+- Narrow/mobile-like width does not depend on hover-only controls.
 
 ### 2026-05-02 CAP-202 / CAP-203 media URL smoke
 

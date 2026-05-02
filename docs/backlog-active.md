@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 03:18
+最後更新：2026-05-02 14:01
 
 ## 用途
 
@@ -19,6 +19,7 @@
 2. 收斂大型媒體轉錄與摘要：`CAP-205`。
 3. 落地逐字稿與字幕檔生命週期：`CAP-206`。
 4. 補齊使用手冊與 smoke gate：`CAP-303`、`CAP-401`。
+5. 導入 Flow Modal minimal UI：`CAP-304`。
 
 ## 當前阻塞與決策
 
@@ -29,6 +30,7 @@
 - 長媒體摘要已定案：chunk 只能是內部 token control / diagnostics，不得以 `chunk`、`part`、`分段` 等技術字樣出現在最終筆記。
 - Gemini 大型媒體 v1 已採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；單段失敗時會保留已完成 partial transcript 作為 recovery artifact。
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
+- `features/` 已收斂為 UI 決策、實作指南與 visual QA；下一輪 UI 工作以 `CAP-304` Flow Modal minimal UI adoption 為主，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
 
 ## Release Checklist
 
@@ -94,6 +96,25 @@
 - [x] 補使用情境 walkthrough：已有逐字稿重跑摘要。（完成：2026-05-02 03:05）
 - [ ] 補使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片。
 - [ ] 補 artifact retention 說明：`transcript.md`、`subtitles.srt`、source artifact、derived artifact、upload artifact 在不同 retention mode 下的保留行為。
+
+### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
+
+目標：
+依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 重構成單頁分區任務介面，改善來源可見性、執行前摘要、長任務階段、完成/失敗/取消 action 與 Obsidian dark/light 可讀性；不得把 runtime、file writing 或 orchestration 邏輯放進 UI。
+
+- [ ] Batch 1：建立 Flow Modal root scope class `.ai-summarizer-flow`，新增或整理只作用於 AI Summarizer UI 的 style scope，不覆寫 Obsidian 全域 `.modal`、`.setting-item`、`body`、`.theme-dark` 或 `.theme-light`。
+- [ ] Batch 1：建立第一版 `--ais-*` token mapping，底層使用 Obsidian CSS variables；確認 dark/light theme 下基本文字、surface、border、accent、danger 都可讀。
+- [ ] Batch 2：將來源 dropdown 改成 compact segmented control，四個來源 `webpage_url`、`media_url`、`local_media`、`transcript_file` 同時可見，active state 與 keyboard focus 可辨識。
+- [ ] Batch 2：重排 Source Input 區塊，讓 URL/path input 佔主要寬度，`填入範例` / `選擇檔案` action 在窄視窗可換行，長 URL 與 Windows path 不造成 overflow。
+- [ ] Batch 2：收斂 `source-guidance.ts` 與 Flow Modal 主畫面文案；主畫面只保留短說明，支援格式、artifact lifecycle、dependency detail 放到 details disclosure。
+- [ ] Batch 3：新增 Preflight Summary，顯示 note template、output folder、retention mode 使用者語意，以及媒體來源的 dependency readiness / 尚未檢查狀態。
+- [ ] Batch 3：將單行 `status | stage` 改成來源感知 stage list；`webpage_url` 不顯示媒體階段，`transcript_file` 不顯示轉錄階段，`media_url` / `local_media` 顯示媒體準備與轉錄。
+- [ ] Batch 3：取消流程顯示獨立 `cancelling` 狀態，保留 action row 位置穩定，避免使用者以為取消按鈕無效。
+- [ ] Batch 4：completed result panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次` 或等效 action。
+- [ ] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。
+- [ ] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。
+- [ ] 驗收：依 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 檢查 scope、dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width、accessibility。
+- [ ] 驗收：UI 變更後跑 `npm run smoke:desktop`；若涉及 mobile limitation 文案或 narrow layout，補 `npm run smoke:mobile`。
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 

@@ -1,8 +1,21 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-02 13:51
+最後更新：2026-05-02 14:01
 
 ## 版本紀錄
+
+### 0.1.67-ui-implementation-backlog - 2026-05-02 14:01
+
+範圍：
+- 將 `features/` UI 設計內容轉成可排程工作任務。
+
+主要變更：
+- 更新 `docs/backlog.md`，新增 `CAP-304 Flow Modal Minimal UI Adoption` active capability，並將 `CAP-305 Settings Tab Minimal UI Polish` 保留為 parking capability
+- 更新 `docs/backlog-active.md`，加入 `CAP-304` 的 Batch 1-4 實作 checklist 與 visual QA / smoke 驗收點
+- 更新 `docs/test-matrix.md` 與 `docs/smoke-checklist.md`，新增 Flow Modal minimal UI visual QA 驗證入口
+
+驗證：
+- 文件任務規劃更新，未變更 runtime 程式碼
 
 ### 0.1.66-ui-features-docs - 2026-05-02 13:51
 

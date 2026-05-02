@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-02 02:44
+最後更新：2026-05-02 14:01
 
 ## 用途
 
@@ -38,6 +38,7 @@
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
+7. `CAP-304` 進入下一輪 active UX 主線：依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 從除錯式表單重構為單頁分區任務介面；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。
 
 ## Capability 總表
 
@@ -139,6 +140,20 @@
 
 摘要：
 已完成安裝、設定、smoke test、日常操作手冊第一版，以及模型選擇、轉錄/摘要拆分與 provider 設定教學。下一步需補 Gladia、Gemini 大型媒體策略、長媒體全局摘要、重跑摘要、artifact retention、local media 與字幕輸出 walkthrough。
+
+#### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
+
+狀態：`active`
+
+摘要：
+依 [features/ui-design.md](../features/ui-design.md) 與 [features/implementation-guide.md](../features/implementation-guide.md)，保留單一 `AI 摘要器` Flow Modal，但將資訊架構重排為 Header、Source Selector、Source Input、Preflight Summary、Stage Status、Warning/Result、Action Row。第一輪目標是建立 `.ai-summarizer-flow` scope、`--ais-*` token mapping、來源 segmented control、短文案與 details disclosure、階段列表、completed/failed/cancelled action，並用 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 驗收 dark/light、長路徑、running/cancelled/completed/failed 與 narrow width。
+
+#### CAP-305 Settings Tab Minimal UI Polish 設定頁 Minimal UI 收斂
+
+狀態：`parking`
+
+摘要：
+保留未來 Settings Tab minimal UI polish，但不納入近期工作。若之後要處理，方向仍是維持 Obsidian-native form，不做 dashboard；改善 `AI 模型`、`輸出與媒體`、`模板與提示`、`診斷` 的 active state、spacing、provider/model/API key 語意、高風險 retention/cache/tool path 說明，以及診斷頁對「現在能不能跑這個來源」的行動導向摘要。
 
 ### Reliability And Operations 穩定性與營運
 
