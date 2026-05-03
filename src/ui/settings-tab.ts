@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import { App, normalizePath, PluginSettingTab, Setting, TFile } from "obsidian";
+import { App, FuzzySuggestModal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
@@ -144,6 +144,52 @@ interface DesktopDialog {
 type MediaToolPathSettingKey = "ytDlpPath" | "ffmpegPath" | "ffprobePath";
 
 const execFileAsync = promisify(execFile);
+
+class VaultFolderSuggestModal extends FuzzySuggestModal<string> {
+  public constructor(
+    app: App,
+    private readonly folders: string[],
+    private readonly onChooseFolder: (folderPath: string) => void
+  ) {
+    super(app);
+    this.setPlaceholder("搜尋 vault 內的資料夾");
+  }
+
+  public getItems(): string[] {
+    return this.folders;
+  }
+
+  public getItemText(folderPath: string): string {
+    return folderPath.length > 0 ? folderPath : "Vault 根目錄";
+  }
+
+  public onChooseItem(folderPath: string): void {
+    this.onChooseFolder(folderPath);
+  }
+}
+
+class VaultMarkdownFileSuggestModal extends FuzzySuggestModal<string> {
+  public constructor(
+    app: App,
+    private readonly files: string[],
+    private readonly onChooseFile: (filePath: string) => void
+  ) {
+    super(app);
+    this.setPlaceholder("搜尋 vault 內的 Markdown 模板");
+  }
+
+  public getItems(): string[] {
+    return this.files;
+  }
+
+  public getItemText(filePath: string): string {
+    return filePath;
+  }
+
+  public onChooseItem(filePath: string): void {
+    this.onChooseFile(filePath);
+  }
+}
 
 function getMediaToolCommand(settingKey: MediaToolPathSettingKey): string {
   if (settingKey === "ytDlpPath") {
@@ -341,6 +387,54 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     await this.plugin.saveSettings();
     this.runtimeDiagnostics = null;
     this.display();
+  }
+
+  private getVaultFolderOptions(): string[] {
+    const folderPaths = this.app.vault
+      .getAllLoadedFiles()
+      .filter((file): file is TFolder => file instanceof TFolder)
+      .map((folder) => normalizePath(folder.path))
+      .filter((folderPath) => folderPath.length > 0)
+      .sort((left, right) => left.localeCompare(right));
+
+    return ["", ...folderPaths];
+  }
+
+  private pickOutputFolder(): void {
+    new VaultFolderSuggestModal(this.app, this.getVaultFolderOptions(), (folderPath) => {
+      this.plugin.settings.outputFolder = folderPath;
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.notify(
+          folderPath.length > 0
+            ? `輸出資料夾已設定為：${folderPath}`
+            : "輸出資料夾已設定為 vault 根目錄。"
+        );
+        this.display();
+      });
+    }).open();
+  }
+
+  private getVaultMarkdownFileOptions(): string[] {
+    return this.app.vault
+      .getMarkdownFiles()
+      .map((file) => normalizePath(file.path))
+      .sort((left, right) => left.localeCompare(right));
+  }
+
+  private pickCustomTemplateFile(): void {
+    const filePaths = this.getVaultMarkdownFileOptions();
+    if (filePaths.length === 0) {
+      this.plugin.notify("Vault 內沒有可選擇的 Markdown 檔案。");
+      return;
+    }
+
+    new VaultMarkdownFileSuggestModal(this.app, filePaths, (filePath) => {
+      this.plugin.settings.templateReference = createCustomTemplateReference(filePath);
+      void this.plugin.saveSettings().then(() => {
+        this.plugin.notify(`自訂模板已設定為：${filePath}`);
+        this.display();
+      });
+    }).open();
   }
 
   private async ensureVaultFolder(folderPath: string): Promise<void> {
@@ -1831,6 +1925,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
           this.plugin.settings.outputFolder = value.trim();
           await this.plugin.saveSettings();
         })
+      )
+      .addButton((button) =>
+        button.setButtonText("搜尋資料夾").onClick(() => {
+          this.pickOutputFolder();
+        })
       );
 
     new Setting(containerEl)
@@ -1903,7 +2002,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("模板來源")
-      .setDesc("可使用預設通用 Frontmatter，或指定 vault 內的自訂模板。")
+      .setDesc("選擇摘要筆記的輸出格式。可使用預設 frontmatter，或套用 vault 內的自訂模板。")
       .addDropdown((dropdown) => {
         dropdown.addOption(UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE, "預設通用 Frontmatter");
         for (const template of builtinTemplates) {
@@ -1949,6 +2048,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
             })
         )
         .addButton((button) =>
+          button.setButtonText("選擇模板").onClick(() => {
+            this.pickCustomTemplateFile();
+          })
+        )
+        .addButton((button) =>
           button.setButtonText("建立範本").onClick(() => {
             void this.createCustomTemplateFile();
           })
@@ -1958,7 +2062,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     const templateListEl = containerEl.createEl("ul");
     for (const template of builtinTemplates) {
       templateListEl.createEl("li", {
-        text: `${template.label}: ${template.description}。支援 ${template.supportedSourceTypes
+        text: `${template.label}: ${template.description} 支援 ${template.supportedSourceTypes
           .map((sourceType) => SOURCE_TYPE_LABELS[sourceType])
           .join("、")}`
       });

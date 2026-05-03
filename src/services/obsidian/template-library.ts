@@ -15,7 +15,7 @@ const BUILTIN_TEMPLATES: readonly BuiltinTemplateDefinition[] = [
   {
     reference: UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE,
     label: "預設通用 Frontmatter",
-    description: "輸出統一 YAML frontmatter，摘要與逐字稿由程式穩定插入。",
+    description: "在筆記開頭加入標題、來源、日期等 YAML frontmatter。",
     supportedSourceTypes: ["webpage_url", "media_url", "local_media", "transcript_file"],
     body: [
       "---",
@@ -76,8 +76,8 @@ export function describeTemplateReference(templateReference: string): string {
 
   const builtinTemplate = BUILTIN_TEMPLATES.find((template) => template.reference === normalizedReference);
   if (builtinTemplate) {
-    return `使用${builtinTemplate.label}。`;
+    return `目前使用 ${builtinTemplate.label}。摘要會寫在 frontmatter 後方；有逐字稿時會附在筆記末尾。`;
   }
 
-  return `使用自訂模板：${getCustomTemplatePath(templateReference)}`;
+  return `目前使用自訂模板：${getCustomTemplatePath(templateReference)}`;
 }
