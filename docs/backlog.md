@@ -38,7 +38,7 @@
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
-7. `CAP-207` 進入 queued template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
+7. `CAP-207` 進入 active template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
 8. `CAP-304` 進入下一輪 active UX 主線：依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 從除錯式表單重構為單頁分區任務介面；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 
 ## Capability 總表
@@ -121,29 +121,10 @@
 
 #### CAP-207 Frontmatter Template Output 摘要模板與 Frontmatter 輸出
 
-狀態：`queued`
+狀態：`active`
 
 摘要：
 依 [template-spec.md](template-spec.md) 收斂輸出模板能力。第一版 UI 只提供 `預設通用 Frontmatter` 與 `自訂模板`；新設定使用 `builtin:universal-frontmatter`，舊空字串 `templateReference` 視為相同預設。預設模板產生通用 YAML frontmatter，自訂模板支援完整 Obsidian 模板內容與 `{{summary}}` / `{{transcript}}` 插入點。`Book`、`Author`、`Description` 第一版由摘要模型同時輸出，但需保留未來 metadata enrichment 擴充性。
-
-工作任務清單：
-
-- [ ] 更新 template model：新增 `builtin:universal-frontmatter` reference，保留空字串設定相容，移除舊 `builtin:default`、`builtin:webpage-brief`、`builtin:media-session` 的使用者可見路徑。
-- [ ] 更新 Template Library / Resolver：支援預設通用 frontmatter 欄位、`custom:<path>` 自訂模板、placeholder 置換、空模板 fallback，以及未來新增內建模板的資料結構。
-- [ ] 更新 Note Writer：預設模板輸出 YAML frontmatter 後接 AI 摘要；自訂模板可控制 frontmatter 與 Markdown body；沒有 `{{summary}}` 時摘要接在模板後方，沒有 `{{transcript}}` 時逐字稿維持最後追加。
-- [ ] 更新 summary prompt / AI output contract：讓摘要模型同時產生摘要正文、`Book`、`Author`、`Description`，並保留可替換為 metadata enrichment 的內部邊界。
-- [ ] 補 metadata normalization：`Platform` 正規化為 YouTube、Podcast、Web、本機檔案；`Created` 輸出 `YYYY-MM-DD`；`tags` 固定保留，未製作 Flashcard 時輸出 `tags:` 留白。
-- [ ] 更新 Flow Modal / Settings Tab：模板選項只顯示 `預設通用 Frontmatter` 與 `自訂模板`，自訂模板支援選擇既有 vault 模板與新增模板內容。
-- [ ] 更新文件：同步 `docs/Manual.md`、template 操作導覽、疑難排解與 migration 說明。
-- [ ] 補測試：template library / resolver / note writer unit tests，webpage、media、local media、transcript file integration coverage，以及自訂模板 `{{summary}}` / `{{transcript}}` 插入行為。
-
-Done When：
-
-- UI 只顯示兩種模板選項，且既有空字串設定可無痛轉成預設通用 Frontmatter。
-- 四種來源都能輸出符合 `template-spec.md` 的 YAML frontmatter、摘要正文與 transcript 位置。
-- 自訂模板可包含完整 Obsidian 模板內容，並正確處理 `{{summary}}` / `{{transcript}}`。
-- `Book`、`Author`、`Description`、`tags`、`Platform`、`Created` 欄位有測試覆蓋。
-- 手冊、規格與測試矩陣已同步。
 
 ### User Experience 使用體驗
 

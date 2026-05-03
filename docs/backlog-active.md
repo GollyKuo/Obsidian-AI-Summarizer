@@ -19,7 +19,8 @@
 2. 收斂大型媒體轉錄與摘要：`CAP-205`。
 3. 落地逐字稿與字幕檔生命週期：`CAP-206`。
 4. 補齊使用手冊與 smoke gate：`CAP-303`、`CAP-401`。
-5. 導入 Flow Modal minimal UI：`CAP-304`。
+5. 收斂摘要模板與 Frontmatter 輸出：`CAP-207`。
+6. 導入 Flow Modal minimal UI：`CAP-304`。
 
 ## 當前阻塞與決策
 
@@ -82,6 +83,28 @@
 - [x] `retentionMode: delete_temp` 成功清理時，仍不得移除必保留的逐字稿與字幕檔。（完成：2026-05-02 02:44）
 - [x] 補 cleanup / recovery / final handoff 安全檢查，確認字幕檔與逐字稿保留策略沒有被清理流程破壞。（完成：2026-05-02 02:44）
 - [x] 定義字幕產線 v1/vNext 邊界：`.srt` 生成、FFmpeg 軟字幕嵌入、含字幕影片保留策略。（完成：2026-05-02 03:18）
+
+### CAP-207 Frontmatter Template Output 摘要模板與 Frontmatter 輸出
+
+目標：
+依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`。預設模板產生通用 YAML frontmatter；自訂模板支援完整 Obsidian 模板內容與 `{{summary}}` / `{{transcript}}` 插入點；`Book`、`Author`、`Description` 第一版由摘要模型同時輸出，但保留未來 metadata enrichment 擴充性。
+
+- [ ] 更新 template model：新增 `builtin:universal-frontmatter` reference，保留空字串設定相容，移除舊 `builtin:default`、`builtin:webpage-brief`、`builtin:media-session` 的使用者可見路徑。
+- [ ] 更新 Template Library / Resolver：支援預設通用 frontmatter 欄位、`custom:<path>` 自訂模板、placeholder 置換、空模板 fallback，以及未來新增內建模板的資料結構。
+- [ ] 更新 Note Writer：預設模板輸出 YAML frontmatter 後接 AI 摘要；自訂模板可控制 frontmatter 與 Markdown body；沒有 `{{summary}}` 時摘要接在模板後方，沒有 `{{transcript}}` 時逐字稿維持最後追加。
+- [ ] 更新 summary prompt / AI output contract：讓摘要模型同時產生摘要正文、`Book`、`Author`、`Description`，並保留可替換為 metadata enrichment 的內部邊界。
+- [ ] 補 metadata normalization：`Platform` 正規化為 YouTube、Podcast、Web、本機檔案；`Created` 輸出 `YYYY-MM-DD`；`tags` 固定保留，未製作 Flashcard 時輸出 `tags:` 留白。
+- [ ] 更新 Flow Modal / Settings Tab：模板選項只顯示 `預設通用 Frontmatter` 與 `自訂模板`，自訂模板支援選擇既有 vault 模板與新增模板內容。
+- [ ] 更新文件：同步 `docs/Manual.md`、template 操作導覽、疑難排解與 migration 說明。
+- [ ] 補測試：template library / resolver / note writer unit tests，webpage、media、local media、transcript file integration coverage，以及自訂模板 `{{summary}}` / `{{transcript}}` 插入行為。
+
+Done When：
+
+- UI 只顯示兩種模板選項，且既有空字串設定可無痛轉成預設通用 Frontmatter。
+- 四種來源都能輸出符合 `template-spec.md` 的 YAML frontmatter、摘要正文與 transcript 位置。
+- 自訂模板可包含完整 Obsidian 模板內容，並正確處理 `{{summary}}` / `{{transcript}}`。
+- `Book`、`Author`、`Description`、`tags`、`Platform`、`Created` 欄位有測試覆蓋。
+- 手冊、規格與測試矩陣已同步。
 
 ### CAP-303 Documentation And User Manual 文件與使用手冊
 
