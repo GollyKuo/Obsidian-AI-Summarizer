@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import { App, FuzzySuggestModal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
+import { App, Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
@@ -145,49 +145,202 @@ type MediaToolPathSettingKey = "ytDlpPath" | "ffmpegPath" | "ffprobePath";
 
 const execFileAsync = promisify(execFile);
 
-class VaultFolderSuggestModal extends FuzzySuggestModal<string> {
-  public constructor(
-    app: App,
-    private readonly folders: string[],
-    private readonly onChooseFolder: (folderPath: string) => void
-  ) {
-    super(app);
-    this.setPlaceholder("搜尋 vault 內的資料夾");
-  }
-
-  public getItems(): string[] {
-    return this.folders;
-  }
-
-  public getItemText(folderPath: string): string {
-    return folderPath.length > 0 ? folderPath : "Vault 根目錄";
-  }
-
-  public onChooseItem(folderPath: string): void {
-    this.onChooseFolder(folderPath);
-  }
+interface VaultTemplateTreeNode {
+  children: VaultTemplateTreeNode[];
+  name: string;
+  path: string;
+  type: "folder" | "file";
 }
 
-class VaultMarkdownFileSuggestModal extends FuzzySuggestModal<string> {
+class VaultTemplateTreeModal extends Modal {
   public constructor(
     app: App,
-    private readonly files: string[],
+    private readonly rootNode: VaultTemplateTreeNode,
     private readonly onChooseFile: (filePath: string) => void
   ) {
     super(app);
-    this.setPlaceholder("搜尋 vault 內的 Markdown 模板");
   }
 
-  public getItems(): string[] {
-    return this.files;
+  public onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("ai-summarizer-template-picker");
+    contentEl.createEl("h2", { text: "選擇自訂模板" });
+
+    const treeEl = contentEl.createDiv({ cls: "ai-summarizer-template-tree" });
+    for (const child of this.rootNode.children) {
+      this.renderTreeNode(treeEl, child, 0, new Set());
+    }
   }
 
-  public getItemText(filePath: string): string {
-    return filePath;
+  public onClose(): void {
+    this.contentEl.empty();
   }
 
-  public onChooseItem(filePath: string): void {
-    this.onChooseFile(filePath);
+  private renderTreeNode(
+    containerEl: HTMLElement,
+    node: VaultTemplateTreeNode,
+    depth: number,
+    ancestorNodes: Set<VaultTemplateTreeNode>
+  ): void {
+    if (ancestorNodes.has(node)) {
+      return;
+    }
+
+    const rowEl = containerEl.createDiv({
+      cls: `ai-summarizer-template-tree-row is-${node.type}`
+    });
+    rowEl.style.setProperty("--ais-template-tree-depth", String(depth));
+
+    if (node.type === "folder") {
+      const toggleEl = rowEl.createSpan({
+        cls: "ai-summarizer-template-tree-toggle"
+      });
+      toggleEl.setText(node.children.length > 0 ? ">" : "");
+
+      rowEl.createSpan({ cls: "ai-summarizer-template-tree-icon is-folder" });
+      rowEl.createSpan({ cls: "ai-summarizer-template-tree-label", text: node.name });
+      rowEl.title = node.path || "Vault";
+
+      if (node.children.length === 0) {
+        rowEl.addClass("is-empty");
+        return;
+      }
+
+      const childrenEl = containerEl.createDiv({ cls: "ai-summarizer-template-tree-children" });
+      childrenEl.style.display = "none";
+      const childAncestors = new Set(ancestorNodes);
+      childAncestors.add(node);
+      for (const child of node.children) {
+        this.renderTreeNode(childrenEl, child, depth + 1, childAncestors);
+      }
+
+      const toggleChildren = (): void => {
+        const isOpen = childrenEl.style.display !== "none";
+        childrenEl.style.display = isOpen ? "none" : "";
+        toggleEl.setText(isOpen ? ">" : "v");
+        rowEl.setAttr("aria-expanded", String(!isOpen));
+      };
+      rowEl.setAttr("role", "button");
+      rowEl.setAttr("aria-expanded", "false");
+      rowEl.tabIndex = 0;
+      rowEl.addEventListener("click", toggleChildren);
+      rowEl.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        event.preventDefault();
+        toggleChildren();
+      });
+      return;
+    }
+
+    rowEl.createSpan({ cls: "ai-summarizer-template-tree-toggle-spacer" });
+    rowEl.createSpan({ cls: "ai-summarizer-template-tree-icon is-file" });
+    rowEl.createSpan({ cls: "ai-summarizer-template-tree-label", text: node.name });
+    rowEl.title = node.path;
+    rowEl.setAttr("role", "button");
+    rowEl.tabIndex = 0;
+
+    const chooseFile = (): void => {
+      this.onChooseFile(node.path);
+      this.close();
+    };
+    rowEl.addEventListener("click", chooseFile);
+    rowEl.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      chooseFile();
+    });
+  }
+}
+
+class VaultFolderTreeModal extends Modal {
+  public constructor(
+    app: App,
+    private readonly rootNode: VaultTemplateTreeNode,
+    private readonly onChooseFolder: (folderPath: string) => void
+  ) {
+    super(app);
+  }
+
+  public onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("ai-summarizer-template-picker");
+    contentEl.createEl("h2", { text: "選擇輸出資料夾" });
+
+    const treeEl = contentEl.createDiv({ cls: "ai-summarizer-template-tree" });
+    this.renderFolderNode(treeEl, this.rootNode, 0, new Set(), true);
+  }
+
+  public onClose(): void {
+    this.contentEl.empty();
+  }
+
+  private renderFolderNode(
+    containerEl: HTMLElement,
+    node: VaultTemplateTreeNode,
+    depth: number,
+    ancestorNodes: Set<VaultTemplateTreeNode>,
+    expanded = false
+  ): void {
+    if (ancestorNodes.has(node)) {
+      return;
+    }
+
+    const rowEl = containerEl.createDiv({ cls: "ai-summarizer-template-tree-row is-folder" });
+    rowEl.style.setProperty("--ais-template-tree-depth", String(depth));
+
+    const toggleEl = rowEl.createSpan({ cls: "ai-summarizer-template-tree-toggle" });
+    toggleEl.setText(node.children.length > 0 ? (expanded ? "v" : ">") : "");
+    rowEl.createSpan({ cls: "ai-summarizer-template-tree-icon is-folder" });
+    rowEl.createSpan({ cls: "ai-summarizer-template-tree-label", text: node.name });
+    rowEl.title = node.path || "Vault 根目錄";
+    rowEl.setAttr("role", "button");
+    rowEl.tabIndex = 0;
+
+    const chooseFolder = (): void => {
+      this.onChooseFolder(node.path);
+      this.close();
+    };
+    rowEl.addEventListener("click", chooseFolder);
+    rowEl.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") {
+        return;
+      }
+
+      event.preventDefault();
+      chooseFolder();
+    });
+
+    if (node.children.length === 0) {
+      return;
+    }
+
+    const childrenEl = containerEl.createDiv({ cls: "ai-summarizer-template-tree-children" });
+    childrenEl.style.display = expanded ? "" : "none";
+    const childAncestors = new Set(ancestorNodes);
+    childAncestors.add(node);
+    for (const child of node.children) {
+      this.renderFolderNode(childrenEl, child, depth + 1, childAncestors);
+    }
+
+    const toggleChildren = (): void => {
+      const isOpen = childrenEl.style.display !== "none";
+      childrenEl.style.display = isOpen ? "none" : "";
+      toggleEl.setText(isOpen ? ">" : "v");
+      rowEl.setAttr("aria-expanded", String(!isOpen));
+    };
+    rowEl.setAttr("aria-expanded", String(expanded));
+    toggleEl.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleChildren();
+    });
   }
 }
 
@@ -235,9 +388,15 @@ function getTemplateDropdownValue(templateReference: string): string {
   return CUSTOM_TEMPLATE_OPTION;
 }
 
+function normalizeVaultRelativePath(filePath: string): string {
+  const normalizedPath = normalizePath(filePath).replace(/^\/+/, "").replace(/\/+$/, "");
+  return normalizedPath === "." ? "" : normalizedPath;
+}
+
 function parentFolderPath(filePath: string): string {
-  const slashIndex = filePath.lastIndexOf("/");
-  return slashIndex === -1 ? "" : filePath.slice(0, slashIndex);
+  const normalizedPath = normalizeVaultRelativePath(filePath);
+  const slashIndex = normalizedPath.lastIndexOf("/");
+  return slashIndex === -1 ? "" : normalizedPath.slice(0, slashIndex);
 }
 
 function addInlineHeading(containerEl: HTMLElement, title: string, hint: string): void {
@@ -390,18 +549,21 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private getVaultFolderOptions(): string[] {
-    const folderPaths = this.app.vault
-      .getAllLoadedFiles()
-      .filter((file): file is TFolder => file instanceof TFolder)
-      .map((folder) => normalizePath(folder.path))
-      .filter((folderPath) => folderPath.length > 0)
-      .sort((left, right) => left.localeCompare(right));
+    const folderPaths = Array.from(
+      new Set(
+        this.app.vault
+          .getAllLoadedFiles()
+          .filter((file): file is TFolder => file instanceof TFolder)
+          .map((folder) => normalizeVaultRelativePath(folder.path))
+          .filter((folderPath) => folderPath.length > 0)
+      )
+    ).sort((left, right) => left.localeCompare(right));
 
     return ["", ...folderPaths];
   }
 
   private pickOutputFolder(): void {
-    new VaultFolderSuggestModal(this.app, this.getVaultFolderOptions(), (folderPath) => {
+    new VaultFolderTreeModal(this.app, this.getVaultFolderTree(), (folderPath) => {
       this.plugin.settings.outputFolder = folderPath;
       void this.plugin.saveSettings().then(() => {
         this.plugin.notify(
@@ -414,27 +576,148 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }).open();
   }
 
-  private getVaultMarkdownFileOptions(): string[] {
-    return this.app.vault
-      .getMarkdownFiles()
-      .map((file) => normalizePath(file.path))
-      .sort((left, right) => left.localeCompare(right));
+  private getVaultFolderTree(): VaultTemplateTreeNode {
+    const rootNode: VaultTemplateTreeNode = {
+      children: [],
+      name: "Vault 根目錄",
+      path: "",
+      type: "folder"
+    };
+
+    const folderNodes = new Map<string, VaultTemplateTreeNode>([["", rootNode]]);
+    const ensureFolderNode = (folderPath: string): VaultTemplateTreeNode => {
+      const normalizedFolderPath = normalizeVaultRelativePath(folderPath);
+      if (normalizedFolderPath.length === 0) {
+        return rootNode;
+      }
+
+      const existingNode = folderNodes.get(normalizedFolderPath);
+      if (existingNode) {
+        return existingNode;
+      }
+
+      const parentPath = parentFolderPath(normalizedFolderPath);
+      const parentNode = parentPath === normalizedFolderPath ? rootNode : ensureFolderNode(parentPath);
+      const folderNode: VaultTemplateTreeNode = {
+        children: [],
+        name: normalizedFolderPath.split("/").pop() ?? normalizedFolderPath,
+        path: normalizedFolderPath,
+        type: "folder"
+      };
+      parentNode.children.push(folderNode);
+      folderNodes.set(normalizedFolderPath, folderNode);
+      return folderNode;
+    };
+
+    for (const folderPath of this.getVaultFolderOptions()) {
+      ensureFolderNode(folderPath);
+    }
+
+    const sortedNodes = new Set<VaultTemplateTreeNode>();
+    const sortNode = (node: VaultTemplateTreeNode): void => {
+      if (sortedNodes.has(node)) {
+        return;
+      }
+      sortedNodes.add(node);
+
+      node.children.sort((left, right) => left.name.localeCompare(right.name));
+      for (const child of node.children) {
+        sortNode(child);
+      }
+    };
+    sortNode(rootNode);
+    return rootNode;
+  }
+
+  private getVaultTemplateTree(): VaultTemplateTreeNode {
+    const rootNode = this.getVaultFolderTree();
+    rootNode.name = "Vault";
+
+    const folderNodes = new Map<string, VaultTemplateTreeNode>();
+    const collectFolderNodes = (node: VaultTemplateTreeNode): void => {
+      if (node.type !== "folder" || folderNodes.has(node.path)) {
+        return;
+      }
+      folderNodes.set(node.path, node);
+      for (const child of node.children) {
+        collectFolderNodes(child);
+      }
+    };
+    collectFolderNodes(rootNode);
+
+    const ensureFolderNode = (folderPath: string): VaultTemplateTreeNode => {
+      const normalizedFolderPath = normalizeVaultRelativePath(folderPath);
+      const existingNode = folderNodes.get(normalizedFolderPath);
+      if (existingNode) {
+        return existingNode;
+      }
+
+      const parentPath = parentFolderPath(normalizedFolderPath);
+      const parentNode = parentPath === normalizedFolderPath ? rootNode : ensureFolderNode(parentPath);
+      const folderNode: VaultTemplateTreeNode = {
+        children: [],
+        name: normalizedFolderPath.split("/").pop() ?? normalizedFolderPath,
+        path: normalizedFolderPath,
+        type: "folder"
+      };
+      parentNode.children.push(folderNode);
+      folderNodes.set(normalizedFolderPath, folderNode);
+      return folderNode;
+    };
+
+    for (const file of this.app.vault.getMarkdownFiles()) {
+      const filePath = normalizeVaultRelativePath(file.path);
+      if (filePath.length === 0) {
+        continue;
+      }
+
+      const parentNode = ensureFolderNode(parentFolderPath(filePath));
+      parentNode.children.push({
+        children: [],
+        name: file.name,
+        path: filePath,
+        type: "file"
+      });
+    }
+
+    const sortedNodes = new Set<VaultTemplateTreeNode>();
+    const sortNode = (node: VaultTemplateTreeNode): void => {
+      if (sortedNodes.has(node)) {
+        return;
+      }
+      sortedNodes.add(node);
+
+      node.children.sort((left, right) => {
+        if (left.type !== right.type) {
+          return left.type === "folder" ? -1 : 1;
+        }
+        return left.name.localeCompare(right.name);
+      });
+      for (const child of node.children) {
+        sortNode(child);
+      }
+    };
+    sortNode(rootNode);
+    return rootNode;
   }
 
   private pickCustomTemplateFile(): void {
-    const filePaths = this.getVaultMarkdownFileOptions();
-    if (filePaths.length === 0) {
-      this.plugin.notify("Vault 內沒有可選擇的 Markdown 檔案。");
-      return;
+    try {
+      new VaultTemplateTreeModal(
+        this.app,
+        this.getVaultTemplateTree(),
+        (filePath) => {
+          this.plugin.settings.templateReference = createCustomTemplateReference(filePath);
+          void this.plugin.saveSettings().then(() => {
+            this.plugin.notify(`自訂模板已設定為：${filePath}`);
+            this.display();
+          });
+        }
+      ).open();
+    } catch (error) {
+      const report = this.plugin.reportError("template_settings", error);
+      this.plugin.notify(report.noticeMessage);
     }
-
-    new VaultMarkdownFileSuggestModal(this.app, filePaths, (filePath) => {
-      this.plugin.settings.templateReference = createCustomTemplateReference(filePath);
-      void this.plugin.saveSettings().then(() => {
-        this.plugin.notify(`自訂模板已設定為：${filePath}`);
-        this.display();
-      });
-    }).open();
   }
 
   private async ensureVaultFolder(folderPath: string): Promise<void> {
@@ -2048,7 +2331,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
             })
         )
         .addButton((button) =>
-          button.setButtonText("選擇模板").onClick(() => {
+          button.setButtonText("選資料夾與模板").onClick(() => {
             this.pickCustomTemplateFile();
           })
         )

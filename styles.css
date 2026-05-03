@@ -40,6 +40,98 @@
   color: var(--ais-text);
 }
 
+.ai-summarizer-template-picker {
+  max-width: min(680px, calc(100vw - 48px));
+}
+
+.ai-summarizer-template-tree {
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.ai-summarizer-template-tree-row {
+  align-items: center;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  gap: 5px;
+  min-height: 28px;
+  padding-left: calc(var(--ais-template-tree-depth) * 20px);
+  padding-right: 6px;
+}
+
+.ai-summarizer-template-tree-row:hover {
+  background: var(--background-modifier-hover);
+}
+
+.ai-summarizer-template-tree-row:focus-visible {
+  outline: 2px solid var(--background-modifier-border-focus);
+  outline-offset: -2px;
+}
+
+.ai-summarizer-template-tree-row.is-empty {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+.ai-summarizer-template-tree-toggle,
+.ai-summarizer-template-tree-toggle-spacer {
+  align-items: center;
+  color: var(--text-muted);
+  display: inline-flex;
+  flex: 0 0 18px;
+  justify-content: center;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  height: 22px;
+  width: 18px;
+}
+
+.ai-summarizer-template-tree-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 20px;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.ai-summarizer-template-tree-icon::before {
+  content: "";
+  display: block;
+}
+
+.ai-summarizer-template-tree-icon.is-folder::before {
+  background: color-mix(in srgb, #f2c14e 82%, var(--background-primary));
+  border-radius: 2px;
+  box-shadow: 0 -4px 0 -2px color-mix(in srgb, #f2c14e 70%, var(--background-primary));
+  height: 11px;
+  width: 15px;
+}
+
+.ai-summarizer-template-tree-icon.is-file::before {
+  background: transparent;
+  border: 1px solid var(--text-faint);
+  border-radius: 2px;
+  box-shadow: inset -3px 3px 0 color-mix(in srgb, var(--text-faint) 18%, transparent);
+  height: 15px;
+  width: 11px;
+}
+
+.ai-summarizer-template-tree-label {
+  color: var(--text-normal);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-summarizer-template-tree-row.is-file {
+  padding-left: calc((var(--ais-template-tree-depth) * 20px) + 1px);
+}
+
 .ai-summarizer-flow .ai-summarizer-flow-content {
   display: flex;
   flex-direction: column;
@@ -217,6 +309,27 @@
   width: 100%;
 }
 
+.ai-summarizer-flow .ai-summarizer-preflight-pick-row {
+  display: grid;
+  gap: var(--ais-space-2);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.ai-summarizer-flow .ai-summarizer-preflight-pick-button {
+  background: var(--ais-surface);
+  border: 1px solid var(--ais-border);
+  color: var(--ais-text);
+  min-height: var(--ais-control-height);
+  padding: 0 var(--ais-space-3);
+  white-space: nowrap;
+}
+
+.ai-summarizer-flow .ai-summarizer-preflight-pick-button:not(:disabled):hover {
+  background: var(--interactive-hover);
+  border-color: var(--ais-border-strong);
+}
+
 .ai-summarizer-flow .ai-summarizer-preflight-model-controls {
   display: grid;
   gap: var(--ais-space-2);
@@ -306,6 +419,108 @@
 
 .ai-summarizer-flow .ai-summarizer-preflight-template-path {
   grid-column: 2;
+}
+
+.ai-summarizer-flow.ai-summarizer-flow-folder-picker {
+  width: min(520px, calc(100vw - 48px));
+}
+
+.ai-summarizer-flow.ai-summarizer-flow-folder-picker .modal-title {
+  font-size: var(--font-ui-large);
+  font-weight: var(--font-semibold);
+  line-height: 1.25;
+  margin-bottom: var(--ais-space-2);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-tree {
+  border: 1px solid var(--ais-border);
+  border-radius: var(--ais-radius-md);
+  background: color-mix(in srgb, var(--ais-surface-muted) 34%, var(--ais-surface));
+  max-height: min(46vh, 380px);
+  overflow: auto;
+  padding: var(--ais-space-2) var(--ais-space-1);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row {
+  align-items: center;
+  border-radius: var(--ais-radius-sm);
+  color: var(--ais-text);
+  cursor: pointer;
+  display: flex;
+  gap: var(--ais-space-2);
+  min-height: 28px;
+  min-width: 0;
+  padding-left: calc(var(--ais-folder-tree-depth) * 20px);
+  padding-right: var(--ais-space-2);
+  transition:
+    background-color var(--ais-motion-fast),
+    color var(--ais-motion-fast);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row:hover {
+  background: color-mix(in srgb, var(--interactive-hover) 72%, transparent);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row[data-selected="true"] {
+  background: var(--ais-accent-soft);
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row[data-selected="true"]:hover {
+  background: var(--ais-accent-soft-hover);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row:focus-visible {
+  outline: 2px solid var(--ais-accent);
+  outline-offset: -2px;
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-toggle {
+  align-items: center;
+  color: var(--ais-text-muted);
+  display: inline-flex;
+  flex: 0 0 18px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  height: 22px;
+  justify-content: center;
+  width: 18px;
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-toggle:hover {
+  color: var(--ais-text);
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 20px;
+  height: 20px;
+  justify-content: center;
+  width: 20px;
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-icon::before {
+  background: color-mix(in srgb, #d2ae52 58%, var(--ais-surface));
+  border-radius: 2px;
+  box-shadow: 0 -4px 0 -2px color-mix(in srgb, #d2ae52 48%, var(--ais-surface));
+  content: "";
+  display: block;
+  height: 11px;
+  width: 15px;
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-row[data-selected="true"] .ai-summarizer-flow-folder-icon::before {
+  background: color-mix(in srgb, #d2ae52 68%, var(--ais-accent-soft));
+  box-shadow: 0 -4px 0 -2px color-mix(in srgb, #d2ae52 58%, var(--ais-accent-soft));
+}
+
+.ai-summarizer-flow .ai-summarizer-flow-folder-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-summarizer-flow .ai-summarizer-status-layout {
