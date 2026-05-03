@@ -137,7 +137,7 @@ Done When：
 當 `CAP-202`、`CAP-203` 的驗收點關閉，且 `CAP-205` / `CAP-206` 的長媒體與字幕策略落地後：
 
 - 將本檔已完成項目移入 [backlog-archive.md](backlog-archive.md)。
-- 重新評估 `CAP-404` 的 `ytDlpPath` / managed install/update 是否進入 active。
+- `CAP-404` 的 `ytDlpPath` 已落地；後續只需評估 `yt-dlp` managed install/update 是否進入 active。
 - 決定下一輪主線要走 `CAP-508` 輸入來源擴充，或先補 `CAP-505` 批次與佇列。
 
 ## Final Handoff Gate 最終交付檢查

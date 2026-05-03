@@ -401,6 +401,31 @@ describe("downloader adapter", () => {
     });
   });
 
+  it("uses configured yt-dlp executable path", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = await prepareYoutubeSession(tempDirectory);
+      const downloadedPath = path.join(session.sessionDirectory, "downloaded.mp4");
+      const ytDlpPath = "D:\\tools\\yt-dlp\\yt-dlp.exe";
+      let capturedCommand = "";
+
+      const adapter = createDownloaderAdapter({
+        ytDlpCommand: ytDlpPath,
+        commandExecutor: async (command) => {
+          capturedCommand = command;
+          await fs.writeFile(downloadedPath, "ok", "utf8");
+          return {
+            stdout: `__DOWNLOADED_PATH__${downloadedPath}\n`,
+            stderr: ""
+          };
+        }
+      });
+
+      await adapter.downloadMedia(session, new AbortController().signal);
+
+      expect(capturedCommand).toBe(ytDlpPath);
+    });
+  });
+
   it("does not apply YouTube-only yt-dlp options to podcast or direct media", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const sources: MediaUrlClassification[] = [

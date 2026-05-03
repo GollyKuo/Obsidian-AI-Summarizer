@@ -377,7 +377,7 @@ async function generateOpenRouterText(input: {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "X-Title": "Obsidian AI Summarizer"
+          "X-Title": "AI Summarizer"
         },
         body: JSON.stringify({
           model: input.model,

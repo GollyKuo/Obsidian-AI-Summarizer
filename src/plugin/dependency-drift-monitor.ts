@@ -73,6 +73,7 @@ export function startDependencyDriftMonitor(
     (() =>
       runMediaDependencyReadinessCheck({
         specs: createMediaRuntimeDependencySpecs({
+          ytDlpPath: plugin.settings.ytDlpPath,
           ffmpegPath: plugin.settings.ffmpegPath,
           ffprobePath: plugin.settings.ffprobePath
         })

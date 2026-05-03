@@ -1,8 +1,41 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-03 00:00
+最後更新：2026-05-04 00:00
 
 ## 版本紀錄
+
+### 0.1.75 - 2026-05-04 00:00
+
+範圍：
+- 補齊 `yt-dlp` 路徑設定與診斷支援。
+
+主要變更：
+- 新增 `ytDlpPath` plugin setting，預設留空使用系統 PATH
+- 設定頁的媒體工具路徑新增 `yt-dlp`，可選擇檔案或從 PATH 自動偵測
+- dependency readiness、dependency drift、runtime diagnostics 會使用設定的 `ytDlpPath`
+- media URL 下載會使用設定的 `ytDlpPath` 執行 `yt-dlp`
+- 更新文件，說明目前支援 `yt-dlp` 路徑設定，但尚未自動下載 `yt-dlp`
+
+驗證：
+- `npm run typecheck`
+
+### 0.1.74 - 2026-05-03 23:59
+
+範圍：
+- 準備 Obsidian community plugin 發布 metadata 與 GitHub release assets 流程。
+
+主要變更：
+- 將 plugin `manifest.id` 調整為 `ai-summarizer`，避免 official plugin id 包含 `obsidian`
+- 將 plugin 顯示名稱調整為 `AI Summarizer`
+- 將同步版本格式收斂為 Obsidian 要求的 `x.y.z`
+- 新增 release metadata 檢查，確保 `manifest.json`、`package.json`、`package-lock.json`、`versions.json` 與 GitHub tag 一致
+- 新增 tag push release workflow，建立 GitHub release 並附上 `main.js`、`manifest.json`、`styles.css`
+- 更新 distribution 文件，對齊新的 plugin folder 與 release 流程
+
+驗證：
+- `npm run check:release-metadata`
+- `npm run build`
+- `npm run gate:release`
 
 ### 0.1.73-flashcard-interface-placeholder - 2026-05-03 00:00
 
@@ -970,10 +1003,10 @@
 
 ### 0.1.27-chunk-payload-and-runtime-bridge - 2026-04-23 08:22
 
-蝭?嚗?
+範圍：
 - 推進 `CAP-203` chunk/payload 邊界，並讓 `local_bridge` runtime 接上 media URL 主線。
 
-銝餉?霈嚗?
+主要變更：
 - 更新 `src/services/media/pre-upload-compressor.ts`
 - 新增長音訊 chunk 處理（segment split）、`chunkCount`、`chunkDurationsMs`、`vadApplied`（v1 固定 `false`）
 - 更新 `src/orchestration/process-media-url.ts`
@@ -986,9 +1019,9 @@
 - 更新 `src/domain/types.ts` 的 media URL request 擴充欄位（`mediaCacheRoot`/`vaultId`/`mediaCompressionProfile`）
 - 更新 `docs/backlog-active.md` 的 CAP-203 runtime handoff 驗收項
 
-撽?嚗?
-- `npm run typecheck` ??
-- `npm run test` ??嚗?36 tests嚗?
+驗證：
+- `npm run typecheck` 通過
+- `npm run test` 通過（36 tests）
 
 ### 0.1.26-pre-upload-compressor-and-handoff - 2026-04-23 00:49
 

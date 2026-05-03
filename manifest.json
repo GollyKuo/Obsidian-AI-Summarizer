@@ -1,7 +1,7 @@
 {
-  "id": "obsidian-ai-summarizer",
-  "name": "Obsidian AI Summarizer",
-  "version": "0.1.73-flashcard-interface-placeholder",
+  "id": "ai-summarizer",
+  "name": "AI Summarizer",
+  "version": "0.1.75",
   "minAppVersion": "1.5.0",
   "description": "將網頁與媒體內容整理成結構化的 Obsidian 筆記。",
   "author": "GollyKuo",

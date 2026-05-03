@@ -74,6 +74,7 @@ interface DownloaderAdapterOptions {
   dependencyChecker?: () => Promise<MediaRuntimeDependencyDiagnostics>;
   cacheRootResolver?: (configuredPath: string) => Promise<MediaCacheRootResolution>;
   urlClassifier?: (rawUrl: string) => MediaUrlClassification;
+  ytDlpCommand?: string;
   ffmpegCommand?: string;
   mkdir?: (targetPath: string) => Promise<void>;
   writeFile?: (targetPath: string, content: string) => Promise<void>;
@@ -726,6 +727,7 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
       await fs.writeFile(targetPath, content, "utf8");
     });
   const commandExecutor = options.commandExecutor ?? defaultCommandExecutor;
+  const ytDlpCommand = options.ytDlpCommand?.trim() || "yt-dlp";
   const ffmpegCommand = options.ffmpegCommand ?? "";
   const readdir = options.readdir ?? ((targetPath: string) => fs.readdir(targetPath));
   const stat =
@@ -783,7 +785,7 @@ export function createDownloaderAdapter(options: DownloaderAdapterOptions = {}):
       let commandResult: ExecCommandResult;
 
       try {
-        commandResult = await commandExecutor("yt-dlp", args, signal);
+        commandResult = await commandExecutor(ytDlpCommand, args, signal);
       } catch (error) {
         if (isAbortError(error) || signal.aborted) {
           throw new SummarizerError({

@@ -11,6 +11,7 @@ import {
 } from "@services/obsidian/template-library";
 import { normalizeNoteMetadata } from "@services/obsidian/note-output-contract";
 import { resolveUniqueNotePathWithDiagnostics } from "@services/obsidian/path-resolver";
+import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 
 export interface NoteStorage {
   exists(path: string): Promise<boolean>;
@@ -54,7 +55,7 @@ function normalizeTemplateOutput(markdown: string): string {
 }
 
 function appendTranscript(summaryMarkdown: string, transcriptMarkdown: string): string {
-  const trimmedTranscript = transcriptMarkdown.trim();
+  const trimmedTranscript = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
   if (trimmedTranscript.length === 0) {
     return summaryMarkdown.trim();
   }
@@ -92,10 +93,10 @@ export class ObsidianNoteWriter implements NoteWriter {
         createdDate: dateOnly(metadataResult.metadata.created),
         created: metadataResult.metadata.created,
         summary: input.summaryMarkdown.trim(),
-        transcript: input.transcriptMarkdown.trim()
+        transcript: normalizeToTraditionalChinese(input.transcriptMarkdown.trim()).value
       },
       appendTranscript(input.summaryMarkdown, input.transcriptMarkdown),
-      input.transcriptMarkdown
+      normalizeToTraditionalChinese(input.transcriptMarkdown).value
     );
     await this.storage.write(pathResult.notePath, contentResult.content);
 
@@ -182,8 +183,9 @@ export class ObsidianNoteWriter implements NoteWriter {
       if (!hasSummaryPlaceholder) {
         contentParts.push("", data.summary);
       }
-      if (!hasTranscriptPlaceholder && transcriptMarkdown.trim().length > 0) {
-        contentParts.push("", "## Transcript", "", transcriptMarkdown.trim());
+      const normalizedTranscriptMarkdown = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
+      if (!hasTranscriptPlaceholder && normalizedTranscriptMarkdown.length > 0) {
+        contentParts.push("", "## Transcript", "", normalizedTranscriptMarkdown);
       }
 
       return {

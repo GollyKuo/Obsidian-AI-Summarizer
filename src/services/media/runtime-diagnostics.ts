@@ -260,6 +260,7 @@ export async function collectRuntimeDiagnostics(
     (() =>
       runMediaDependencyReadinessCheck({
         specs: createMediaRuntimeDependencySpecs({
+          ytDlpPath: settings.ytDlpPath,
           ffmpegPath: settings.ffmpegPath,
           ffprobePath: settings.ffprobePath
         })

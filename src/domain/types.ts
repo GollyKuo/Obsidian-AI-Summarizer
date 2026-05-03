@@ -37,6 +37,7 @@ export interface MediaUrlRequest {
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
+  ytDlpPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
   vaultId?: string;
@@ -52,6 +53,7 @@ export interface LocalMediaRequest {
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
   mediaCacheRoot?: string;
+  ytDlpPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
   vaultId?: string;

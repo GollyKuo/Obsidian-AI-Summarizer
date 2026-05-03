@@ -1,6 +1,6 @@
 # Encoding Safety
 
-最後更新：2026-04-24 08:28
+最後更新：2026-05-04 00:00
 
 ## 目的
 
@@ -48,6 +48,20 @@ Out-File docs/backlog-active.md
 ... > docs/backlog-active.md
 ... >> docs/backlog-active.md
 ```
+
+## 終端讀檔規則
+
+Windows PowerShell 5.1 對 UTF-8 no BOM 檔案的預設讀取不可靠；即使檔案本身是正確 UTF-8，`Get-Content` 仍可能用 ANSI/Big5 解讀，導致終端顯示 mojibake。
+
+只需要在終端檢視中文文件或 metadata 時，也必須明確指定 UTF-8：
+
+```powershell
+Get-Content -Encoding UTF8 docs\distribution-guide.md
+Get-Content -Encoding UTF8 manifest.json
+Get-Content -Encoding UTF8 package.json
+```
+
+若未加 `-Encoding UTF8` 時看到亂碼，先視為終端解碼問題；不要依照該輸出修改或回寫檔案。用 Node、`Get-Content -Encoding UTF8`、或 `[System.IO.File]::ReadAllText(..., [System.Text.Encoding]::UTF8)` 重新確認內容。
 
 ## 允許的修改方式
 

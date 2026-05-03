@@ -151,7 +151,7 @@ YouTube 來源吸收舊版實戰參數，目標是降低分段下載、網路抖
 6. `--http-chunk-size 10485760`
 7. `--continue`
 
-若使用者設定 `ffmpegPath`，`DownloaderAdapter` 必須同步把該路徑傳給 `yt-dlp --ffmpeg-location`。這讓 YouTube 的音訊/影片 merge 不依賴系統 PATH，避免 diagnostics 已通過但下載階段仍只留下分離 stream artifact。
+若使用者設定 `ytDlpPath`，`DownloaderAdapter` 必須使用該路徑執行 `yt-dlp`；若未設定，才使用系統 PATH 的 `yt-dlp`。若使用者設定 `ffmpegPath`，`DownloaderAdapter` 必須同步把該路徑傳給 `yt-dlp --ffmpeg-location`。這讓 YouTube 的音訊/影片 merge 不依賴系統 PATH，避免 diagnostics 已通過但下載階段仍只留下分離 stream artifact。
 
 ### Podcast / Direct Media
 

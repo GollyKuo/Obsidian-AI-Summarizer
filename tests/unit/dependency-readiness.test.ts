@@ -52,13 +52,16 @@ describe("media dependency readiness", () => {
     });
   });
 
-  it("uses configured ffmpeg and ffprobe executable paths when provided", () => {
+  it("uses configured media tool executable paths when provided", () => {
     const specs = createMediaRuntimeDependencySpecs({
+      ytDlpPath: "C:\\Tools\\yt-dlp\\yt-dlp.exe",
       ffmpegPath: "C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe",
       ffprobePath: "C:\\Tools\\ffmpeg\\bin\\ffprobe.exe"
     });
 
-    expect(specs.find((spec) => spec.name === "yt-dlp")?.command).toBe("yt-dlp");
+    expect(specs.find((spec) => spec.name === "yt-dlp")?.command).toBe(
+      "C:\\Tools\\yt-dlp\\yt-dlp.exe"
+    );
     expect(specs.find((spec) => spec.name === "ffmpeg")?.command).toBe(
       "C:\\Tools\\ffmpeg\\bin\\ffmpeg.exe"
     );

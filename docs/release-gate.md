@@ -12,8 +12,9 @@
 2. `npm run check:test`
 3. `npm run check:build`
 4. `npm run gate:local`
-5. `npm run gate:regression:desktop`
-6. `npm run gate:release`
+5. `npm run check:release-metadata`
+6. `npm run gate:regression:desktop`
+7. `npm run gate:release`
 
 ## 放行條件
 

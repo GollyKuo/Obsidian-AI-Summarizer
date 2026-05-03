@@ -45,6 +45,8 @@
   - release 放行條件與失敗時 SOP
 - [docs/release-build-vault-sop.md](d:\程式開發\AI Summarizer\docs\release-build-vault-sop.md)
   - build / release / commit / test / vault sync 操作 SOP
+- [docs/distribution-guide.md](docs/distribution-guide.md)
+  - 手動交付、GitHub release、官方上架、外部工具放置與打包隱私檢查
 - [docs/dependency-update-strategy.md](d:\程式開發\AI Summarizer\docs\dependency-update-strategy.md)
   - `yt-dlp` / `ffmpeg` / `ffprobe` 版本漂移與更新策略
 

@@ -66,4 +66,19 @@ describe("ai-output-normalizer", () => {
     expect(result.transcriptMarkdown).toBe("{0m1s - 0m2s} 逐字稿");
     expect(result.warnings).toEqual([]);
   });
+
+  it("converts transcript output to Taiwan Traditional Chinese while preserving English terms", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: "## 一、重點摘要\n內容",
+      transcriptMarkdown: "{0m1s - 0m2s} 这是一个网络软件，使用 OpenAI API。",
+      warnings: []
+    });
+
+    expect(result.transcriptMarkdown).toContain("這是一個網路軟體");
+    expect(result.transcriptMarkdown).toContain("OpenAI API");
+    expect(result.transcriptMarkdown).not.toContain("这是");
+    expect(
+      result.warnings.some((warning) => warning.includes("converted transcript output to Traditional Chinese"))
+    ).toBe(true);
+  });
 });

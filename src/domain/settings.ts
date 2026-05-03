@@ -55,6 +55,7 @@ export interface AISummarizerPluginSettings {
   modelCatalog: AiModelCatalogEntry[];
   outputFolder: string;
   mediaCacheRoot: string;
+  ytDlpPath: string;
   ffmpegPath: string;
   ffprobePath: string;
   mediaCompressionProfile: MediaCompressionProfile;
@@ -78,6 +79,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   modelCatalog: [...DEFAULT_MODEL_CATALOG],
   outputFolder: "",
   mediaCacheRoot: "",
+  ytDlpPath: "",
   ffmpegPath: "",
   ffprobePath: "",
   mediaCompressionProfile: "balanced",

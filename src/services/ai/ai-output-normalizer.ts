@@ -1,4 +1,11 @@
-import type { MediaSummaryResult, SummaryMetadata, WebpageSummaryResult } from "@domain/types";
+import type {
+  MediaSummaryResult,
+  MediaTranscriptionResult,
+  SummaryMetadata,
+  TranscriptSegment,
+  WebpageSummaryResult
+} from "@domain/types";
+import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 
 interface MarkdownNormalizationResult {
   markdown: string;
@@ -185,9 +192,51 @@ function normalizeTranscriptMarkdown(markdown: string): MarkdownNormalizationRes
     warnings.push("AI output contract: converted transcript time markers from [] to {}.");
   }
 
+  const traditionalChineseHandled = normalizeToTraditionalChinese(bracketHandled);
+  if (traditionalChineseHandled.changed) {
+    warnings.push("AI output contract: converted transcript output to Traditional Chinese.");
+  }
+
   return {
-    markdown: bracketHandled,
+    markdown: traditionalChineseHandled.value,
     summaryMetadata: emptySummaryMetadata(),
+    warnings
+  };
+}
+
+function normalizeTranscriptSegments(transcript: TranscriptSegment[]): {
+  transcript: TranscriptSegment[];
+  changed: boolean;
+} {
+  let changed = false;
+  const normalizedTranscript = transcript.map((segment) => {
+    const textResult = normalizeToTraditionalChinese(segment.text);
+    changed = changed || textResult.changed;
+    return {
+      ...segment,
+      text: textResult.value
+    };
+  });
+
+  return {
+    transcript: normalizedTranscript,
+    changed
+  };
+}
+
+export function normalizeMediaTranscriptionResult(
+  transcription: MediaTranscriptionResult
+): MediaTranscriptionResult {
+  const transcriptResult = normalizeTranscriptMarkdown(transcription.transcriptMarkdown);
+  const segmentResult = normalizeTranscriptSegments(transcription.transcript);
+  const warnings = [...transcription.warnings, ...transcriptResult.warnings];
+  if (segmentResult.changed && !warnings.some((warning) => warning.includes("converted transcript output"))) {
+    warnings.push("AI output contract: converted transcript output to Traditional Chinese.");
+  }
+
+  return {
+    transcript: segmentResult.transcript,
+    transcriptMarkdown: transcriptResult.markdown,
     warnings
   };
 }

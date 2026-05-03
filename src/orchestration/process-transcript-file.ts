@@ -13,6 +13,7 @@ import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
+import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 
 export interface ProcessTranscriptFileDependencies {
   summaryProvider: SummaryProvider;
@@ -151,7 +152,8 @@ async function readTranscriptFile(input: {
     });
   }
 
-  const trimmedTranscript = transcriptMarkdown.trim();
+  const transcriptLanguageResult = normalizeToTraditionalChinese(transcriptMarkdown.trim());
+  const trimmedTranscript = transcriptLanguageResult.value;
   if (trimmedTranscript.length === 0) {
     throw new SummarizerError({
       category: "validation_error",
@@ -162,6 +164,9 @@ async function readTranscriptFile(input: {
 
   const manifestMetadata = await readManifestMetadata(input.transcriptPath, input.readTextFile);
   const warnings = manifestMetadata ? [] : ["Transcript retry: metadata.json was unavailable; using transcript file metadata fallback."];
+  if (transcriptLanguageResult.changed) {
+    warnings.push("Transcript retry: converted transcript file content to Traditional Chinese.");
+  }
   return {
     metadata: manifestMetadata ?? buildFallbackMetadata(input.transcriptPath),
     transcriptMarkdown: trimmedTranscript,

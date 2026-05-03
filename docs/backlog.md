@@ -37,7 +37,7 @@
 3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 已通過；Gemini inline 多 chunk 已改成逐 chunk 轉錄後合併 transcript，且單段失敗會保留已完成 partial transcript；`transcript_file` 已可讀取保留逐字稿並只重跑摘要。
 4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
-6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
+6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
 7. `CAP-207` 進入 active template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
 8. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 
@@ -161,7 +161,7 @@
 狀態：`parking`
 
 摘要：
-保留未來 Settings Tab minimal UI polish，但不納入近期工作。若之後要處理，方向仍是維持 Obsidian-native form，不做 dashboard；改善 `AI 模型`、`輸出與媒體`、`模板與提示`、`診斷` 的 active state、spacing、provider/model/API key 語意、高風險 retention/cache/tool path 說明，以及診斷頁對「現在能不能跑這個來源」的行動導向摘要。
+保留未來 Settings Tab minimal UI polish，但不納入近期工作。若之後要處理，方向仍是維持 Obsidian-native form，不做 dashboard；改善 `AI 模型`、`輸出與媒體`、`筆記模板`、`診斷` 的 active state、spacing、provider/model/API key 語意、高風險 retention/cache/tool path 說明，以及診斷頁對「現在能不能跑這個來源」的行動導向摘要。
 
 ### Reliability And Operations 穩定性與營運
 
@@ -191,7 +191,7 @@
 狀態：`queued`
 
 摘要：
-基線已完成：`yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate、`ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程已落地。queued enhancement：若使用者安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
+基線已完成：`yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate、`ytDlpPath` 設定與診斷、`ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程已落地。queued enhancement：若使用者安裝摩擦仍高，再補 `yt-dlp` managed install/update 或更完整的設定頁診斷 UX。
 
 ### Expansion 擴充能力
 

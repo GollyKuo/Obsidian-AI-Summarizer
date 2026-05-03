@@ -200,7 +200,7 @@ async function testOpenRouterApi(
       headers: {
         Authorization: `Bearer ${request.apiKey}`,
         "Content-Type": "application/json",
-        "X-Title": "Obsidian AI Summarizer"
+        "X-Title": "AI Summarizer"
       },
       body: JSON.stringify({
         model: request.model,

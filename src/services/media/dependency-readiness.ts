@@ -26,6 +26,7 @@ export interface MediaRuntimeDependencyDiagnostics {
 }
 
 export interface MediaRuntimeToolPaths {
+  ytDlpPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
 }
@@ -72,6 +73,13 @@ export function createMediaRuntimeDependencySpecs(
   paths: MediaRuntimeToolPaths = {}
 ): MediaRuntimeDependencySpec[] {
   return DEFAULT_MEDIA_RUNTIME_DEPENDENCIES.map((spec) => {
+    if (spec.name === "yt-dlp") {
+      return {
+        ...spec,
+        command: normalizeCommand(paths.ytDlpPath, spec.command)
+      };
+    }
+
     if (spec.name === "ffmpeg") {
       return {
         ...spec,

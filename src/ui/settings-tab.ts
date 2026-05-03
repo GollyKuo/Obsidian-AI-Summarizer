@@ -42,7 +42,6 @@ import {
   searchMistralModels
 } from "@services/ai/mistral-models";
 import type { MistralModelRecord } from "@services/ai/mistral-models";
-import { listPromptAssets } from "@services/ai/prompt-assets";
 import {
   collectRuntimeDiagnostics,
   formatRuntimeDiagnosticsSummary,
@@ -59,7 +58,12 @@ import {
   listBuiltinTemplates,
   UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
 } from "@services/obsidian/template-library";
-import { getSourceGuidance } from "@ui/source-guidance";
+import {
+  getLocalManagedModelSuggestions,
+  mergeManagedModelSuggestions,
+  searchManagedModelSuggestions,
+  type ManagedModelSuggestion
+} from "@ui/model-autocomplete";
 
 type SettingsSection = "ai_models" | "output_media" | "templates_prompts" | "diagnostics";
 type ApiTestTarget = "transcription" | "summary";
@@ -67,7 +71,7 @@ type ApiTestTarget = "transcription" | "summary";
 const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
   { id: "ai_models", label: "AI 模型" },
   { id: "output_media", label: "輸出與媒體" },
-  { id: "templates_prompts", label: "模板與提示" },
+  { id: "templates_prompts", label: "筆記模板" },
   { id: "diagnostics", label: "診斷" }
 ];
 
@@ -137,9 +141,29 @@ interface DesktopDialog {
   }): Promise<OpenDialogResult>;
 }
 
-type MediaToolPathSettingKey = "ffmpegPath" | "ffprobePath";
+type MediaToolPathSettingKey = "ytDlpPath" | "ffmpegPath" | "ffprobePath";
 
 const execFileAsync = promisify(execFile);
+
+function getMediaToolCommand(settingKey: MediaToolPathSettingKey): string {
+  if (settingKey === "ytDlpPath") {
+    return "yt-dlp";
+  }
+  if (settingKey === "ffmpegPath") {
+    return "ffmpeg";
+  }
+  return "ffprobe";
+}
+
+function getMediaToolPlaceholder(toolName: string): string {
+  if (process.platform !== "win32") {
+    return `例如 /usr/local/bin/${toolName}`;
+  }
+  if (toolName === "yt-dlp") {
+    return "例如 C:\\Tools\\yt-dlp\\yt-dlp.exe";
+  }
+  return `例如 C:\\ffmpeg\\bin\\${toolName}.exe`;
+}
 
 async function findExecutableInPath(command: string): Promise<string | null> {
   const lookupCommand = process.platform === "win32" ? "where.exe" : "which";
@@ -370,7 +394,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       return;
     }
 
-    const toolName = settingKey === "ffmpegPath" ? "ffmpeg" : "ffprobe";
+    const toolName = getMediaToolCommand(settingKey);
     const result = await dialog.showOpenDialog({
       title: `選擇 ${toolName} 可執行檔`,
       defaultPath: this.plugin.settings[settingKey] || undefined,
@@ -820,7 +844,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private resolveManagedModelDataProvider(
     provider: SummaryProvider | TranscriptionProvider,
     purpose: ModelPurpose
-  ): "gemini" | "openrouter" | "mistral" | null {
+  ): ModelProvider | null {
     if (purpose === "summary") {
       if (provider === "openrouter") {
         return "openrouter";
@@ -831,7 +855,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       return provider === "gemini" ? "gemini" : null;
     }
 
-    return provider === "gemini" ? "gemini" : null;
+    if (provider === "gemini" || provider === "gladia") {
+      return provider;
+    }
+
+    return null;
   }
 
   private getManagedModelDataListEl(): HTMLDataListElement {
@@ -856,7 +884,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
   private async updateManagedModelAutocomplete(
     query: string,
-    provider: "gemini" | "openrouter" | "mistral" | null
+    provider: ModelProvider | null,
+    purpose: ModelPurpose
   ): Promise<void> {
     const dataListEl = this.getManagedModelDataListEl();
     dataListEl.replaceChildren();
@@ -866,7 +895,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
 
     try {
-      const suggestions = await this.searchManagedModels(provider, query);
+      const suggestions = await this.searchManagedModels(provider, purpose, query);
 
       for (const suggestion of suggestions) {
         const optionEl = document.createElement("option");
@@ -881,28 +910,71 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private async searchManagedModels(
-    provider: "gemini" | "openrouter" | "mistral",
+    provider: ModelProvider,
+    purpose: ModelPurpose,
     query: string
-  ): Promise<Array<{ id: string; name: string }>> {
-    if (provider === "openrouter") {
-      return searchOpenRouterModels(await this.loadOpenRouterModels(), query);
+  ): Promise<ManagedModelSuggestion[]> {
+    const localSuggestions = searchManagedModelSuggestions(
+      getLocalManagedModelSuggestions(
+        this.plugin.settings.modelCatalog,
+        provider,
+        purpose,
+        this.getSelectedManagedModel(provider, purpose)
+      ),
+      query
+    );
+
+    if (provider === "gladia") {
+      return localSuggestions;
     }
-    if (provider === "mistral") {
-      return searchMistralModels(await this.loadMistralModels(), query);
+
+    try {
+      if (provider === "openrouter") {
+        return mergeManagedModelSuggestions(
+          localSuggestions,
+          searchOpenRouterModels(await this.loadOpenRouterModels(), query)
+        );
+      }
+      if (provider === "mistral") {
+        return mergeManagedModelSuggestions(
+          localSuggestions,
+          searchMistralModels(await this.loadMistralModels(), query)
+        );
+      }
+      return mergeManagedModelSuggestions(
+        localSuggestions,
+        searchGeminiModels(await this.loadGeminiModels(), query)
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.reportWarning(`${provider}_models`, message);
+      return localSuggestions;
     }
-    return searchGeminiModels(await this.loadGeminiModels(), query);
+  }
+
+  private getSelectedManagedModel(provider: ModelProvider, purpose: ModelPurpose): string | undefined {
+    if (purpose === "transcription" && provider === this.plugin.settings.transcriptionProvider) {
+      return this.plugin.settings.transcriptionModel;
+    }
+
+    if (purpose === "summary" && provider === this.plugin.settings.summaryProvider) {
+      return this.plugin.settings.summaryModel;
+    }
+
+    return undefined;
   }
 
   private attachManagedModelAutocomplete(
     inputEl: HTMLInputElement,
-    resolveProvider: () => "gemini" | "openrouter" | "mistral" | null,
+    purpose: ModelPurpose,
+    resolveProvider: () => ModelProvider | null,
     onValueChange: (value: string) => void
   ): void {
     inputEl.setAttribute("list", this.getManagedModelDataListEl().id);
     inputEl.setAttribute("autocomplete", "off");
 
     const updateSuggestions = (): void => {
-      void this.updateManagedModelAutocomplete(inputEl.value, resolveProvider());
+      void this.updateManagedModelAutocomplete(inputEl.value, resolveProvider(), purpose);
     };
 
     inputEl.addEventListener("input", () => {
@@ -1590,6 +1662,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (manageTranscriptionModelInputEl) {
       this.attachManagedModelAutocomplete(
         manageTranscriptionModelInputEl,
+        "transcription",
         () =>
           this.resolveManagedModelDataProvider(
             this.plugin.settings.transcriptionProvider,
@@ -1701,6 +1774,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (manageSummaryModelInputEl) {
       this.attachManagedModelAutocomplete(
         manageSummaryModelInputEl,
+        "summary",
         () => this.resolveManagedModelDataProvider(this.plugin.settings.summaryProvider, "summary"),
         (value) => {
           newSummaryModel = value;
@@ -1891,39 +1965,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private renderPromptAssets(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "Prompt 資產" });
-    containerEl.createEl("p", {
-      text: "這裡列出目前程式內建的 prompt contract 與資產來源，方便追蹤設定頁、流程與測試是否對齊。"
-    });
-
-    const assetsEl = containerEl.createEl("ul");
-    for (const asset of listPromptAssets()) {
-      assetsEl.createEl("li", {
-        text: `${asset.label}: ${asset.description} (${asset.exportedSymbol} / ${asset.sourcePath})`
-      });
-    }
-  }
-
-  private renderInputGuidance(containerEl: HTMLElement): void {
-    const guidance = getSourceGuidance(this.plugin.settings.lastSourceType);
-
-    containerEl.createEl("h3", { text: "輸入引導" });
-    containerEl.createEl("p", {
-      text: `目前預設輸入類型：${guidance.label}`
-    });
-
-    const guidanceList = containerEl.createEl("ul");
-    guidanceList.createEl("li", { text: guidance.description });
-    guidanceList.createEl("li", { text: `輸入格式：${guidance.inputHint}` });
-    guidanceList.createEl("li", { text: `範例：${guidance.examples.join("、")}` });
-    guidanceList.createEl("li", { text: `空值提示：${guidance.emptyValueHint}` });
-  }
-
   private renderTemplateAndPromptSettings(containerEl: HTMLElement): void {
     this.renderTemplateExperience(containerEl);
-    this.renderPromptAssets(containerEl);
-    this.renderInputGuidance(containerEl);
   }
 
   private renderDiagnosticOverview(containerEl: HTMLElement): void {
@@ -2002,14 +2045,17 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     settingKey: MediaToolPathSettingKey,
     toolName: string
   ): void {
+    const isYtDlp = settingKey === "ytDlpPath";
     new Setting(containerEl)
       .setName(toolName)
       .setDesc(
-        `可留空使用系統 PATH；按「自動填入」會在外掛資料夾的 tools/ffmpeg 中檢查、下載或更新 ffmpeg/ffprobe，並寫入路徑。`
+        isYtDlp
+          ? "可留空使用系統 PATH；按「自動偵測」會尋找 PATH 中的 yt-dlp 並寫入路徑。目前不會自動下載 yt-dlp。"
+          : "可留空使用系統 PATH；按「自動填入」會在外掛資料夾的 tools/ffmpeg 中檢查、下載或更新 ffmpeg/ffprobe，並寫入路徑。"
       )
       .addText((text) =>
         text
-          .setPlaceholder(process.platform === "win32" ? `例如 C:\\ffmpeg\\bin\\${toolName}.exe` : `例如 /usr/local/bin/${toolName}`)
+          .setPlaceholder(getMediaToolPlaceholder(toolName))
           .setValue(this.plugin.settings[settingKey])
           .onChange(async (value) => {
             this.plugin.settings[settingKey] = value.trim();
@@ -2023,21 +2069,26 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         })
       )
       .addButton((button) =>
-        button
-          .setButtonText(this.mediaToolInstallInProgress ? "取消下載" : "自動填入")
-          .setDisabled(!this.mediaToolInstallInProgress && !this.hasVaultFilesystemAccess())
-          .onClick(() => {
-            if (this.mediaToolInstallInProgress) {
-              this.cancelProjectMediaToolInstall();
-              return;
-            }
-            void this.installOrUpdateProjectMediaTools();
-          })
+        isYtDlp
+          ? button.setButtonText("自動偵測").onClick(() => {
+              void this.autoDetectMediaToolExecutable(settingKey, toolName);
+            })
+          : button
+              .setButtonText(this.mediaToolInstallInProgress ? "取消下載" : "自動填入")
+              .setDisabled(!this.mediaToolInstallInProgress && !this.hasVaultFilesystemAccess())
+              .onClick(() => {
+                if (this.mediaToolInstallInProgress) {
+                  this.cancelProjectMediaToolInstall();
+                  return;
+                }
+                void this.installOrUpdateProjectMediaTools();
+              })
       );
   }
 
   private renderMediaToolPathSettings(containerEl: HTMLElement): void {
     containerEl.createEl("h3", { text: "媒體工具路徑" });
+    this.renderMediaToolPathSetting(containerEl, "ytDlpPath", "yt-dlp");
     this.renderMediaToolPathSetting(containerEl, "ffmpegPath", "ffmpeg");
     this.renderMediaToolPathSetting(containerEl, "ffprobePath", "ffprobe");
   }

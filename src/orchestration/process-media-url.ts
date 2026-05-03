@@ -19,6 +19,7 @@ import type {
 
 export interface ProcessMediaUrlInput extends MediaUrlRequest {
   mediaCacheRoot: string;
+  ytDlpPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
   vaultId: string;

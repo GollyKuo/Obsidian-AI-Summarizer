@@ -137,13 +137,14 @@ describe("note writer", () => {
         description: "Media description."
       },
       summaryMarkdown: "## Summary\nMedia summary.",
-      transcriptMarkdown: "{0m0s - 0m1s} hello"
+      transcriptMarkdown: "{0m0s - 0m1s} 这是网络软件 with OpenAI API"
     });
 
     expect(writtenContent).toContain("description: \"Media description.\"");
     expect(writtenContent).toContain("tags:\n  - Flashcard");
     expect(writtenContent).toContain("## Summary\nMedia summary.");
-    expect(writtenContent).toContain("## Raw\n{0m0s - 0m1s} hello");
+    expect(writtenContent).toContain("## Raw\n{0m0s - 0m1s} 這是網路軟體 with OpenAI API");
+    expect(writtenContent).not.toContain("这是网络软件");
     expect(writtenContent.match(/## Transcript/g)).toBeNull();
   });
 

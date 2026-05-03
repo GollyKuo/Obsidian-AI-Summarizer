@@ -60,6 +60,7 @@ npm run smoke:mobile
 ## Release 前
 
 ```bash
+npm run check:release-metadata
 npm run gate:release
 ```
 
@@ -78,5 +79,5 @@ GitHub Actions: .github/workflows/release-gate.yml
 - runtime / orchestration 變更：至少跑 `gate:local`
 - 影響 `webpage` 主線、長媒體摘要或共用契約時：加跑 `gate:regression:desktop`
 - UI 變更：跑 `gate:local:vault`，再確認 `smoke:desktop`
-- 發版前：跑 `gate:release`，並同步更新 `docs/dev_log.md`
+- 發版前：跑 `check:release-metadata` 與 `gate:release`，並同步更新 `docs/dev_log.md`
 - 使用者操作入口：`docs/Manual.md`

@@ -14,8 +14,12 @@ import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-r
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
-import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
+import {
+  normalizeMediaSummaryResult,
+  normalizeMediaTranscriptionResult
+} from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
+import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 import type { TranscriptionProvider } from "@services/ai/transcription-provider";
 import {
   createArtifactRetentionManager,
@@ -153,7 +157,7 @@ async function persistTranscriptForRecovery(
 
   try {
     await mkdir(path.dirname(transcriptPath), { recursive: true });
-    await writeFile(transcriptPath, `${transcriptMarkdown}\n`, "utf8");
+    await writeFile(transcriptPath, `${normalizeToTraditionalChinese(transcriptMarkdown).value}\n`, "utf8");
     return [`Recovery transcript preserved for summary retry: ${transcriptPath}`];
   } catch (error) {
     return [`Recovery transcript preservation failed for ${transcriptPath}: ${getErrorMessage(error)}`];
@@ -172,7 +176,7 @@ async function persistPartialTranscriptForRecovery(
 
   try {
     await mkdir(path.dirname(transcriptPath), { recursive: true });
-    await writeFile(transcriptPath, `${partialTranscriptMarkdown.trim()}\n`, "utf8");
+    await writeFile(transcriptPath, `${normalizeToTraditionalChinese(partialTranscriptMarkdown.trim()).value}\n`, "utf8");
     return [`Partial transcript preserved for transcription retry: ${transcriptPath}`];
   } catch (writeError) {
     return [`Partial transcript preservation failed for ${transcriptPath}: ${getErrorMessage(writeError)}`];
@@ -217,7 +221,7 @@ export async function processMedia(
     warnings.push(...mediaInput.warnings);
     emitWarnings(mediaInput.warnings, hooks);
 
-    const transcription = await runJobStep(
+    const transcriptionRaw = await runJobStep(
       "transcribing",
       "Generating media transcript",
       signal,
@@ -235,6 +239,7 @@ export async function processMedia(
         ),
       hooks
     );
+    const transcription = normalizeMediaTranscriptionResult(transcriptionRaw);
     transcriptionResult = transcription;
 
     warnings.push(...transcription.warnings);

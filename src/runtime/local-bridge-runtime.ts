@@ -52,11 +52,12 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
   }
 
   private buildMediaRuntimeDependencyChecker(
-    input: Pick<MediaUrlRequest | LocalMediaRequest, "ffmpegPath" | "ffprobePath">
+    input: Pick<MediaUrlRequest | LocalMediaRequest, "ytDlpPath" | "ffmpegPath" | "ffprobePath">
   ): () => Promise<MediaRuntimeDependencyDiagnostics> {
     return () =>
       assertMediaDependenciesReady({
         specs: createMediaRuntimeDependencySpecs({
+          ytDlpPath: input.ytDlpPath,
           ffmpegPath: input.ffmpegPath,
           ffprobePath: input.ffprobePath
         })
@@ -64,7 +65,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
   }
 
   private buildDependencyChecker(
-    input: Pick<MediaUrlRequest | LocalMediaRequest, "ffmpegPath" | "ffprobePath">
+    input: Pick<MediaUrlRequest | LocalMediaRequest, "ytDlpPath" | "ffmpegPath" | "ffprobePath">
   ): () => Promise<unknown> {
     return this.dependencyChecker ?? this.buildMediaRuntimeDependencyChecker(input);
   }
@@ -96,6 +97,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
+        ytDlpPath: input.ytDlpPath,
         ffmpegPath: input.ffmpegPath,
         ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,
@@ -107,6 +109,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
           this.downloaderAdapter ??
           createDownloaderAdapter({
             dependencyChecker: mediaRuntimeDependencyChecker,
+            ytDlpCommand: input.ytDlpPath,
             ffmpegCommand: input.ffmpegPath
           }),
         preUploadCompressor: this.buildPreUploadCompressor(input)
@@ -156,6 +159,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
         summaryModel: input.summaryModel,
         retentionMode: input.retentionMode,
         mediaCacheRoot: input.mediaCacheRoot ?? "",
+        ytDlpPath: input.ytDlpPath,
         ffmpegPath: input.ffmpegPath,
         ffprobePath: input.ffprobePath,
         vaultId: input.vaultId ?? this.defaultVaultId,

@@ -1103,6 +1103,7 @@ export class SummarizerFlowModal extends Modal {
         summaryModel: this.plugin.settings.summaryModel,
         retentionMode: this.plugin.settings.retentionMode,
         mediaCacheRoot: this.plugin.settings.mediaCacheRoot,
+        ytDlpPath: this.plugin.settings.ytDlpPath,
         ffmpegPath: this.plugin.settings.ffmpegPath,
         ffprobePath: this.plugin.settings.ffprobePath,
         mediaCompressionProfile: this.plugin.settings.mediaCompressionProfile

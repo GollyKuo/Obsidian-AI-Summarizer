@@ -19,6 +19,7 @@ import type {
 
 export interface ProcessLocalMediaInput extends LocalMediaRequest {
   mediaCacheRoot: string;
+  ytDlpPath?: string;
   ffmpegPath?: string;
   ffprobePath?: string;
   vaultId: string;

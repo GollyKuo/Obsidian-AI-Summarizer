@@ -98,7 +98,7 @@
 
 ## Settings Tab
 
-- [ ] `AI 模型`、`輸出與媒體`、`模板與提示`、`診斷` 分段清楚。
+- [ ] `AI 模型`、`輸出與媒體`、`筆記模板`、`診斷` 分段清楚。
 - [ ] active section 明確。
 - [ ] AI provider/model/API key 的目前使用中與管理清單語意分開。
 - [ ] retention mode 文案說明保留/刪除語意。

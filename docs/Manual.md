@@ -16,6 +16,7 @@
 工程側指令與 release 規範請搭配：
 1. `docs/commands-reference.md`
 2. `docs/release-gate.md`
+3. `docs/distribution-guide.md`
 
 ## 目前支援的輸入
 
@@ -311,7 +312,7 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 在 `媒體 URL` 或 `本機媒體` 來源中，Flow Modal 的 `媒體工具` chip 可用來檢查本機媒體處理能力。點擊後會確認 `yt-dlp`、`ffmpeg`、`ffprobe` 與媒體暫存資料夾是否可用。
 
-若狀態顯示不可用或檢查失敗，chip 旁會出現 `診斷` 入口，可前往設定頁查看媒體工具路徑、暫存資料夾與診斷細節。`網頁 URL` 與 `逐字稿檔案` 通常不需要這些媒體工具。
+若狀態顯示不可用或檢查失敗，chip 旁會出現 `診斷` 入口，可前往設定頁查看媒體工具路徑、暫存資料夾與診斷細節。設定頁可指定 `yt-dlp`、`ffmpeg`、`ffprobe` 的完整路徑；`yt-dlp` 目前支援手動指定或從 PATH 自動偵測，尚不支援自動下載。`網頁 URL` 與 `逐字稿檔案` 通常不需要這些媒體工具。
 
 ### 媒體壓縮策略
 
@@ -329,7 +330,7 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 操作方式：
 
-1. 在 Settings Tab 的 `模板與提示` 設定預設模板，或在 Flow Modal 的 `執行前摘要` 臨時切換並記憶為下次預設。
+1. 在 Settings Tab 的 `筆記模板` 設定預設模板，或在 Flow Modal 的 `執行前摘要` 臨時切換並記憶為下次預設。
 2. 選 `自訂模板` 時，請填入 vault 內相對路徑，例如 `Templates/ai-summary-template.md`；若檔案尚未存在，可在 Settings Tab 按 `建立範本` 產生含 `{{summary}}` / `{{transcript}}` 的起始模板。
 3. 自訂模板可使用 `{{title}}`、`{{book}}`、`{{author}}`、`{{creator}}`、`{{description}}`、`{{tags}}`、`{{platform}}`、`{{source}}`、`{{createdDate}}`、`{{created}}`、`{{summary}}`、`{{transcript}}` placeholder；詳細規則見 [template-spec.md](template-spec.md)。
 

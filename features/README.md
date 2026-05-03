@@ -27,7 +27,7 @@ AI Summarizer 的 UI 是 operational interface，不是 landing page。使用者
 - Settings Tab
   - AI 模型
   - 輸出與媒體
-  - 模板與提示
+  - 筆記模板
   - 診斷
 - 共用 UI 文案與狀態
   - `src/ui/source-guidance.ts`
