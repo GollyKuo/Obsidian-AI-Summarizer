@@ -36,6 +36,29 @@ function normalizeCreated(rawCreated: string, now: () => Date): { created: strin
   };
 }
 
+function normalizePlatform(rawPlatform: string): string {
+  const normalized = normalizeSingleLine(rawPlatform);
+  const lower = normalized.toLowerCase();
+
+  if (lower.includes("youtube")) {
+    return "YouTube";
+  }
+  if (lower.includes("podcast")) {
+    return "Podcast";
+  }
+  if (lower === "web" || lower.includes("webpage")) {
+    return "Web";
+  }
+  if (lower.includes("local")) {
+    return "Local File";
+  }
+  if (lower.includes("transcript")) {
+    return "Transcript File";
+  }
+
+  return normalized || "Unknown";
+}
+
 export function normalizeNoteMetadata(
   metadata: SourceMetadata,
   options: NoteMetadataNormalizationOptions = {}
@@ -45,7 +68,7 @@ export function normalizeNoteMetadata(
 
   const title = normalizeSingleLine(metadata.title) || "Untitled";
   const creatorOrAuthor = normalizeSingleLine(metadata.creatorOrAuthor) || "Unknown";
-  const platform = normalizeSingleLine(metadata.platform) || "Unknown";
+  const platform = normalizePlatform(metadata.platform);
   const source = normalizeSingleLine(metadata.source) || "unknown-source";
   const createdResult = normalizeCreated(metadata.created, now);
 

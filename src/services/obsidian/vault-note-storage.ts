@@ -1,5 +1,6 @@
 import { normalizePath, TFile, type Vault } from "obsidian";
 import type { NoteStorage } from "@services/obsidian/note-writer";
+import { getCustomTemplatePath } from "@services/obsidian/template-library";
 
 async function ensureFolder(vault: Vault, folderPath: string): Promise<void> {
   const normalized = normalizePath(folderPath);
@@ -42,7 +43,7 @@ export class VaultNoteStorage implements NoteStorage {
   }
 
   public async readTemplate(templateReference: string): Promise<string | null> {
-    const normalizedPath = normalizePath(templateReference.trim());
+    const normalizedPath = normalizePath(getCustomTemplatePath(templateReference));
     if (!normalizedPath) {
       return null;
     }

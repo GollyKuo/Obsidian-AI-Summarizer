@@ -1,7 +1,8 @@
-import type { MediaSummaryResult, WebpageSummaryResult } from "@domain/types";
+import type { MediaSummaryResult, SummaryMetadata, WebpageSummaryResult } from "@domain/types";
 
 interface MarkdownNormalizationResult {
   markdown: string;
+  summaryMetadata: SummaryMetadata;
   warnings: string[];
 }
 
@@ -20,6 +21,79 @@ function removeEmoji(value: string): { value: string; removed: boolean } {
   return {
     value: replaced,
     removed: replaced !== value
+  };
+}
+
+function emptySummaryMetadata(): SummaryMetadata {
+  return {
+    book: "",
+    author: "",
+    description: ""
+  };
+}
+
+function unquoteMetadataValue(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const last = trimmed[trimmed.length - 1];
+    if ((first === `"` && last === `"`) || (first === `'` && last === `'`)) {
+      return trimmed.slice(1, -1).trim();
+    }
+  }
+  return trimmed;
+}
+
+function extractSummaryMetadata(markdown: string): {
+  markdown: string;
+  summaryMetadata: SummaryMetadata;
+  extracted: boolean;
+} {
+  const normalized = normalizeLineEndings(markdown).trimStart();
+  const metadata = emptySummaryMetadata();
+
+  const frontmatterMatch = normalized.match(/^---\n([\s\S]*?)\n---(?:\n|$)([\s\S]*)$/);
+  if (!frontmatterMatch) {
+    return {
+      markdown,
+      summaryMetadata: metadata,
+      extracted: false
+    };
+  }
+
+  const [, rawBlock = "", body = ""] = frontmatterMatch;
+  let recognizedFieldCount = 0;
+
+  for (const rawLine of rawBlock.split("\n")) {
+    const match = rawLine.match(/^\s*(Book|Author|Description)\s*:\s*(.*)\s*$/i);
+    if (!match) {
+      continue;
+    }
+
+    recognizedFieldCount += 1;
+    const key = match[1].toLowerCase();
+    const value = unquoteMetadataValue(match[2] ?? "");
+    if (key === "book") {
+      metadata.book = value;
+    } else if (key === "author") {
+      metadata.author = value;
+    } else if (key === "description") {
+      metadata.description = value;
+    }
+  }
+
+  if (recognizedFieldCount === 0) {
+    return {
+      markdown,
+      summaryMetadata: metadata,
+      extracted: false
+    };
+  }
+
+  return {
+    markdown: body.trimStart(),
+    summaryMetadata: metadata,
+    extracted: true
   };
 }
 
@@ -68,7 +142,11 @@ function removeBlankLineAfterHeading(markdown: string): { value: string; changed
 function normalizeSummaryMarkdown(markdown: string): MarkdownNormalizationResult {
   const warnings: string[] = [];
   const normalizedLineEnding = normalizeLineEndings(markdown);
-  const trimmed = trimMarkdown(normalizedLineEnding);
+  const metadataHandled = extractSummaryMetadata(normalizedLineEnding);
+  if (metadataHandled.extracted) {
+    warnings.push("AI output contract: extracted summary metadata block.");
+  }
+  const trimmed = trimMarkdown(metadataHandled.markdown);
 
   const emojiHandled = removeEmoji(trimmed);
   if (emojiHandled.removed) {
@@ -87,6 +165,7 @@ function normalizeSummaryMarkdown(markdown: string): MarkdownNormalizationResult
 
   return {
     markdown: blankLineHandled.value,
+    summaryMetadata: metadataHandled.summaryMetadata,
     warnings
   };
 }
@@ -108,6 +187,7 @@ function normalizeTranscriptMarkdown(markdown: string): MarkdownNormalizationRes
 
   return {
     markdown: bracketHandled,
+    summaryMetadata: emptySummaryMetadata(),
     warnings
   };
 }
@@ -118,6 +198,7 @@ export function normalizeMediaSummaryResult(summary: MediaSummaryResult): MediaS
 
   return {
     summaryMarkdown: summaryResult.markdown,
+    summaryMetadata: summary.summaryMetadata ?? summaryResult.summaryMetadata,
     transcriptMarkdown: transcriptResult.markdown,
     warnings: [...summary.warnings, ...summaryResult.warnings, ...transcriptResult.warnings]
   };
@@ -128,6 +209,7 @@ export function normalizeWebpageSummaryResult(summary: WebpageSummaryResult): We
 
   return {
     summaryMarkdown: summaryResult.markdown,
+    summaryMetadata: summary.summaryMetadata ?? summaryResult.summaryMetadata,
     warnings: [...summary.warnings, ...summaryResult.warnings]
   };
 }

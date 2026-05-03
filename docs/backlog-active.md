@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-02 15:37
+最後更新：2026-05-03 23:24
 
 ## 用途
 
@@ -20,7 +20,6 @@
 3. 落地逐字稿與字幕檔生命週期：`CAP-206`。
 4. 補齊使用手冊與 smoke gate：`CAP-303`、`CAP-401`。
 5. 收斂摘要模板與 Frontmatter 輸出：`CAP-207`。
-6. 導入 Flow Modal minimal UI：`CAP-304`。
 
 ## 當前阻塞與決策
 
@@ -31,7 +30,7 @@
 - 長媒體摘要已定案：chunk 只能是內部 token control / diagnostics，不得以 `chunk`、`part`、`分段` 等技術字樣出現在最終筆記。
 - Gemini 大型媒體 v1 已採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；單段失敗時會保留已完成 partial transcript 作為 recovery artifact。
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
-- `features/` 已收斂為 UI 決策、實作指南與 visual QA；下一輪 UI 工作以 `CAP-304` Flow Modal minimal UI adoption 為主，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
+- `features/` 已收斂為 UI 決策、實作指南與 visual QA；`CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
 
 ## Release Checklist
 
@@ -89,14 +88,14 @@
 目標：
 依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`。預設模板產生通用 YAML frontmatter；自訂模板支援完整 Obsidian 模板內容與 `{{summary}}` / `{{transcript}}` 插入點；`Book`、`Author`、`Description` 第一版由摘要模型同時輸出，但保留未來 metadata enrichment 擴充性。
 
-- [ ] 更新 template model：新增 `builtin:universal-frontmatter` reference，保留空字串設定相容，移除舊 `builtin:default`、`builtin:webpage-brief`、`builtin:media-session` 的使用者可見路徑。
-- [ ] 更新 Template Library / Resolver：支援預設通用 frontmatter 欄位、`custom:<path>` 自訂模板、placeholder 置換、空模板 fallback，以及未來新增內建模板的資料結構。
-- [ ] 更新 Note Writer：預設模板輸出 YAML frontmatter 後接 AI 摘要；自訂模板可控制 frontmatter 與 Markdown body；沒有 `{{summary}}` 時摘要接在模板後方，沒有 `{{transcript}}` 時逐字稿維持最後追加。
-- [ ] 更新 summary prompt / AI output contract：讓摘要模型同時產生摘要正文、`Book`、`Author`、`Description`，並保留可替換為 metadata enrichment 的內部邊界。
-- [ ] 補 metadata normalization：`Platform` 正規化為 YouTube、Podcast、Web、本機檔案；`Created` 輸出 `YYYY-MM-DD`；`tags` 固定保留，未製作 Flashcard 時輸出 `tags:` 留白。
-- [ ] 更新 Flow Modal / Settings Tab：模板選項只顯示 `預設通用 Frontmatter` 與 `自訂模板`，自訂模板支援選擇既有 vault 模板與新增模板內容。
-- [ ] 更新文件：同步 `docs/Manual.md`、template 操作導覽、疑難排解與 migration 說明。
-- [ ] 補測試：template library / resolver / note writer unit tests，webpage、media、local media、transcript file integration coverage，以及自訂模板 `{{summary}}` / `{{transcript}}` 插入行為。
+- [x] 更新 template model：新增 `builtin:universal-frontmatter` reference，保留空字串設定相容，移除舊 `builtin:default`、`builtin:webpage-brief`、`builtin:media-session` 的使用者可見路徑。（完成：2026-05-03 23:24）
+- [x] 更新 Template Library / Resolver：支援預設通用 frontmatter 欄位、`custom:<path>` 自訂模板、placeholder 置換、空模板 fallback，以及未來新增內建模板的資料結構。（完成：2026-05-03 23:24）
+- [x] 更新 Note Writer：預設模板輸出 YAML frontmatter 後接 AI 摘要；自訂模板可控制 frontmatter 與 Markdown body；沒有 `{{summary}}` 時摘要接在模板後方，沒有 `{{transcript}}` 時逐字稿維持最後追加。（完成：2026-05-03 23:24）
+- [x] 更新 summary prompt / AI output contract：讓摘要模型同時產生摘要正文、`Book`、`Author`、`Description`，並保留可替換為 metadata enrichment 的內部邊界。（完成：2026-05-03 23:24）
+- [x] 補 metadata normalization：`Platform` 正規化為 YouTube、Podcast、Web、本機檔案；`Created` 輸出 `YYYY-MM-DD`；`tags` 固定保留，未製作 Flashcard 時輸出 `tags:` 留白。（完成：2026-05-03 23:24）
+- [x] 更新 Flow Modal / Settings Tab：模板選項只顯示 `預設通用 Frontmatter` 與 `自訂模板`，自訂模板支援選擇既有 vault 模板與新增模板內容。（完成：2026-05-03 23:24）
+- [x] 更新文件：同步 `docs/Manual.md`、template 操作導覽、疑難排解與 migration 說明。（完成：2026-05-03 23:24）
+- [x] 補測試：template library / resolver / note writer unit tests，webpage、media、local media、transcript file integration coverage，以及自訂模板 `{{summary}}` / `{{transcript}}` 插入行為。（完成：2026-05-03 23:24）
 
 Done When：
 
@@ -119,25 +118,6 @@ Done When：
 - [x] 補使用情境 walkthrough：已有逐字稿重跑摘要。（完成：2026-05-02 03:05）
 - [ ] 補使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片。
 - [ ] 補 artifact retention 說明：`transcript.md`、`subtitles.srt`、source artifact、derived artifact、upload artifact 在不同 retention mode 下的保留行為。
-
-### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
-
-目標：
-依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 重構成單頁分區任務介面，改善來源可見性、執行前摘要、長任務階段、完成/失敗/取消 action 與 Obsidian dark/light 可讀性；不得把 runtime、file writing 或 orchestration 邏輯放進 UI。
-
-- [x] Batch 1：建立 Flow Modal root scope class `.ai-summarizer-flow`，新增或整理只作用於 AI Summarizer UI 的 style scope，不覆寫 Obsidian 全域 `.modal`、`.setting-item`、`body`、`.theme-dark` 或 `.theme-light`。（完成：2026-05-02 14:11）
-- [x] Batch 1：建立第一版 `--ais-*` token mapping，底層使用 Obsidian CSS variables；確認 dark/light theme 下基本文字、surface、border、accent、danger 都可讀。（完成：2026-05-02 14:11）
-- [x] Batch 2：將來源 dropdown 改成 compact segmented control，四個來源 `webpage_url`、`media_url`、`local_media`、`transcript_file` 同時可見，active state 與 keyboard focus 可辨識。（完成：2026-05-02 14:30）
-- [x] Batch 2：重排 Source Input 區塊，讓 URL/path input 佔主要寬度，`填入範例` / `選擇檔案` action 在窄視窗可換行，長 URL 與 Windows path 不造成 overflow。（完成：2026-05-02 14:30）
-- [x] Batch 2：收斂 `source-guidance.ts` 與 Flow Modal 主畫面文案；主畫面只保留短說明，支援格式、artifact lifecycle、dependency detail 放到 details disclosure。（完成：2026-05-02 14:30）
-- [x] Batch 3：新增 Preflight Summary，顯示 note template、output folder、retention mode 使用者語意，以及媒體來源的 dependency readiness / 尚未檢查狀態。（完成：2026-05-02 14:37）
-- [x] Batch 3：將單行 `status | stage` 改成來源感知 stage list；`webpage_url` 不顯示媒體階段，`transcript_file` 不顯示轉錄階段，`media_url` / `local_media` 顯示媒體準備與轉錄。（完成：2026-05-02 14:37）
-- [x] Batch 3：取消流程顯示獨立 `cancelling` 狀態，保留 action row 位置穩定，避免使用者以為取消按鈕無效。（完成：2026-05-02 14:37）
-- [x] Batch 4：completed result panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次` 或等效 action。（完成：2026-05-02 14:57）
-- [x] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。（完成：2026-05-02 14:57）
-- [x] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。（完成：2026-05-02 14:57）
-- [ ] 驗收：依 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 實機檢查 dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width、accessibility；scope 與 source guidance 已完成靜態 / unit 檢查。
-- [x] 驗收：UI 變更後跑 `npm run smoke:desktop`；窄寬度以 visual QA 檢查，mobile runtime / limitation 文案改由 `CAP-501` 驗收。（完成：2026-05-02 15:37）
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 

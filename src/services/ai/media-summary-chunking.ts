@@ -23,6 +23,7 @@ const INTERNAL_PROCESSING_MARKER_LINE =
   /^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?(?:chunk|part|分段)\s*\d+\s*[:：-]?\s*$/iu;
 const INTERNAL_PROCESSING_MARKER_PREFIX =
   /^\s*(?:#{1,6}\s*)?(?:[-*]\s*)?(?:chunk|part|分段)\s*\d+\s*[:：-]\s*/iu;
+const SUMMARY_METADATA_BLOCK = /^---\n[\s\S]*?\n---(?:\n|$)/;
 
 function clampPositiveInteger(value: number | undefined, fallback: number): number {
   if (!Number.isFinite(value) || !value || value <= 0) {
@@ -115,6 +116,7 @@ function chunkTranscript(
 
 function removeInternalProcessingMarkers(summaryMarkdown: string): string {
   return summaryMarkdown
+    .replace(SUMMARY_METADATA_BLOCK, "")
     .split(/\r?\n/g)
     .filter((line) => !INTERNAL_PROCESSING_MARKER_LINE.test(line))
     .map((line) => line.replace(INTERNAL_PROCESSING_MARKER_PREFIX, "").trimEnd())
@@ -228,6 +230,7 @@ export async function summarizeMediaWithChunking(
 
   return {
     summaryMarkdown: finalSummary.summaryMarkdown,
+    summaryMetadata: finalSummary.summaryMetadata,
     warnings
   };
 }

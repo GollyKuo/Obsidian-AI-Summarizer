@@ -7,12 +7,27 @@ import {
 describe("ai-output-normalizer", () => {
   it("normalizes media summary/transcript by contract rules", () => {
     const result = normalizeMediaSummaryResult({
-      summaryMarkdown: "# Summary 🎯\n\n這是一段摘要內容",
+      summaryMarkdown: [
+        "---",
+        'Book: "Demo Book"',
+        "Author: Demo Author",
+        "Description: 這是一段描述",
+        "---",
+        "# Summary 🎯",
+        "",
+        "這是一段摘要內容"
+      ].join("\n"),
       transcriptMarkdown: "[0m1s - 0m2s] 逐字稿😀",
       warnings: ["ai-warning"]
     });
 
     expect(result.summaryMarkdown.startsWith("## Summary")).toBe(true);
+    expect(result.summaryMarkdown).not.toContain("Book:");
+    expect(result.summaryMetadata).toEqual({
+      book: "Demo Book",
+      author: "Demo Author",
+      description: "這是一段描述"
+    });
     expect(result.summaryMarkdown.includes("🎯")).toBe(false);
     expect(result.summaryMarkdown.includes("\n\n這是一段摘要內容")).toBe(false);
     expect(result.transcriptMarkdown).toContain("{0m1s - 0m2s}");

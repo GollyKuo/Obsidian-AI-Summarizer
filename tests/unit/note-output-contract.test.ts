@@ -7,7 +7,7 @@ describe("note output contract", () => {
       {
         title: "  Demo   Title  ",
         creatorOrAuthor: " ",
-        platform: "  ",
+        platform: "youtube video",
         source: "  https://example.com/article  ",
         created: "invalid"
       },
@@ -18,7 +18,7 @@ describe("note output contract", () => {
 
     expect(result.metadata.title).toBe("Demo Title");
     expect(result.metadata.creatorOrAuthor).toBe("Unknown");
-    expect(result.metadata.platform).toBe("Unknown");
+    expect(result.metadata.platform).toBe("YouTube");
     expect(result.metadata.source).toBe("https://example.com/article");
     expect(result.metadata.created).toBe("2026-04-23T00:00:00.000Z");
     expect(result.warnings.length).toBeGreaterThan(0);

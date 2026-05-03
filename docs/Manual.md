@@ -324,15 +324,14 @@ AI 模型頁有一個 `模型清單更新` 區塊。
 
 目前支援：
 
-1. 預設 YAML
-2. 內建模板：`預設摘要模板`、`Webpage Brief`、`Media Session`
-3. 自訂模板
+1. `預設通用 Frontmatter`：使用 `builtin:universal-frontmatter`，輸出統一 YAML frontmatter 後接摘要；媒體與逐字稿檔案會在最後追加 `## Transcript`
+2. `自訂模板`：使用 `custom:<path>` 指向 vault 內模板檔
 
 操作方式：
 
 1. 在 Settings Tab 的 `模板與提示` 設定預設模板，或在 Flow Modal 的 `執行前摘要` 臨時切換並記憶為下次預設。
-2. 選 `自訂模板` 時，請填入 vault 內相對路徑，例如 `Templates/ai-summary-template.md`。
-3. 自訂模板可使用 `{{title}}`、`{{creatorOrAuthor}}`、`{{platform}}`、`{{source}}`、`{{created}}` placeholder；詳細規則見 [template-spec.md](template-spec.md)。
+2. 選 `自訂模板` 時，請填入 vault 內相對路徑，例如 `Templates/ai-summary-template.md`；若檔案尚未存在，可在 Settings Tab 按 `建立範本` 產生含 `{{summary}}` / `{{transcript}}` 的起始模板。
+3. 自訂模板可使用 `{{title}}`、`{{book}}`、`{{author}}`、`{{creator}}`、`{{description}}`、`{{tags}}`、`{{platform}}`、`{{source}}`、`{{createdDate}}`、`{{created}}`、`{{summary}}`、`{{transcript}}` placeholder；詳細規則見 [template-spec.md](template-spec.md)。
 
 ### 預設輸入類型
 

@@ -1,6 +1,6 @@
 # Backlog Archive
 
-最後更新：2026-05-01 23:55
+最後更新：2026-05-03 23:08
 
 ## 用途
 
@@ -115,6 +115,25 @@ runtime、AI、Obsidian、web extraction 等 adapter 必須透過明確介面解
 - [x] 決定 template 整合的第一版 UX。（完成：2026-04-24 08:48）
 - [x] 整理 prompt 資產與 note output 範本。（完成：2026-04-24 08:48）
 - [x] 建立 media / webpage / local media 的輸入引導與錯誤提示文案。（完成：2026-04-24 08:48）
+
+### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
+
+責任邊界：
+依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 重構成單頁分區任務介面，改善來源可見性、執行前摘要、長任務階段、完成/失敗/取消 action 與 Obsidian dark/light 可讀性；不得把 runtime、file writing 或 orchestration 邏輯放進 UI。
+
+- [x] Batch 1：建立 Flow Modal root scope class `.ai-summarizer-flow`，新增或整理只作用於 AI Summarizer UI 的 style scope，不覆寫 Obsidian 全域 `.modal`、`.setting-item`、`body`、`.theme-dark` 或 `.theme-light`。（完成：2026-05-02 14:11）
+- [x] Batch 1：建立第一版 `--ais-*` token mapping，底層使用 Obsidian CSS variables；確認 dark/light theme 下基本文字、surface、border、accent、danger 都可讀。（完成：2026-05-02 14:11）
+- [x] Batch 2：將來源 dropdown 改成 compact segmented control，四個來源 `webpage_url`、`media_url`、`local_media`、`transcript_file` 同時可見，active state 與 keyboard focus 可辨識。（完成：2026-05-02 14:30）
+- [x] Batch 2：重排 Source Input 區塊，讓 URL/path input 佔主要寬度，`填入範例` / `選擇檔案` action 在窄視窗可換行，長 URL 與 Windows path 不造成 overflow。（完成：2026-05-02 14:30）
+- [x] Batch 2：收斂 `source-guidance.ts` 與 Flow Modal 主畫面文案；主畫面只保留短說明，支援格式、artifact lifecycle、dependency detail 放到 details disclosure。（完成：2026-05-02 14:30）
+- [x] Batch 3：新增 Preflight Summary，顯示 note template、output folder、retention mode 使用者語意，以及媒體來源的 dependency readiness / 尚未檢查狀態。（完成：2026-05-02 14:37）
+- [x] Batch 3：將單行 `status | stage` 改成來源感知 stage list；`webpage_url` 不顯示媒體階段，`transcript_file` 不顯示轉錄階段，`media_url` / `local_media` 顯示媒體準備與轉錄。（完成：2026-05-02 14:37）
+- [x] Batch 3：取消流程顯示獨立 `cancelling` 狀態，保留 action row 位置穩定，避免使用者以為取消按鈕無效。（完成：2026-05-02 14:37）
+- [x] Batch 4：completed result panel 顯示 note path，並提供 `開啟筆記`、`複製路徑`、`再摘要一次` 或等效 action。（完成：2026-05-02 14:57）
+- [x] Batch 4：failed result panel 依 `ErrorCategory` 顯示 action-oriented 建議，至少覆蓋 validation、runtime unavailable、download failure、AI failure、note write failure；不要直接顯示 raw stack。（完成：2026-05-02 14:57）
+- [x] Batch 4：cancelled result panel 與 failed 視覺區分；若有 recovery artifact，提示可改用 `transcript_file` 重跑摘要。（完成：2026-05-02 14:57）
+- [x] 驗收：依 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 實機檢查 dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width、accessibility；scope 與 source guidance 已完成靜態 / unit 檢查。（完成：2026-05-03 23:08）
+- [x] 驗收：UI 變更後跑 `npm run smoke:desktop`；窄寬度以 visual QA 檢查，mobile runtime / limitation 文案改由 `CAP-501` 驗收。（完成：2026-05-02 15:37）
 
 ## Completed Reliability And Operations 已完成穩定性與營運
 

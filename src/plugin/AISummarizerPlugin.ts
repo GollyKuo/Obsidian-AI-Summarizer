@@ -12,6 +12,7 @@ import {
   resolveMediaCacheRoot,
   type MediaCacheRootResolution
 } from "@services/media/media-cache-root";
+import { normalizeTemplateReference } from "@services/obsidian/template-library";
 import { AISummarizerSettingTab } from "@ui/settings-tab";
 import {
   DEFAULT_SETTINGS,
@@ -93,7 +94,10 @@ export default class AISummarizerPlugin extends Plugin {
       mistralApiKey: String(loadedSettings?.mistralApiKey ?? DEFAULT_SETTINGS.mistralApiKey),
       gladiaApiKey: String(loadedSettings?.gladiaApiKey ?? DEFAULT_SETTINGS.gladiaApiKey),
       ffmpegPath: String(loadedSettings?.ffmpegPath ?? DEFAULT_SETTINGS.ffmpegPath),
-      ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath)
+      ffprobePath: String(loadedSettings?.ffprobePath ?? DEFAULT_SETTINGS.ffprobePath),
+      templateReference: normalizeTemplateReference(
+        String(loadedSettings?.templateReference ?? DEFAULT_SETTINGS.templateReference)
+      )
     };
   }
 

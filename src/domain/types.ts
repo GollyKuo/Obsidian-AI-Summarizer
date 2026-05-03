@@ -16,6 +16,12 @@ export interface SourceMetadata {
   created: string;
 }
 
+export interface SummaryMetadata {
+  book: string;
+  author: string;
+  description: string;
+}
+
 export interface TranscriptSegment {
   startMs: number;
   endMs: number;
@@ -121,17 +127,20 @@ export interface WebpageAiInput {
 
 export interface MediaSummaryDraft {
   summaryMarkdown: string;
+  summaryMetadata?: SummaryMetadata;
   warnings: string[];
 }
 
 export interface MediaSummaryResult {
   summaryMarkdown: string;
+  summaryMetadata?: SummaryMetadata;
   transcriptMarkdown: string;
   warnings: string[];
 }
 
 export interface WebpageSummaryResult {
   summaryMarkdown: string;
+  summaryMetadata?: SummaryMetadata;
   warnings: string[];
 }
 
@@ -143,11 +152,13 @@ export interface WriteResult {
 
 export interface MediaNoteInput {
   metadata: SourceMetadata;
+  summaryMetadata?: SummaryMetadata;
   summaryMarkdown: string;
   transcriptMarkdown: string;
 }
 
 export interface WebpageNoteInput {
   metadata: SourceMetadata;
+  summaryMetadata?: SummaryMetadata;
   summaryMarkdown: string;
 }

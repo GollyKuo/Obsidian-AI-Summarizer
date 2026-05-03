@@ -96,6 +96,7 @@ export async function processWebpage(
     async () =>
       dependencies.noteWriter.writeWebpageNote({
         metadata,
+        summaryMetadata: summary.summaryMetadata,
         summaryMarkdown: summary.summaryMarkdown
       }),
     hooks

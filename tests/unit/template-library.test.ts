@@ -1,28 +1,39 @@
 import { describe, expect, it } from "vitest";
 import {
+  createCustomTemplateReference,
   describeTemplateReference,
+  getCustomTemplatePath,
   isBuiltinTemplateReference,
   listBuiltinTemplates,
+  normalizeTemplateReference,
   resolveBuiltinTemplate
 } from "@services/obsidian/template-library";
 
 describe("template library", () => {
-  it("lists builtin templates for webpage and media flows", () => {
+  it("lists the universal frontmatter builtin template", () => {
     const templates = listBuiltinTemplates();
 
-    expect(templates.some((template) => template.reference === "builtin:default")).toBe(true);
-    expect(templates.some((template) => template.reference === "builtin:webpage-brief")).toBe(true);
-    expect(templates.some((template) => template.reference === "builtin:media-session")).toBe(true);
-    expect(resolveBuiltinTemplate("builtin:media-session")).not.toBeNull();
+    expect(templates.map((template) => template.reference)).toEqual(["builtin:universal-frontmatter"]);
+    expect(resolveBuiltinTemplate("builtin:universal-frontmatter")).toContain("Book:");
     expect(
-      templates.find((template) => template.reference === "builtin:media-session")?.supportedSourceTypes
+      templates.find((template) => template.reference === "builtin:universal-frontmatter")?.supportedSourceTypes
     ).toContain("transcript_file");
   });
 
-  it("resolves builtin template bodies and descriptions", () => {
+  it("keeps legacy builtin references compatible with universal frontmatter", () => {
     expect(isBuiltinTemplateReference("builtin:webpage-brief")).toBe(true);
-    expect(resolveBuiltinTemplate("builtin:webpage-brief")).toContain("## Capture");
-    expect(describeTemplateReference("builtin:media-session")).toContain("內建模板");
-    expect(describeTemplateReference("")).toContain("預設 YAML");
+    expect(normalizeTemplateReference("builtin:media-session")).toBe("builtin:universal-frontmatter");
+    expect(resolveBuiltinTemplate("builtin:default")).toContain("Created:");
+    expect(describeTemplateReference("")).toContain("預設通用 Frontmatter");
+  });
+
+  it("normalizes custom template references", () => {
+    expect(createCustomTemplateReference("Templates/ai-summary-template.md")).toBe(
+      "custom:Templates/ai-summary-template.md"
+    );
+    expect(getCustomTemplatePath("custom:Templates/ai-summary-template.md")).toBe(
+      "Templates/ai-summary-template.md"
+    );
+    expect(describeTemplateReference("custom:Templates/ai-summary-template.md")).toContain("自訂模板");
   });
 });

@@ -237,6 +237,7 @@ export async function processTranscriptFile(
     async () =>
       dependencies.noteWriter.writeMediaNote({
         metadata: transcriptFile.metadata,
+        summaryMetadata: summary.summaryMetadata,
         summaryMarkdown: summary.summaryMarkdown,
         transcriptMarkdown: summary.transcriptMarkdown
       }),

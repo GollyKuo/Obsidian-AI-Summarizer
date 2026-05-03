@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, normalizePath, PluginSettingTab, Setting, TFile } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
@@ -52,9 +52,12 @@ import {
 } from "@services/media/runtime-diagnostics";
 import { ensureLatestProjectFfmpegTools } from "@services/media/ffmpeg-tool-installer";
 import {
+  createCustomTemplateReference,
   describeTemplateReference,
+  getCustomTemplatePath,
   isBuiltinTemplateReference,
-  listBuiltinTemplates
+  listBuiltinTemplates,
+  UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
 } from "@services/obsidian/template-library";
 import { getSourceGuidance } from "@ui/source-guidance";
 
@@ -73,6 +76,28 @@ const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_CUSTOM_TEMPLATE_BODY = [
+  "---",
+  'title: "{{title}}"',
+  'book: "{{book}}"',
+  'author: "{{author}}"',
+  'creator: "{{creator}}"',
+  'description: "{{description}}"',
+  "tags:{{tags}}",
+  'platform: "{{platform}}"',
+  'source: "{{source}}"',
+  'created: "{{createdDate}}"',
+  "---",
+  "",
+  "# {{title}}",
+  "",
+  "{{summary}}",
+  "",
+  "## Transcript",
+  "",
+  "{{transcript}}",
+  ""
+].join("\n");
 
 const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   webpage_url: "網頁 URL",
@@ -133,15 +158,16 @@ async function findExecutableInPath(command: string): Promise<string | null> {
 }
 
 function getTemplateDropdownValue(templateReference: string): string {
-  if (templateReference.trim().length === 0) {
-    return "";
-  }
-
   if (isBuiltinTemplateReference(templateReference)) {
-    return templateReference;
+    return UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE;
   }
 
   return CUSTOM_TEMPLATE_OPTION;
+}
+
+function parentFolderPath(filePath: string): string {
+  const slashIndex = filePath.lastIndexOf("/");
+  return slashIndex === -1 ? "" : filePath.slice(0, slashIndex);
 }
 
 function addInlineHeading(containerEl: HTMLElement, title: string, hint: string): void {
@@ -291,6 +317,50 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     await this.plugin.saveSettings();
     this.runtimeDiagnostics = null;
     this.display();
+  }
+
+  private async ensureVaultFolder(folderPath: string): Promise<void> {
+    const normalizedFolderPath = normalizePath(folderPath);
+    if (!normalizedFolderPath) {
+      return;
+    }
+
+    const segments = normalizedFolderPath.split("/").filter((segment) => segment.length > 0);
+    let currentPath = "";
+    for (const segment of segments) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      if (this.app.vault.getAbstractFileByPath(currentPath)) {
+        continue;
+      }
+      await this.app.vault.createFolder(currentPath);
+    }
+  }
+
+  private async createCustomTemplateFile(): Promise<void> {
+    const templatePath = normalizePath(getCustomTemplatePath(this.plugin.settings.templateReference));
+    if (!templatePath) {
+      this.plugin.notify("請先填入自訂模板路徑。");
+      return;
+    }
+
+    const existingFile = this.app.vault.getAbstractFileByPath(templatePath);
+    if (existingFile instanceof TFile) {
+      this.plugin.notify(`模板已存在：${templatePath}`);
+      return;
+    }
+    if (existingFile) {
+      this.plugin.notify(`模板路徑已被資料夾占用：${templatePath}`);
+      return;
+    }
+
+    try {
+      await this.ensureVaultFolder(parentFolderPath(templatePath));
+      await this.app.vault.create(templatePath, DEFAULT_CUSTOM_TEMPLATE_BODY);
+      this.plugin.notify(`已建立自訂模板：${templatePath}`);
+    } catch (error) {
+      const report = this.plugin.reportError("template_settings", error);
+      this.plugin.notify(report.noticeMessage);
+    }
   }
 
   private async pickMediaToolExecutable(settingKey: MediaToolPathSettingKey): Promise<void> {
@@ -1759,10 +1829,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("模板來源")
-      .setDesc("可使用內建模板或指定 vault 內的自訂模板。")
+      .setDesc("可使用預設通用 Frontmatter，或指定 vault 內的自訂模板。")
       .addDropdown((dropdown) => {
-        dropdown.addOption("", "預設 YAML");
+        dropdown.addOption(UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE, "預設通用 Frontmatter");
         for (const template of builtinTemplates) {
+          if (template.reference === UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE) {
+            continue;
+          }
           dropdown.addOption(template.reference, template.label);
         }
         dropdown.addOption(CUSTOM_TEMPLATE_OPTION, "自訂模板");
@@ -1773,7 +1846,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
               this.plugin.settings.templateReference.trim().length === 0 ||
               isBuiltinTemplateReference(this.plugin.settings.templateReference)
             ) {
-              this.plugin.settings.templateReference = "Templates/ai-summary-template.md";
+              this.plugin.settings.templateReference = createCustomTemplateReference("Templates/ai-summary-template.md");
             }
           } else {
             this.plugin.settings.templateReference = value;
@@ -1794,12 +1867,17 @@ export class AISummarizerSettingTab extends PluginSettingTab {
         .addText((text) =>
           text
             .setPlaceholder("Templates/ai-summary-template.md")
-            .setValue(this.plugin.settings.templateReference)
+            .setValue(getCustomTemplatePath(this.plugin.settings.templateReference))
             .onChange(async (value) => {
-              this.plugin.settings.templateReference = value.trim();
+              this.plugin.settings.templateReference = createCustomTemplateReference(value);
               await this.plugin.saveSettings();
               this.display();
             })
+        )
+        .addButton((button) =>
+          button.setButtonText("建立範本").onClick(() => {
+            void this.createCustomTemplateFile();
+          })
         );
     }
 

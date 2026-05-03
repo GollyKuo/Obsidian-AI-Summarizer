@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-03 00:00
+最後更新：2026-05-03 23:08
 
 ## 用途
 
@@ -39,7 +39,7 @@
 5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成；若安裝摩擦仍高，再補 `ytDlpPath`、managed install/update 或設定頁診斷 UX。
 7. `CAP-207` 進入 active template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
-8. `CAP-304` 進入下一輪 active UX 主線：依 [features/implementation-guide.md](../features/implementation-guide.md) 將 `AI 摘要器` Flow Modal 從除錯式表單重構為單頁分區任務介面；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
+8. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 
 ## Capability 總表
 
@@ -151,10 +151,10 @@
 
 #### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-依 [features/ui-design.md](../features/ui-design.md) 與 [features/implementation-guide.md](../features/implementation-guide.md)，保留單一 `AI 摘要器` Flow Modal，但將資訊架構重排為 Header、Source Selector、Source Input、Preflight Summary、Stage Status、Warning/Result、Action Row。第一輪目標是建立 `.ai-summarizer-flow` scope、`--ais-*` token mapping、來源 segmented control、短文案與 details disclosure、階段列表、completed/failed/cancelled action，並用 [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) 驗收 dark/light、長路徑、running/cancelled/completed/failed 與 narrow width。若牽涉 mobile runtime、mobile limitation 或平台替代流程文案，移入 `CAP-501`，不在本 capability 重複定義。
+已依 [features/ui-design.md](../features/ui-design.md) 與 [features/implementation-guide.md](../features/implementation-guide.md) 將 Flow Modal 收斂為單頁分區任務介面，完成 `.ai-summarizer-flow` scope、`--ais-*` token mapping、來源 segmented control、Preflight Summary、階段列表、completed/failed/cancelled result panel，以及 dark/light、四種來源、長輸入、running/cancelled/completed/failed、narrow width 與 accessibility 實機檢查。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-305 Settings Tab Minimal UI Polish 設定頁 Minimal UI 收斂
 

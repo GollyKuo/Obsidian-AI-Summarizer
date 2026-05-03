@@ -4,7 +4,11 @@ import {
   buildDefaultFrontmatter,
   type TemplateData
 } from "@services/obsidian/template-resolver";
-import { resolveBuiltinTemplate } from "@services/obsidian/template-library";
+import {
+  getCustomTemplatePath,
+  normalizeTemplateReference,
+  resolveBuiltinTemplate
+} from "@services/obsidian/template-library";
 import { normalizeNoteMetadata } from "@services/obsidian/note-output-contract";
 import { resolveUniqueNotePathWithDiagnostics } from "@services/obsidian/path-resolver";
 
@@ -22,6 +26,40 @@ export interface NoteWriter {
 export interface NoteWriterOptions {
   outputFolder: string;
   templateReference: string;
+  generateFlashcards?: boolean;
+}
+
+interface ContentBuildResult {
+  content: string;
+  warnings: string[];
+}
+
+function dateOnly(isoTimestamp: string): string {
+  const parsed = Date.parse(isoTimestamp);
+  if (Number.isNaN(parsed)) {
+    return new Date().toISOString().slice(0, 10);
+  }
+  return new Date(parsed).toISOString().slice(0, 10);
+}
+
+function buildTagsPlaceholder(generateFlashcards: boolean): string {
+  return generateFlashcards ? "\n  - Flashcard" : "";
+}
+
+function normalizeTemplateOutput(markdown: string): string {
+  return markdown
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function appendTranscript(summaryMarkdown: string, transcriptMarkdown: string): string {
+  const trimmedTranscript = transcriptMarkdown.trim();
+  if (trimmedTranscript.length === 0) {
+    return summaryMarkdown.trim();
+  }
+
+  return [summaryMarkdown.trim(), "", "## Transcript", "", trimmedTranscript].join("\n");
 }
 
 export class ObsidianNoteWriter implements NoteWriter {
@@ -40,19 +78,28 @@ export class ObsidianNoteWriter implements NoteWriter {
       this.options.outputFolder,
       metadataResult.metadata.title
     );
-    const content = await this.buildContent(
+    const contentResult = await this.buildContent(
       {
         title: metadataResult.metadata.title,
+        book: input.summaryMetadata?.book ?? "",
+        author: input.summaryMetadata?.author ?? "",
+        creator: metadataResult.metadata.creatorOrAuthor,
         creatorOrAuthor: metadataResult.metadata.creatorOrAuthor,
+        description: input.summaryMetadata?.description ?? "",
+        tags: buildTagsPlaceholder(this.options.generateFlashcards === true),
         platform: metadataResult.metadata.platform,
         source: metadataResult.metadata.source,
-        created: metadataResult.metadata.created
+        createdDate: dateOnly(metadataResult.metadata.created),
+        created: metadataResult.metadata.created,
+        summary: input.summaryMarkdown.trim(),
+        transcript: input.transcriptMarkdown.trim()
       },
-      [input.summaryMarkdown, "", "## Transcript", "", input.transcriptMarkdown].join("\n")
+      appendTranscript(input.summaryMarkdown, input.transcriptMarkdown),
+      input.transcriptMarkdown
     );
-    await this.storage.write(pathResult.notePath, content);
+    await this.storage.write(pathResult.notePath, contentResult.content);
 
-    const warnings = [...metadataResult.warnings];
+    const warnings = [...metadataResult.warnings, ...contentResult.warnings];
     if (pathResult.collisionCount > 0) {
       warnings.push(
         `Path collision policy: resolved ${pathResult.collisionCount} collision(s) for note title "${pathResult.normalizedTitle}".`
@@ -73,19 +120,28 @@ export class ObsidianNoteWriter implements NoteWriter {
       this.options.outputFolder,
       metadataResult.metadata.title
     );
-    const content = await this.buildContent(
+    const contentResult = await this.buildContent(
       {
         title: metadataResult.metadata.title,
+        book: input.summaryMetadata?.book ?? "",
+        author: input.summaryMetadata?.author ?? "",
+        creator: metadataResult.metadata.creatorOrAuthor,
         creatorOrAuthor: metadataResult.metadata.creatorOrAuthor,
+        description: input.summaryMetadata?.description ?? "",
+        tags: buildTagsPlaceholder(this.options.generateFlashcards === true),
         platform: metadataResult.metadata.platform,
         source: metadataResult.metadata.source,
-        created: metadataResult.metadata.created
+        createdDate: dateOnly(metadataResult.metadata.created),
+        created: metadataResult.metadata.created,
+        summary: input.summaryMarkdown.trim(),
+        transcript: ""
       },
-      input.summaryMarkdown
+      input.summaryMarkdown,
+      ""
     );
-    await this.storage.write(pathResult.notePath, content);
+    await this.storage.write(pathResult.notePath, contentResult.content);
 
-    const warnings = [...metadataResult.warnings];
+    const warnings = [...metadataResult.warnings, ...contentResult.warnings];
     if (pathResult.collisionCount > 0) {
       warnings.push(
         `Path collision policy: resolved ${pathResult.collisionCount} collision(s) for note title "${pathResult.normalizedTitle}".`
@@ -99,17 +155,47 @@ export class ObsidianNoteWriter implements NoteWriter {
     };
   }
 
-  private async buildContent(data: TemplateData, bodyMarkdown: string): Promise<string> {
-    const builtinTemplateBody = resolveBuiltinTemplate(this.options.templateReference);
+  private async buildContent(
+    data: TemplateData,
+    bodyMarkdown: string,
+    transcriptMarkdown: string
+  ): Promise<ContentBuildResult> {
+    const warnings: string[] = [];
+    const templateReference = normalizeTemplateReference(this.options.templateReference);
+    const builtinTemplateBody = resolveBuiltinTemplate(templateReference);
     if (builtinTemplateBody) {
-      return [buildDefaultFrontmatter(data), applyTemplate(builtinTemplateBody, data), "", bodyMarkdown].join("\n");
+      return {
+        content: normalizeTemplateOutput([buildDefaultFrontmatter(data), bodyMarkdown].join("\n")),
+        warnings
+      };
     }
 
-    const templateBody = await this.storage.readTemplate(this.options.templateReference);
+    const templatePath = getCustomTemplatePath(templateReference);
+    const templateBody = await this.storage.readTemplate(templatePath);
 
     if (templateBody) {
-      return [applyTemplate(templateBody, data), "", bodyMarkdown].join("\n");
+      const hasSummaryPlaceholder = templateBody.includes("{{summary}}");
+      const hasTranscriptPlaceholder = templateBody.includes("{{transcript}}");
+      const renderedTemplate = applyTemplate(templateBody, data);
+      const contentParts = [renderedTemplate.trim()];
+
+      if (!hasSummaryPlaceholder) {
+        contentParts.push("", data.summary);
+      }
+      if (!hasTranscriptPlaceholder && transcriptMarkdown.trim().length > 0) {
+        contentParts.push("", "## Transcript", "", transcriptMarkdown.trim());
+      }
+
+      return {
+        content: normalizeTemplateOutput(contentParts.join("\n")),
+        warnings
+      };
     }
-    return [buildDefaultFrontmatter(data), bodyMarkdown].join("\n");
+
+    warnings.push(`Template resolver: custom template was not found; used ${normalizeTemplateReference("")}.`);
+    return {
+      content: normalizeTemplateOutput([buildDefaultFrontmatter(data), bodyMarkdown].join("\n")),
+      warnings
+    };
   }
 }

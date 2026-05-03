@@ -81,7 +81,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   ffmpegPath: "",
   ffprobePath: "",
   mediaCompressionProfile: "balanced",
-  templateReference: "",
+  templateReference: "builtin:universal-frontmatter",
   retentionMode: "delete_temp",
   generateFlashcards: false,
   runtimeStrategy: "local_bridge",

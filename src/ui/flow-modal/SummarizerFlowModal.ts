@@ -44,9 +44,12 @@ import type { NoteWriter } from "@services/obsidian/note-writer";
 import { ObsidianNoteWriter } from "@services/obsidian/note-writer";
 import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
 import {
+  createCustomTemplateReference,
   describeTemplateReference,
+  getCustomTemplatePath,
   isBuiltinTemplateReference,
-  listBuiltinTemplates
+  listBuiltinTemplates,
+  UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
 } from "@services/obsidian/template-library";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
@@ -81,12 +84,8 @@ interface DesktopDialog {
 }
 
 function getTemplateDropdownValue(templateReference: string): string {
-  if (templateReference.trim().length === 0) {
-    return "";
-  }
-
   if (isBuiltinTemplateReference(templateReference)) {
-    return templateReference;
+    return UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE;
   }
 
   return CUSTOM_TEMPLATE_OPTION;
@@ -240,7 +239,8 @@ export class SummarizerFlowModal extends Modal {
   private buildNoteWriter(): NoteWriter {
     return new ObsidianNoteWriter(new VaultNoteStorage(this.plugin.app.vault), {
       outputFolder: this.plugin.settings.outputFolder,
-      templateReference: this.plugin.settings.templateReference
+      templateReference: this.plugin.settings.templateReference,
+      generateFlashcards: this.plugin.settings.generateFlashcards
     });
   }
 
@@ -574,10 +574,13 @@ export class SummarizerFlowModal extends Modal {
     });
     templateSelectEl.disabled = this.isBusy();
     templateSelectEl.createEl("option", {
-      attr: { value: "" },
-      text: "預設 YAML"
+      attr: { value: UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE },
+      text: "預設通用 Frontmatter"
     });
     for (const template of listBuiltinTemplates()) {
+      if (template.reference === UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE) {
+        continue;
+      }
       templateSelectEl.createEl("option", {
         attr: { value: template.reference },
         text: template.label
@@ -595,7 +598,7 @@ export class SummarizerFlowModal extends Modal {
           this.plugin.settings.templateReference.trim().length === 0 ||
           isBuiltinTemplateReference(this.plugin.settings.templateReference)
         ) {
-          this.plugin.settings.templateReference = "Templates/ai-summary-template.md";
+          this.plugin.settings.templateReference = createCustomTemplateReference("Templates/ai-summary-template.md");
         }
       } else {
         this.plugin.settings.templateReference = selectedValue;
@@ -613,9 +616,9 @@ export class SummarizerFlowModal extends Modal {
       customTemplateInputEl.type = "text";
       customTemplateInputEl.disabled = this.isBusy();
       customTemplateInputEl.placeholder = "Templates/ai-summary-template.md";
-      customTemplateInputEl.value = this.plugin.settings.templateReference;
+      customTemplateInputEl.value = getCustomTemplatePath(this.plugin.settings.templateReference);
       customTemplateInputEl.addEventListener("change", () => {
-        this.plugin.settings.templateReference = customTemplateInputEl.value.trim();
+        this.plugin.settings.templateReference = createCustomTemplateReference(customTemplateInputEl.value);
         void this.plugin.saveSettings();
       });
     }

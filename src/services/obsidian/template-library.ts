@@ -1,5 +1,8 @@
 import type { SourceType } from "@domain/types";
 
+export const UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE = "builtin:universal-frontmatter";
+export const CUSTOM_TEMPLATE_PREFIX = "custom:";
+
 export interface BuiltinTemplateDefinition {
   reference: string;
   label: string;
@@ -10,69 +13,71 @@ export interface BuiltinTemplateDefinition {
 
 const BUILTIN_TEMPLATES: readonly BuiltinTemplateDefinition[] = [
   {
-    reference: "builtin:default",
-    label: "預設摘要模板",
-    description: "保留標準 frontmatter，並加上一段來源上下文區塊。",
+    reference: UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE,
+    label: "預設通用 Frontmatter",
+    description: "輸出統一 YAML frontmatter，摘要與逐字稿由程式穩定插入。",
     supportedSourceTypes: ["webpage_url", "media_url", "local_media", "transcript_file"],
     body: [
-      "> 由 AI Summarizer 產生",
-      "",
-      "## Source Context",
-      "",
-      '- Creator: "{{creatorOrAuthor}}"',
-      '- Platform: "{{platform}}"',
-      '- Created: "{{created}}"'
-    ].join("\n")
-  },
-  {
-    reference: "builtin:webpage-brief",
-    label: "Webpage Brief",
-    description: "適合文章、文件與網頁摘要，先保留來源紀錄，再接摘要正文。",
-    supportedSourceTypes: ["webpage_url"],
-    body: [
-      "## Capture",
-      "",
-      '- URL: "{{source}}"',
-      '- Author: "{{creatorOrAuthor}}"',
-      '- Captured At: "{{created}}"'
-    ].join("\n")
-  },
-  {
-    reference: "builtin:media-session",
-    label: "Media Session",
-    description: "適合影音與逐字稿輸出，先留下媒體脈絡，再接摘要與 transcript。",
-    supportedSourceTypes: ["media_url", "local_media", "transcript_file"],
-    body: [
-      "## Session",
-      "",
-      '- Source: "{{source}}"',
-      '- Speaker / Creator: "{{creatorOrAuthor}}"',
-      '- Captured At: "{{created}}"'
+      "---",
+      'Title: "{{title}}"',
+      'Book: "{{book}}"',
+      'Author: "{{author}}"',
+      'Creator: "{{creator}}"',
+      'Description: "{{description}}"',
+      "tags:{{tags}}",
+      'Platform: "{{platform}}"',
+      'Source: "{{source}}"',
+      'Created: "{{createdDate}}"',
+      "---"
     ].join("\n")
   }
 ] as const;
+
+const BUILTIN_TEMPLATE_ALIASES = new Map<string, string>([
+  ["", UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE],
+  ["builtin:default", UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE],
+  ["builtin:webpage-brief", UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE],
+  ["builtin:media-session", UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE]
+]);
 
 export function listBuiltinTemplates(): readonly BuiltinTemplateDefinition[] {
   return BUILTIN_TEMPLATES;
 }
 
+export function normalizeTemplateReference(templateReference: string): string {
+  const trimmed = templateReference.trim();
+  return BUILTIN_TEMPLATE_ALIASES.get(trimmed) ?? trimmed;
+}
+
 export function isBuiltinTemplateReference(templateReference: string): boolean {
-  return BUILTIN_TEMPLATES.some((template) => template.reference === templateReference);
+  const normalizedReference = normalizeTemplateReference(templateReference);
+  return BUILTIN_TEMPLATES.some((template) => template.reference === normalizedReference);
 }
 
 export function resolveBuiltinTemplate(templateReference: string): string | null {
-  return BUILTIN_TEMPLATES.find((template) => template.reference === templateReference)?.body ?? null;
+  const normalizedReference = normalizeTemplateReference(templateReference);
+  return BUILTIN_TEMPLATES.find((template) => template.reference === normalizedReference)?.body ?? null;
+}
+
+export function createCustomTemplateReference(templatePath: string): string {
+  const normalizedPath = templatePath.trim().replace(/^custom:/, "").trim();
+  return normalizedPath.length > 0 ? `${CUSTOM_TEMPLATE_PREFIX}${normalizedPath}` : "";
+}
+
+export function getCustomTemplatePath(templateReference: string): string {
+  const trimmed = templateReference.trim();
+  return trimmed.startsWith(CUSTOM_TEMPLATE_PREFIX)
+    ? trimmed.slice(CUSTOM_TEMPLATE_PREFIX.length).trim()
+    : trimmed;
 }
 
 export function describeTemplateReference(templateReference: string): string {
-  if (templateReference.trim().length === 0) {
-    return "使用預設 YAML 輸出。";
-  }
+  const normalizedReference = normalizeTemplateReference(templateReference);
 
-  const builtinTemplate = BUILTIN_TEMPLATES.find((template) => template.reference === templateReference);
+  const builtinTemplate = BUILTIN_TEMPLATES.find((template) => template.reference === normalizedReference);
   if (builtinTemplate) {
-    return `使用內建模板：${builtinTemplate.label}。`;
+    return `使用${builtinTemplate.label}。`;
   }
 
-  return `使用自訂模板：${templateReference}`;
+  return `使用自訂模板：${getCustomTemplatePath(templateReference)}`;
 }
