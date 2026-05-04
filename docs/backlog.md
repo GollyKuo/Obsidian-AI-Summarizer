@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-04 23:14
+最後更新：2026-05-05 00:45
 
 ## 用途
 
@@ -32,15 +32,11 @@
 
 目前順序：
 
-1. `CAP-202` source artifact 與 acquisition manifest 已完成第一輪校準，並以 YouTube / direct media smoke 驗證實機下載結果；`ffmpegPath` 現會傳給 `yt-dlp --ffmpeg-location`，避免 PATH 沒有 ffmpeg 時 YouTube merge 失敗。
-2. `CAP-203` 收斂 AI-ready artifact contract：chunk 命名已統一為 `chunk-0000.<ext>` 起，`balanced` profile 3 組樣本相對 `normalized.wav` 均降低 83% 以上；VAD / 轉錄品質守門移入 vNext。
-3. `CAP-205` 收斂大型媒體轉錄與摘要：summary chunking 已改為內部 partial notes 後做 final synthesis；Gladia local media 與 Gladia + OpenRouter/Qwen mixed provider smoke 已通過；Gemini inline 多 chunk 已改成逐 chunk 轉錄後合併 transcript，且單段失敗會保留已完成 partial transcript；`transcript_file` 已可讀取保留逐字稿並只重跑摘要。
-4. `CAP-206` 收斂 transcript / subtitle lifecycle：完成版逐字稿與真正 SRT 已分開命名，`transcript.md` 與 `subtitles.srt` 都會進入 session artifact lifecycle；`delete_temp` 成功清理仍會保留兩者。
-5. `CAP-303` / `CAP-401` 在上述策略落地後補使用手冊與 smoke matrix：覆蓋 Gemini / Gladia / OpenRouter 組合、local media、字幕與 artifact retention；摘要失敗後重跑已由 `transcript_file` flow 先落地。
-6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
-7. `CAP-207` 進入 active template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
-8. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
-9. `CAP-306` 進入 active：設定頁已新增新手導向的 `使用說明` 分頁；`Manual-slides.html` 定案為獨立下載文件，不綁進 Obsidian settings。後續補 `docs/Manual-slides.html` 單檔簡報輸出與 optional artifact 決策。
+1. `CAP-202`、`CAP-203`、`CAP-206`、`CAP-207`、`CAP-306`、`CAP-401` 已完成並移入 archive。
+2. `CAP-205` 目前只保留 Gemini transcription strategy vNext：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留逐 chunk inline fallback；需落地 Files API adapter、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests。
+3. `CAP-303` 文件補強不再列為 active 工作；既有完成項保留在 archive。
+4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
+5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 
 ## Capability 總表
 
@@ -87,45 +83,45 @@
 
 #### CAP-202 Media Acquisition Boundary 媒體取得邊界
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-`yt-dlp` 下載、session isolation、metadata normalization、cancellation、舊版 YouTube 下載 resilience 參數、source artifact 可辨識檔名與 artifact manifest 回寫已落地。YouTube / direct media smoke 已補，並修正 configured `ffmpegPath` 未傳給 `yt-dlp` merge 階段的問題。
+`yt-dlp` 下載、session isolation、metadata normalization、cancellation、舊版 YouTube 下載 resilience 參數、source artifact 可辨識檔名與 artifact manifest 回寫已落地。YouTube / direct media smoke 已補，並修正 configured `ffmpegPath` 未傳給 `yt-dlp` merge 階段的問題。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-203 AI-Ready Media Processing AI 可用媒體處理
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已建立 `process-media-url`、pre-upload compressor、Opus/AAC/FLAC fallback、長媒體 chunk 與 transcript-ready payload，且 chunk artifact 命名已統一為 `chunk-0000.<ext>` 起。`balanced` profile 已完成 3 組樣本量測並達標；VAD / 轉錄品質守門移入 vNext，v1 保留 `vadApplied: false` 與 codec fallback。
+已建立 `process-media-url`、pre-upload compressor、Opus/AAC/FLAC fallback、長媒體 chunk 與 transcript-ready payload，且 chunk artifact 命名已統一為 `chunk-0000.<ext>` 起。`balanced` profile 已完成 3 組樣本量測並達標；VAD / 轉錄品質守門移入 vNext，v1 保留 `vadApplied: false` 與 codec fallback。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-204 Local Media Flow 本機媒體流程
 
 狀態：`completed`
 
 摘要：
-本機媒體 ingestion 已共用 media pipeline 的 AI-ready artifact 與後續 handoff；後續只剩隨 `CAP-202` source artifact 與 `CAP-205` provider smoke 做校準。
+本機媒體 ingestion 已共用 media pipeline 的 AI-ready artifact 與後續 handoff；source artifact 校準與 provider smoke 已隨 `CAP-202` / `CAP-205` 完成。
 
 #### CAP-205 AI Processing Pipeline AI 處理管線
 
 狀態：`active`
 
 摘要：
-已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。長媒體全局摘要 regression gate 已補；下一步是補更多實機 smoke 紀錄與文件 walkthrough。
+已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。v1 完成項已移入 archive；active 只保留 Gemini transcription strategy vNext：Files API 優先、inline chunks fallback、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；`transcript.md` / `subtitles.srt` 雙輸出、metadata lineage、cleanup 保護，以及字幕產線 v1/vNext 邊界已落地。FFmpeg 軟字幕嵌入與含字幕影片保留策略已明確移入 vNext。
+已定義 retention matrix、metadata contract、cleanup / recovery 與 artifact lifecycle；`transcript.md` / `subtitles.srt` 雙輸出、metadata lineage、cleanup 保護，以及字幕產線 v1/vNext 邊界已落地。FFmpeg 軟字幕嵌入與含字幕影片保留策略已明確移入 vNext。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-207 Frontmatter Template Output 摘要模板與 Frontmatter 輸出
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-依 [template-spec.md](template-spec.md) 收斂輸出模板能力。第一版 UI 只提供 `預設通用 Frontmatter` 與 `自訂模板`；新設定使用 `builtin:universal-frontmatter`，舊空字串 `templateReference` 視為相同預設。預設模板產生通用 YAML frontmatter，自訂模板支援完整 Obsidian 模板內容與 `{{summary}}` / `{{transcript}}` 插入點。`Book`、`Author`、`Description` 第一版由摘要模型同時輸出，但需保留未來 metadata enrichment 擴充性。
+依 [template-spec.md](template-spec.md) 收斂輸出模板能力。第一版 UI 只提供 `預設通用 Frontmatter` 與 `自訂模板`；新設定使用 `builtin:universal-frontmatter`，舊空字串 `templateReference` 視為相同預設。預設模板產生通用 YAML frontmatter，自訂模板支援完整 Obsidian 模板內容與 `{{summary}}` / `{{transcript}}` 插入點。`Book`、`Author`、`Description` 第一版由摘要模型同時輸出。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 ### User Experience 使用體驗
 
@@ -145,10 +141,10 @@
 
 #### CAP-303 Documentation And User Manual 文件與使用手冊
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已完成安裝、設定、smoke test、日常操作手冊第一版，以及模型選擇、轉錄/摘要拆分與 provider 設定教學。下一步需補 Gladia、Gemini 大型媒體策略、長媒體全局摘要、重跑摘要、artifact retention、local media 與字幕輸出 walkthrough。
+已完成安裝、設定、smoke test、日常操作手冊第一版，以及四種來源 walkthrough、模型選擇、轉錄/摘要拆分與 provider 設定教學。後續 provider 成本、rate limit、長媒體與 artifact retention 文件補強不再列為 active 工作；既有完成項已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-304 Flow Modal Minimal UI Adoption 摘要任務視窗 Minimal UI 導入
 
@@ -166,19 +162,19 @@
 
 #### CAP-306 In-App Help And HTML Tutorial Slides 內建說明與 HTML 教學簡報
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-新增新手導向的使用說明體驗：在 `Settings -> AI Summarizer` 內提供 `使用說明` 分頁，帶使用者完成安裝、API key、媒體工具檢查與四種輸入流程。`docs/Manual-slides.html` 另作獨立下載的離線簡報，不在 settings 中開啟、嵌入或檢查檔案路徑；後續需補 HTML 產出與 optional artifact 決策。
+新增新手導向的使用說明體驗：在 `Settings -> AI Summarizer` 內提供 `使用說明` 分頁，帶使用者完成安裝、API key、媒體工具檢查與四種輸入流程。`docs/Manual-slides.html` 已作為獨立下載的離線簡報，不在 settings 中開啟、嵌入或檢查檔案路徑；可作為 GitHub release 或文件頁 optional artifact。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 ### Reliability And Operations 穩定性與營運
 
 #### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已完成 capability-based 測試矩陣、smoke checklist 與 regression gate；YouTube / direct media smoke、Gladia local media / mixed provider smoke、Gemini 逐 chunk inline 轉錄、artifact manifest lineage、transcript/subtitle lifecycle regression、transcript-file summary retry integration 與長媒體全局摘要 regression gate 已補。下一步需補手動 smoke 補登。
+已完成 capability-based 測試矩陣、smoke checklist 與 regression gate；YouTube / direct media smoke、Gladia local media / mixed provider smoke、Gemini 逐 chunk inline 轉錄、artifact manifest lineage、transcript/subtitle lifecycle regression、transcript-file summary retry integration 與長媒體全局摘要 regression gate 已補。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-402 Diagnostics And Error Reporting 診斷與錯誤回報
 
