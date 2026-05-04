@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import { App, Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
@@ -65,13 +66,14 @@ import {
   type ManagedModelSuggestion
 } from "@ui/model-autocomplete";
 
-type SettingsSection = "ai_models" | "output_media" | "templates_prompts" | "diagnostics";
+type SettingsSection = "ai_models" | "output_media" | "templates_prompts" | "help" | "diagnostics";
 type ApiTestTarget = "transcription" | "summary";
 
 const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
   { id: "ai_models", label: "AI 模型" },
   { id: "output_media", label: "輸出與媒體" },
   { id: "templates_prompts", label: "筆記模板" },
+  { id: "help", label: "使用說明" },
   { id: "diagnostics", label: "診斷" }
 ];
 
@@ -80,6 +82,7 @@ const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const MANUAL_SLIDES_FILE_NAME = "Manual-slides.html";
 const DEFAULT_CUSTOM_TEMPLATE_BODY = [
   "---",
   'title: "{{title}}"',
@@ -139,6 +142,10 @@ interface DesktopDialog {
     properties: string[];
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<OpenDialogResult>;
+}
+
+interface DesktopShell {
+  openPath(targetPath: string): Promise<string>;
 }
 
 type MediaToolPathSettingKey = "ytDlpPath" | "ffmpegPath" | "ffprobePath";
@@ -501,6 +508,20 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return electron?.dialog ?? electron?.remote?.dialog ?? null;
   }
 
+  private getDesktopShell(): DesktopShell | null {
+    const maybeWindow = window as Window & {
+      require?: (moduleName: string) => unknown;
+    };
+
+    const electron = maybeWindow.require?.("electron") as
+      | {
+          shell?: DesktopShell;
+        }
+      | undefined;
+
+    return electron?.shell ?? null;
+  }
+
   private detectAppSurface(): AppSurface {
     return this.getDesktopDialog() ? "desktop" : "mobile";
   }
@@ -521,8 +542,50 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return path.join(vaultBasePath, pluginRelativeDirectory);
   }
 
+  private resolveManualSlidesPath(): string | null {
+    const pluginDirectory = this.resolvePluginDirectory();
+    if (!pluginDirectory) {
+      return null;
+    }
+
+    return path.join(pluginDirectory, MANUAL_SLIDES_FILE_NAME);
+  }
+
   private hasVaultFilesystemAccess(): boolean {
     return this.resolvePluginDirectory() !== null;
+  }
+
+  private async openManualSlides(): Promise<void> {
+    const manualSlidesPath = this.resolveManualSlidesPath();
+    if (!manualSlidesPath) {
+      this.plugin.notify("目前環境無法解析 plugin 資料夾，請在桌面版 Obsidian 使用 HTML 簡報入口。");
+      return;
+    }
+
+    try {
+      await access(manualSlidesPath);
+    } catch {
+      this.plugin.notify(`尚未提供 ${MANUAL_SLIDES_FILE_NAME}。未來完成後請放在 plugin 資料夾根目錄。`);
+      return;
+    }
+
+    const shell = this.getDesktopShell();
+    if (!shell) {
+      this.plugin.notify("目前環境無法開啟本機 HTML 檔，請用檔案總管開啟 plugin 資料夾中的簡報。");
+      return;
+    }
+
+    try {
+      const errorMessage = await shell.openPath(manualSlidesPath);
+      if (errorMessage.length > 0) {
+        this.plugin.notify(`無法開啟 ${MANUAL_SLIDES_FILE_NAME}：${errorMessage}`);
+        this.plugin.reportWarning("manual_slides", errorMessage);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.plugin.notify(`無法開啟 ${MANUAL_SLIDES_FILE_NAME}：${message}`);
+      this.plugin.reportWarning("manual_slides", message);
+    }
   }
 
   private async pickMediaStorageDirectory(): Promise<void> {
@@ -2480,6 +2543,57 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     this.renderMediaToolPathSetting(containerEl, "ffprobePath", "ffprobe");
   }
 
+  private renderHelpStepList(containerEl: HTMLElement, title: string, steps: string[]): void {
+    containerEl.createEl("h3", { text: title });
+    const listEl = containerEl.createEl("ol");
+    for (const step of steps) {
+      listEl.createEl("li", { text: step });
+    }
+  }
+
+  private renderHelp(containerEl: HTMLElement): void {
+    new Setting(containerEl)
+      .setName("新手快速指南")
+      .setDesc(
+        "這個分頁先保留最短路徑的操作提示。完整 HTML 簡報完成後，會由下方入口開啟。"
+      );
+
+    this.renderHelpStepList(containerEl, "第一次使用", [
+      "安裝或更新 plugin 後，先確認 Community plugins 已啟用 AI Summarizer。",
+      "到 AI 模型分頁填入 Gemini、Mistral 或 Gladia API key，並按測試確認可用。",
+      "若要處理 YouTube、podcast 或本機音訊影片，到診斷分頁確認 ffmpeg、ffprobe、yt-dlp 可用。",
+      "開啟 AI 摘要器，選擇網頁 URL、媒體 URL、本機媒體或逐字稿檔案。",
+      "完成後用開啟筆記檢查摘要結果；若摘要失敗但有逐字稿，可改用逐字稿檔案重跑摘要。"
+    ]);
+
+    this.renderHelpStepList(containerEl, "來源選擇", [
+      "網頁 URL：文章、文件頁、部落格，通常不需要媒體工具。",
+      "媒體 URL：YouTube、podcast 或直接媒體網址，需要媒體工具與轉錄 provider。",
+      "本機媒體：本機音訊或影片，需要媒體工具與轉錄 provider。",
+      "逐字稿檔案：已有 transcript.md 或 .txt 時，跳過轉錄只重跑摘要。"
+    ]);
+
+    const manualSlidesPath = this.resolveManualSlidesPath();
+    new Setting(containerEl)
+      .setName("HTML 簡報")
+      .setDesc(
+        manualSlidesPath
+          ? `未來完成 ${MANUAL_SLIDES_FILE_NAME} 後，請放在 plugin 資料夾根目錄：${manualSlidesPath}`
+          : `未來完成 ${MANUAL_SLIDES_FILE_NAME} 後，可由這裡開啟；目前環境無法解析 plugin 資料夾。`
+      )
+      .addButton((button) =>
+        button.setButtonText("開啟簡報").onClick(() => {
+          void this.openManualSlides();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("更新方式")
+      .setDesc(
+        "設定頁內的使用說明會跟著 main.js 更新。Manual-slides.html 是額外離線文件，不是 plugin 自動更新的必要檔案。"
+      );
+  }
+
   private renderDiagnostics(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("除錯模式")
@@ -2521,6 +2635,11 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     if (this.activeSection === "templates_prompts") {
       this.renderTemplateAndPromptSettings(containerEl);
+      return;
+    }
+
+    if (this.activeSection === "help") {
+      this.renderHelp(containerEl);
       return;
     }
 

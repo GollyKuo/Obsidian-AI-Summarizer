@@ -238,6 +238,25 @@ Release asset 應只包含程式與 metadata：
 
 不要在 release zip 中放入使用者設定資料檔，例如 `data.json` 或其他由 Obsidian `saveData` 產生的檔案。
 
+### 使用說明與簡報資產策略
+
+設定頁已新增 `使用說明` 分頁，並預留開啟 `Manual-slides.html` 的入口；該分頁不能依賴獨立 HTML 才能運作。Obsidian Community Plugin 的標準安裝與更新流程會從 GitHub release 下載 `manifest.json`、`main.js` 與 `styles.css`，額外 HTML 檔不應被視為自動更新資產。
+
+建議策略：
+
+1. 設定頁內的使用說明內容打包進 `main.js`，例如以 TypeScript 資料結構或渲染函式維護。
+2. `docs/Manual-slides.html` 作為額外文件輸出，供 GitHub、手動分享、離線教學或投影使用。
+3. 若要同時維護設定頁說明與獨立 HTML 簡報，應建立單一內容來源，再由 build script 產生 HTML，避免兩份教學內容分歧。
+4. 若在設定頁呈現簡報式內容，優先用隔離容器、iframe `srcdoc` 或專用 modal，避免簡報 CSS / JS 影響 Obsidian 原生 settings DOM。
+5. 若手動 release zip 決定附上 `Manual-slides.html`，每次文件內容更新都必須重新產出並附上新版；但一般 plugin 更新不應要求使用者手動複製它。
+
+實作時同步檢查：
+
+1. `src/ui/settings-tab.ts` 的 `使用說明` section 是否仍可在沒有 `Manual-slides.html` 時正常顯示。
+2. build / vault sync 是否仍只依賴必要 plugin assets。
+3. GitHub release workflow 是否維持標準三檔，或明確把 `Manual-slides.html` 標為 optional artifact。
+4. [Manual.md](Manual.md)、[distribution-guide.md](distribution-guide.md) 與 backlog 是否同步更新。
+
 ### GitHub Release
 
 若要用 GitHub release 分享：

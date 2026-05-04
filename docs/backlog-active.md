@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-03 23:24
+最後更新：2026-05-04 23:05
 
 ## 用途
 
@@ -20,6 +20,7 @@
 3. 落地逐字稿與字幕檔生命週期：`CAP-206`。
 4. 補齊使用手冊與 smoke gate：`CAP-303`、`CAP-401`。
 5. 收斂摘要模板與 Frontmatter 輸出：`CAP-207`。
+6. 補設定頁使用說明與後續 HTML 簡報產線：`CAP-306`。
 
 ## 當前阻塞與決策
 
@@ -31,6 +32,7 @@
 - Gemini 大型媒體 v1 已採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；單段失敗時會保留已完成 partial transcript 作為 recovery artifact。
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
 - `features/` 已收斂為 UI 決策、實作指南與 visual QA；`CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
+- 設定頁使用說明與 HTML 簡報策略已定案：內建使用說明已加入 `Settings -> AI Summarizer`，但不得依賴獨立 `Manual-slides.html`；官方 Community Plugin 更新只保證標準 plugin assets，HTML 簡報只能作 optional 文件。
 
 ## Release Checklist
 
@@ -111,6 +113,7 @@ Done When：
 使用者能理解 provider 選擇、長媒體策略、保留策略與失敗後怎麼恢復。
 
 - [x] 建立 UI 設計導覽文件，並從架構邊界、setup SOP、能力地圖、媒體規格與手冊加入引用。（完成：2026-05-02 03:18）
+- [x] 記錄設定頁使用說明與 HTML 簡報更新策略：settings 內說明打包進 `main.js`，`Manual-slides.html` 作為 optional 離線文件，不作為 plugin 更新必要檔。（完成：2026-05-04 22:55）
 - [ ] 補 Gladia 轉錄 provider 使用說明：API key 設定、建議使用情境、與 Gemini 轉錄取捨、常見錯誤與成本注意事項。
 - [ ] 補 Gemini 大型媒體策略說明：v1 逐 chunk inline 轉錄、vNext file upload、兩者風險與適用情境。
 - [ ] 補長媒體摘要說明：chunk 是內部處理，不會出現在最終摘要；必要時採 partial notes + final synthesis。
@@ -118,6 +121,18 @@ Done When：
 - [x] 補使用情境 walkthrough：已有逐字稿重跑摘要。（完成：2026-05-02 03:05）
 - [ ] 補使用情境 walkthrough：網頁摘要、YouTube/podcast、本機音訊、本機影片。
 - [ ] 補 artifact retention 說明：`transcript.md`、`subtitles.srt`、source artifact、derived artifact、upload artifact 在不同 retention mode 下的保留行為。
+
+### CAP-306 In-App Help And HTML Tutorial Slides 內建說明與 HTML 教學簡報
+
+目標：
+讓新手在 Obsidian settings 內就能找到最短操作路徑，並預留未來 `Manual-slides.html` 的入口。
+
+- [x] 在 `Settings -> AI Summarizer` 新增 `使用說明` 分頁。（完成：2026-05-04 23:05）
+- [x] 使用說明分頁提供第一次使用與四種來源選擇的簡短指南。（完成：2026-05-04 23:05）
+- [x] 預留 `Manual-slides.html` 開啟按鈕，檔案尚未提供時以 notice 提示，不阻塞 settings 說明顯示。（完成：2026-05-04 23:05）
+- [ ] 建立單一內容來源，供 settings 使用說明與 `docs/Manual-slides.html` 共用。
+- [ ] 產生 `docs/Manual-slides.html` 單檔簡報，供離線瀏覽與教學投影。
+- [ ] 決定 `Manual-slides.html` 是否作為 GitHub release optional artifact，並同步 workflow / distribution 文件。
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 

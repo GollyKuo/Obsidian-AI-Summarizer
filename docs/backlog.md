@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-03 23:08
+最後更新：2026-05-04 23:05
 
 ## 用途
 
@@ -40,6 +40,7 @@
 6. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
 7. `CAP-207` 進入 active template 主線：依 [template-spec.md](template-spec.md) 將輸出模板收斂為 `預設通用 Frontmatter` 與 `自訂模板`，並補齊 frontmatter 欄位、summary / transcript 插入點、摘要模型 metadata 輸出與測試。
 8. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
+9. `CAP-306` 進入 active：設定頁已新增新手導向的 `使用說明` 分頁與 `Manual-slides.html` 開啟入口；後續補單一內容來源與 `docs/Manual-slides.html` 產出。內建說明不得依賴獨立 HTML 檔，因為 Obsidian Community Plugin 標準更新只會下載 `manifest.json`、`main.js` 與 `styles.css`。
 
 ## Capability 總表
 
@@ -162,6 +163,13 @@
 
 摘要：
 保留未來 Settings Tab minimal UI polish，但不納入近期工作。若之後要處理，方向仍是維持 Obsidian-native form，不做 dashboard；改善 `AI 模型`、`輸出與媒體`、`筆記模板`、`診斷` 的 active state、spacing、provider/model/API key 語意、高風險 retention/cache/tool path 說明，以及診斷頁對「現在能不能跑這個來源」的行動導向摘要。
+
+#### CAP-306 In-App Help And HTML Tutorial Slides 內建說明與 HTML 教學簡報
+
+狀態：`active`
+
+摘要：
+新增新手導向的使用說明體驗：在 `Settings -> AI Summarizer` 內提供 `使用說明` 分頁，帶使用者完成安裝、API key、媒體工具檢查與四種輸入流程；另可產生單一 `docs/Manual-slides.html` 作為離線簡報。settings 內說明已先打包進 `main.js`，並預留 HTML 簡報開啟入口；後續需補單一內容來源與 HTML 產出。
 
 ### Reliability And Operations 穩定性與營運
 

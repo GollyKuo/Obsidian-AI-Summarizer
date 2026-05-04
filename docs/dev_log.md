@@ -1,8 +1,23 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-04 00:00
+最後更新：2026-05-04 23:05
 
 ## 版本紀錄
+
+### Unreleased - 2026-05-04 23:05
+
+範圍：
+- 新增設定頁使用說明入口，並文件化 HTML 教學簡報的交付策略。
+
+主要變更：
+- 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、來源選擇與 `Manual-slides.html` 開啟入口。
+- 更新 `docs/Manual.md`，說明 settings 內建使用說明與 optional `Manual-slides.html` 的更新差異。
+- 更新 `docs/Manual-Developer.md` 與 `docs/distribution-guide.md`，明確規範使用說明應打包進 `main.js`，獨立 HTML 簡報只作額外文件。
+- 更新 `docs/backlog.md`，新增並啟動 `CAP-306 In-App Help And HTML Tutorial Slides` capability。
+- 更新 `docs/backlog-active.md`，記錄本次決策、已完成的 settings 入口與後續 HTML 簡報待辦。
+
+驗證：
+- `npm run typecheck`
 
 ### 0.1.75 - 2026-05-04 00:00
 
