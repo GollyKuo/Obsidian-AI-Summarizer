@@ -33,7 +33,7 @@
 目前順序：
 
 1. `CAP-202`、`CAP-203`、`CAP-206`、`CAP-207`、`CAP-306`、`CAP-401` 已完成並移入 archive。
-2. `CAP-205` 目前只保留 Gemini transcription strategy vNext：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留逐 chunk inline fallback；需落地 Files API adapter、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests。
+2. `CAP-205` Gemini transcription strategy vNext 已完成：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留逐 chunk inline fallback；Files API adapter、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests 已落地。
 3. `CAP-303` 文件補強不再列為 active 工作；既有完成項保留在 archive。
 4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
@@ -104,10 +104,10 @@
 
 #### CAP-205 AI Processing Pipeline AI 處理管線
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。v1 完成項已移入 archive；active 只保留 Gemini transcription strategy vNext：Files API 優先、inline chunks fallback、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests。
+已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、Gemini Files API `auto` strategy、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。細節已移入 [backlog-archive.md](backlog-archive.md)。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 

@@ -130,6 +130,18 @@ runtime、AI、Obsidian、web extraction 等 adapter 必須透過明確介面解
 - [x] 最終摘要不得出現 `chunk`、`Chunk 1`、`part`、`Part 1`、`分段` 等技術標記，除非原始內容本身就在談這些詞。（完成：2026-05-02 02:22）
 - [x] 定義並落地手動 retry：轉錄成功但摘要失敗時，可選 `transcript_file` 讀取保留的 `transcript.md` 或 `.txt`，跳過轉錄只重跑摘要與 note 輸出。（完成：2026-05-02 03:05）
 
+### CAP-205 Gemini Files API vNext Strategy Gemini Files API 轉錄策略
+
+責任邊界：
+Gemini 轉錄 provider 的 vNext 傳輸策略。`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，並保留逐 chunk inline fallback；摘要 provider 不決定媒體上傳方式。
+
+- [x] 定義 Gemini transcription strategy 設定：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留 `inline_chunks` fallback；摘要 Provider 不得決定媒體上傳方式。（完成：2026-05-05 01:31）
+- [x] 建立 Gemini Files API adapter：upload、get / poll ACTIVE、generateContent with file reference、delete。（完成：2026-05-05 01:31）
+- [x] 擴充 remote file lifecycle：metadata manifest 記錄 remote file name / uri / state / local artifact path，並處理 completed / failed / cancelled cleanup。（完成：2026-05-05 01:31）
+- [x] 補 privacy / retention policy：說明 Gemini remote file 暫存、本機 `delete_temp` / `keep_temp` 的邊界，以及 free / paid tier 資料使用差異。（完成：2026-05-05 01:31）
+- [x] 補 diagnostics：upload、polling、generateContent、delete、rate limit、quota、empty transcript 與 provider error payload 分類。（完成：2026-05-05 01:31）
+- [x] 補 fallback 與測試：Files API 失敗時回到逐 chunk inline；轉錄、`transcript.md`、`subtitles.srt`、summary handoff 與最終摘要不暴露 strategy / chunk 技術標記。（完成：2026-05-05 01:31）
+
 ### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 
 責任邊界：

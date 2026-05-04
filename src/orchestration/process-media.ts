@@ -232,6 +232,7 @@ export async function processMedia(
             normalizedText: mediaInput!.normalizedText,
             transcript: mediaInput!.transcript,
             aiUploadArtifactPaths: mediaInput!.aiUploadArtifactPaths,
+            artifactMetadataPath: mediaInput!.artifactMetadataPath,
             transcriptionProvider: input.transcriptionProvider,
             transcriptionModel: input.transcriptionModel
           },

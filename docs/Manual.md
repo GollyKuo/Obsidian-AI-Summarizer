@@ -290,6 +290,8 @@ D:\AI-Summarizer\media-cache
 3. Gemini 額度不足時，摘要可改用 Mistral。
 4. OpenRouter 是選用，只有切到 OpenRouter 摘要時才需要填 key。
 
+如果轉錄 Provider 選 `Gemini`，外掛會先把媒體抽成音訊並產生 AI-ready artifact，再優先用 Gemini Files API 上傳音訊轉錄；Files API 失敗時會回到逐 chunk inline 轉錄。Gemini Files API 的遠端暫存與本機 `delete_temp` / `keep_temp` 是不同層級：本機 retention 只控制你的電腦上的暫存檔，遠端檔案依 Gemini API provider policy 暫存與刪除。
+
 `模型清單更新` 的 `更新` 會重新抓取 Gemini、OpenRouter、Mistral 的官方模型清單，供 autocomplete 使用。
 
 ### 輸出與媒體

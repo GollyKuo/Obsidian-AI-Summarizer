@@ -38,7 +38,22 @@ export interface MediaArtifactManifest {
   chunkDurationsMs: number[];
   vadApplied: boolean;
   selectedCodec: PreUploadCompressionResult["selectedCodec"] | null;
+  remoteFiles?: RemoteFileLifecycleRecord[];
   warnings: string[];
+}
+
+export interface RemoteFileLifecycleRecord {
+  provider: "Gemini";
+  strategy: "files_api";
+  localArtifactPath: string;
+  name: string;
+  uri: string;
+  mimeType: string;
+  state: string;
+  createdAt: string;
+  deletedAt?: string;
+  deleteState?: "deleted" | "failed" | "skipped";
+  warning?: string;
 }
 
 export function buildInitialArtifactManifest(
@@ -65,8 +80,56 @@ export function buildInitialArtifactManifest(
     chunkDurationsMs: [],
     vadApplied: false,
     selectedCodec: null,
+    remoteFiles: [],
     warnings: input.warnings
   };
+}
+
+export async function updateArtifactManifestWithRemoteFile(
+  metadataPath: string,
+  remoteFile: RemoteFileLifecycleRecord,
+  writeFile: (targetPath: string, content: string) => Promise<void> = async (targetPath, content) => {
+    await fs.writeFile(targetPath, content, "utf8");
+  },
+  readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
+    return fs.readFile(targetPath, "utf8");
+  }
+): Promise<void> {
+  let rawManifest: string;
+  try {
+    rawManifest = await readFile(metadataPath);
+  } catch (error) {
+    if (error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT") {
+      return;
+    }
+    throw error;
+  }
+
+  const manifest = JSON.parse(rawManifest) as MediaArtifactManifest;
+  const remoteFiles = [...(manifest.remoteFiles ?? [])];
+  const existingIndex = remoteFiles.findIndex(
+    (item) => item.provider === remoteFile.provider && item.name === remoteFile.name
+  );
+  if (existingIndex >= 0) {
+    remoteFiles[existingIndex] = {
+      ...remoteFiles[existingIndex],
+      ...remoteFile
+    };
+  } else {
+    remoteFiles.push(remoteFile);
+  }
+
+  await writeArtifactManifest(
+    metadataPath,
+    {
+      ...manifest,
+      remoteFiles,
+      warnings: remoteFile.warning
+        ? [...(manifest.warnings ?? []), remoteFile.warning]
+        : manifest.warnings
+    },
+    writeFile
+  );
 }
 
 export async function updateArtifactManifestWithTranscriptArtifacts(

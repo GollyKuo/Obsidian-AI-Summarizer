@@ -15,8 +15,7 @@
 
 ## 目前主線
 
-1. 收斂大型媒體轉錄與摘要的 vNext transcription strategy：`CAP-205`。
-2. 收尾最終交付前安全重置。
+1. 收尾最終交付前安全重置。
 
 ## 當前阻塞與決策
 
@@ -28,23 +27,9 @@
 - `features/` 已收斂為 UI 決策、實作指南與 visual QA；`CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
 - 設定頁使用說明與 HTML 簡報策略已完成：內建使用說明已加入 `Settings -> AI Summarizer`；`docs/Manual-slides.html` 作為獨立下載文件，不在 settings 中開啟、嵌入或檢查檔案路徑。
 
-## Release Checklist
-
-### CAP-205 AI Processing Pipeline AI 處理管線
-
-目標：
-轉錄、摘要與錯誤恢復都走明確 provider contract；大型媒體不能因單次 payload 過大或 chunk 標記外洩破壞輸出品質。
-
-- [ ] 定義 Gemini transcription strategy 設定：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留 `inline_chunks` fallback；摘要 Provider 不得決定媒體上傳方式。
-- [ ] 建立 Gemini Files API adapter：upload、get / poll ACTIVE、generateContent with file reference、delete。
-- [ ] 擴充 remote file lifecycle：metadata manifest 記錄 remote file name / uri / state / local artifact path，並處理 completed / failed / cancelled cleanup。
-- [ ] 補 privacy / retention policy：說明 Gemini remote file 暫存、本機 `delete_temp` / `keep_temp` 的邊界，以及 free / paid tier 資料使用差異。
-- [ ] 補 diagnostics：upload、polling、generateContent、delete、rate limit、quota、empty transcript 與 provider error payload 分類。
-- [ ] 補 fallback 與測試：Files API 失敗時回到逐 chunk inline；轉錄、`transcript.md`、`subtitles.srt`、summary handoff 與最終摘要不暴露 strategy / chunk 技術標記。
-
 ## 下一個切換點
 
-當 `CAP-205` 的 Gemini transcription strategy vNext 邊界收斂後：
+當 Final Handoff Gate 收斂後：
 
 - `CAP-404` 的 `ytDlpPath` 已落地；後續只需評估 `yt-dlp` managed install/update 是否進入 active。
 - 決定下一輪主線要走 `CAP-508` 輸入來源擴充，或先補 `CAP-505` 批次與佇列。

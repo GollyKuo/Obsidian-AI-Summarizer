@@ -128,6 +128,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       normalizedText,
       transcript: [],
       aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
+      artifactMetadataPath: processResult.session.artifacts.metadataPath,
       artifactCleanup: {
         downloadedPath: processResult.session.artifacts.downloadedPath,
         normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
@@ -187,6 +188,7 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       normalizedText,
       transcript: [],
       aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
+      artifactMetadataPath: processResult.session.artifacts.metadataPath,
       artifactCleanup: {
         downloadedPath: processResult.session.artifacts.downloadedPath,
         normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,

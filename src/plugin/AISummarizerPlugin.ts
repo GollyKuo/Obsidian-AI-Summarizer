@@ -18,6 +18,7 @@ import {
   DEFAULT_SETTINGS,
   ensureSelectedModelsInCatalog,
   normalizeModelCatalog,
+  normalizeGeminiTranscriptionStrategy,
   normalizeRetentionMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
@@ -88,6 +89,9 @@ export default class AISummarizerPlugin extends Plugin {
       summaryProvider,
       summaryModel,
       modelCatalog,
+      geminiTranscriptionStrategy: normalizeGeminiTranscriptionStrategy(
+        loadedSettings?.geminiTranscriptionStrategy
+      ),
       retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
       generateFlashcards: loadedSettings?.generateFlashcards === true,
       openRouterApiKey: String(loadedSettings?.openRouterApiKey ?? DEFAULT_SETTINGS.openRouterApiKey),

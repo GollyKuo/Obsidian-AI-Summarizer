@@ -42,6 +42,7 @@ import {
 
 export type RuntimeStrategy = "local_bridge" | "placeholder_only";
 export type MediaCompressionProfile = "balanced" | "quality";
+export type GeminiTranscriptionStrategy = "auto" | "files_api" | "inline_chunks";
 
 export interface AISummarizerPluginSettings {
   apiKey: string;
@@ -50,6 +51,7 @@ export interface AISummarizerPluginSettings {
   gladiaApiKey: string;
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
+  geminiTranscriptionStrategy: GeminiTranscriptionStrategy;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   modelCatalog: AiModelCatalogEntry[];
@@ -74,6 +76,7 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   gladiaApiKey: "",
   transcriptionProvider: DEFAULT_TRANSCRIPTION_PROVIDER,
   transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
+  geminiTranscriptionStrategy: "auto",
   summaryProvider: DEFAULT_SUMMARY_PROVIDER,
   summaryModel: DEFAULT_SUMMARY_MODEL,
   modelCatalog: [...DEFAULT_MODEL_CATALOG],
@@ -97,6 +100,16 @@ export function normalizeRetentionMode(rawMode: unknown): RetentionMode {
     return "keep_temp";
   }
   return "delete_temp";
+}
+
+export function normalizeGeminiTranscriptionStrategy(
+  rawStrategy: unknown
+): GeminiTranscriptionStrategy {
+  const strategy = String(rawStrategy ?? "").trim();
+  if (strategy === "files_api" || strategy === "inline_chunks") {
+    return strategy;
+  }
+  return "auto";
 }
 
 export {

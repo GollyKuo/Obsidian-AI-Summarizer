@@ -260,7 +260,8 @@ describe("configured AI providers", () => {
       const provider = createConfiguredTranscriptionProvider(
         {
           ...DEFAULT_SETTINGS,
-          apiKey: "gemini-key"
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "inline_chunks"
         },
         { fetchImpl }
       );
@@ -301,6 +302,166 @@ describe("configured AI providers", () => {
     }
   });
 
+  it("transcribes Gemini audio with Files API in auto strategy and deletes the remote file", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          new Response("", {
+            status: 200,
+            headers: {
+              "x-goog-upload-url": "https://upload.example/session-1"
+            }
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            file: {
+              name: "files/audio-1",
+              uri: "https://generativelanguage.googleapis.com/v1beta/files/audio-1",
+              mimeType: "audio/ogg",
+              state: "ACTIVE"
+            }
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} file api transcript" }] } }]
+          })
+        )
+        .mockResolvedValueOnce(new Response("", { status: 200 }));
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "auto"
+        },
+        { fetchImpl }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: audioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [audioPath],
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.transcriptMarkdown).toContain("file api transcript");
+      expect(result.warnings).toContain(
+        "Gemini Files API transcription completed 1 AI upload artifact(s)."
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(4);
+      expect(fetchImpl.mock.calls[0][0]).toBe("https://generativelanguage.googleapis.com/upload/v1beta/files");
+      expect(fetchImpl.mock.calls[0][1]?.headers).toMatchObject({
+        "x-goog-api-key": "gemini-key",
+        "X-Goog-Upload-Protocol": "resumable",
+        "X-Goog-Upload-Command": "start",
+        "X-Goog-Upload-Header-Content-Type": "audio/ogg"
+      });
+      expect(fetchImpl.mock.calls[1][0]).toBe("https://upload.example/session-1");
+      const generateBody = JSON.parse(String(fetchImpl.mock.calls[2][1]?.body));
+      expect(generateBody.contents[0].parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            file_data: {
+              mime_type: "audio/ogg",
+              file_uri: "https://generativelanguage.googleapis.com/v1beta/files/audio-1"
+            }
+          })
+        ])
+      );
+      expect(fetchImpl.mock.calls[3][0]).toBe("https://generativelanguage.googleapis.com/v1beta/files/audio-1");
+      expect(fetchImpl.mock.calls[3][1]?.method).toBe("DELETE");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to Gemini inline chunks when Files API fails in auto strategy", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              error: {
+                message: "Files API unavailable"
+              }
+            },
+            503
+          )
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} inline fallback" }] } }]
+          })
+        );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "auto"
+        },
+        { fetchImpl }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: audioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [audioPath],
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.transcriptMarkdown).toContain("inline fallback");
+      expect(result.warnings[0]).toContain("fell back to inline chunk transcription");
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(String(fetchImpl.mock.calls[1][0])).toContain("gemini-2.5-flash:generateContent");
+      const inlineBody = JSON.parse(String(fetchImpl.mock.calls[1][1]?.body));
+      expect(inlineBody.contents[0].parts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            inline_data: {
+              mime_type: "audio/ogg",
+              data: Buffer.from("audio").toString("base64")
+            }
+          })
+        ])
+      );
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("transcribes Gemini AI upload chunks with separate requests and merges transcripts", async () => {
     const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
     const firstAudioPath = path.join(tempDirectory, "chunk-0000.ogg");
@@ -324,7 +485,8 @@ describe("configured AI providers", () => {
       const provider = createConfiguredTranscriptionProvider(
         {
           ...DEFAULT_SETTINGS,
-          apiKey: "gemini-key"
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "inline_chunks"
         },
         { fetchImpl }
       );
@@ -412,7 +574,8 @@ describe("configured AI providers", () => {
       const provider = createConfiguredTranscriptionProvider(
         {
           ...DEFAULT_SETTINGS,
-          apiKey: "gemini-key"
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "inline_chunks"
         },
         { fetchImpl }
       );
@@ -474,7 +637,8 @@ describe("configured AI providers", () => {
       const provider = createConfiguredTranscriptionProvider(
         {
           ...DEFAULT_SETTINGS,
-          apiKey: "gemini-key"
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "inline_chunks"
         },
         { fetchImpl }
       );

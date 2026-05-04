@@ -1551,7 +1551,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
+      .setDesc("Gemini 會優先使用 Files API 上傳抽音訊後的 AI-ready artifact，失敗時回到 inline chunk；Gladia 維持非同步預錄媒體轉錄。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1684,7 +1684,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
+      .setDesc("Gemini 會優先使用 Files API 上傳抽音訊後的 AI-ready artifact，失敗時回到 inline chunk；Gladia 維持非同步預錄媒體轉錄。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
@@ -1972,7 +1972,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Provider")
-      .setDesc("Gemini 為預設；Gladia 可作為非同步預錄媒體轉錄 provider。")
+      .setDesc("Gemini 會優先使用 Files API 上傳抽音訊後的 AI-ready artifact，失敗時回到 inline chunk；Gladia 維持非同步預錄媒體轉錄。")
       .addDropdown((dropdown) => {
         for (const option of TRANSCRIPTION_PROVIDER_OPTIONS) {
           dropdown.addOption(option.value, option.label);
