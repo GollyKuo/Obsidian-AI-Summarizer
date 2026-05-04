@@ -67,6 +67,41 @@ describe("ai-output-normalizer", () => {
     expect(result.warnings).toEqual([]);
   });
 
+  it("unwraps fenced YAML summary output and extracts metadata", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: [
+        "```yaml",
+        "---",
+        'Book: ""',
+        'Author: "Sense Bar"',
+        'Description: "Project setup lesson"',
+        "---",
+        "# Learning path",
+        "Use Claude, Obsidian, GitHub, and Firebase.",
+        "```"
+      ].join("\n"),
+      transcriptMarkdown: "{0-1000} transcript",
+      warnings: []
+    });
+
+    expect(result.summaryMarkdown).toBe(
+      "## Learning path\nUse Claude, Obsidian, GitHub, and Firebase."
+    );
+    expect(result.summaryMarkdown).not.toContain("```");
+    expect(result.summaryMarkdown).not.toContain("Book:");
+    expect(result.summaryMetadata).toEqual({
+      book: "",
+      author: "Sense Bar",
+      description: "Project setup lesson"
+    });
+    expect(
+      result.warnings.some((warning) => warning.includes("removed wrapping code fence"))
+    ).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("extracted summary metadata block"))
+    ).toBe(true);
+  });
+
   it("converts transcript output to Taiwan Traditional Chinese while preserving English terms", () => {
     const result = normalizeMediaSummaryResult({
       summaryMarkdown: "## 一、重點摘要\n內容",

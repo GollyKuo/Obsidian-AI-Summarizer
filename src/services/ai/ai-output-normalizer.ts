@@ -41,14 +41,37 @@ function emptySummaryMetadata(): SummaryMetadata {
 
 function unquoteMetadataValue(value: string): string {
   const trimmed = value.trim();
-  if (trimmed.length >= 2) {
-    const first = trimmed[0];
-    const last = trimmed[trimmed.length - 1];
-    if ((first === `"` && last === `"`) || (first === `'` && last === `'`)) {
-      return trimmed.slice(1, -1).trim();
-    }
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if ((first === `"` || first === `'`) && last === first) {
+    return trimmed.slice(1, -1).trim();
+  }
+  if (first === `"` || first === `'`) {
+    return trimmed.slice(1).trim();
+  }
+  if (last === `"` || last === `'`) {
+    return trimmed.slice(0, -1).trim();
   }
   return trimmed;
+}
+
+function unwrapWrappingCodeFence(markdown: string): {
+  markdown: string;
+  unwrapped: boolean;
+} {
+  const normalized = normalizeLineEndings(markdown).trim();
+  const match = normalized.match(/^```[a-zA-Z0-9_-]*[ \t]*\n([\s\S]*?)\n```[ \t]*$/);
+  if (!match) {
+    return {
+      markdown,
+      unwrapped: false
+    };
+  }
+
+  return {
+    markdown: match[1].trimStart(),
+    unwrapped: true
+  };
 }
 
 function extractSummaryMetadata(markdown: string): {
@@ -149,7 +172,11 @@ function removeBlankLineAfterHeading(markdown: string): { value: string; changed
 function normalizeSummaryMarkdown(markdown: string): MarkdownNormalizationResult {
   const warnings: string[] = [];
   const normalizedLineEnding = normalizeLineEndings(markdown);
-  const metadataHandled = extractSummaryMetadata(normalizedLineEnding);
+  const fenceHandled = unwrapWrappingCodeFence(normalizedLineEnding);
+  if (fenceHandled.unwrapped) {
+    warnings.push("AI output contract: removed wrapping code fence from summary output.");
+  }
+  const metadataHandled = extractSummaryMetadata(fenceHandled.markdown);
   if (metadataHandled.extracted) {
     warnings.push("AI output contract: extracted summary metadata block.");
   }
