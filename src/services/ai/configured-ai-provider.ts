@@ -1090,14 +1090,34 @@ async function transcribeGeminiAudioArtifacts(input: {
       throw error;
     }
 
-    const inlineResult = await transcribeGeminiInlineArtifacts(input);
-    return {
-      ...inlineResult,
-      warnings: [
-        `Gemini Files API transcription failed; fell back to inline chunk transcription: ${getErrorMessage(error)}`,
-        ...inlineResult.warnings
-      ]
-    };
+    const filesApiErrorMessage = getErrorMessage(error);
+    try {
+      const inlineResult = await transcribeGeminiInlineArtifacts(input);
+      return {
+        ...inlineResult,
+        warnings: [
+          `Gemini Files API transcription failed; fell back to inline chunk transcription: ${filesApiErrorMessage}`,
+          ...inlineResult.warnings
+        ]
+      };
+    } catch (inlineError) {
+      throw new SummarizerError({
+        category: inlineError instanceof SummarizerError ? inlineError.category : "ai_failure",
+        message: `Gemini Files API transcription failed, and inline chunk fallback also failed: ${getErrorMessage(inlineError)}`,
+        recoverable: true,
+        cause: {
+          provider: "Gemini",
+          failureKind: "files_api_fallback_inline_failed",
+          model: input.model,
+          strategy: input.strategy,
+          totalArtifacts: input.artifactPaths.length,
+          filesApiErrorMessage,
+          inlineErrorMessage: getErrorMessage(inlineError),
+          filesApiCause: error instanceof SummarizerError ? error.causeValue : error,
+          inlineCause: inlineError instanceof SummarizerError ? inlineError.causeValue : inlineError
+        }
+      });
+    }
   }
 }
 

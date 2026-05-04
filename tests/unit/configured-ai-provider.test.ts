@@ -462,6 +462,77 @@ describe("configured AI providers", () => {
     }
   });
 
+  it("preserves Gemini Files API failure context when inline fallback also fails", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              error: {
+                message: "Files API unavailable"
+              }
+            },
+            503
+          )
+        )
+        .mockResolvedValueOnce(
+          jsonResponse(
+            {
+              error: {
+                message: "Inline model overloaded"
+              }
+            },
+            503
+          )
+        );
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "auto"
+        },
+        { fetchImpl }
+      );
+
+      await expect(
+        provider.transcribeMedia(
+          {
+            metadata: {
+              title: "Media",
+              creatorOrAuthor: "Creator",
+              platform: "Local File",
+              source: audioPath,
+              created: "2026-04-25T00:00:00.000Z"
+            },
+            normalizedText: "",
+            transcript: [],
+            aiUploadArtifactPaths: [audioPath],
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash"
+          },
+          new AbortController().signal
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: expect.stringContaining("Gemini Files API transcription failed, and inline chunk fallback also failed"),
+        causeValue: expect.objectContaining({
+          provider: "Gemini",
+          failureKind: "files_api_fallback_inline_failed",
+          filesApiErrorMessage: expect.stringContaining("Files API unavailable"),
+          inlineErrorMessage: expect.stringContaining("Inline model overloaded")
+        })
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("transcribes Gemini AI upload chunks with separate requests and merges transcripts", async () => {
     const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
     const firstAudioPath = path.join(tempDirectory, "chunk-0000.ogg");
