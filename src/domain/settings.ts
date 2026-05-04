@@ -1,4 +1,8 @@
-import type { RetentionMode, SourceType } from "@domain/types";
+import type {
+  GeminiTranscriptionStrategy,
+  RetentionMode,
+  SourceType
+} from "@domain/types";
 import {
   DEFAULT_GEMINI_SUMMARY_MODEL,
   DEFAULT_GLADIA_TRANSCRIPTION_MODEL,
@@ -42,7 +46,6 @@ import {
 
 export type RuntimeStrategy = "local_bridge" | "placeholder_only";
 export type MediaCompressionProfile = "balanced" | "quality";
-export type GeminiTranscriptionStrategy = "auto" | "files_api" | "inline_chunks";
 
 export interface AISummarizerPluginSettings {
   apiKey: string;

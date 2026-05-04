@@ -7,6 +7,7 @@ import type {
 
 export type SourceType = "media_url" | "webpage_url" | "local_media" | "transcript_file";
 export type RetentionMode = "delete_temp" | "keep_temp";
+export type GeminiTranscriptionStrategy = "auto" | "files_api" | "inline_chunks";
 
 export interface SourceMetadata {
   title: string;
@@ -33,6 +34,7 @@ export interface MediaUrlRequest {
   sourceValue: string;
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
+  geminiTranscriptionStrategy?: GeminiTranscriptionStrategy;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
@@ -49,6 +51,7 @@ export interface LocalMediaRequest {
   sourceValue: string;
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
+  geminiTranscriptionStrategy?: GeminiTranscriptionStrategy;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;

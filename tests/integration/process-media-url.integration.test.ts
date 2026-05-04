@@ -59,6 +59,7 @@ describe("processMediaUrl integration", () => {
     const preUploadWarnings = ["Compression fallback applied. Selected codec aac after 1 failed attempt(s)."];
     const stages: string[] = [];
     const warnings: string[] = [];
+    let receivedArtifactMode = "";
 
     const downloaderAdapter: DownloaderAdapter = {
       async prepareSession() {
@@ -69,7 +70,8 @@ describe("processMediaUrl integration", () => {
       }
     };
     const preUploadCompressor: PreUploadCompressor = {
-      async prepareForAiUpload() {
+      async prepareForAiUpload(input) {
+        receivedArtifactMode = input.artifactMode ?? "";
         return {
           normalizedAudioPath: session.artifacts.normalizedAudioPath,
           aiUploadArtifactPaths: [`${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`],
@@ -88,6 +90,7 @@ describe("processMediaUrl integration", () => {
         sourceValue: "https://www.youtube.com/watch?v=demo",
         transcriptionProvider: "gemini",
         transcriptionModel: "gemini-2.5-flash",
+        geminiTranscriptionStrategy: "auto",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
         retentionMode: "delete_temp",
@@ -108,6 +111,7 @@ describe("processMediaUrl integration", () => {
     );
 
     expect(result.session.sessionId).toBe(session.sessionId);
+    expect(receivedArtifactMode).toBe("single_artifact");
     expect(result.downloadResult.downloadedPath).toBe(session.artifacts.downloadedPath);
     expect(result.preUploadResult.selectedCodec).toBe("aac");
     expect(result.transcriptReadyPayload.metadata.title).toBe("Demo Video");
@@ -129,6 +133,54 @@ describe("processMediaUrl integration", () => {
       "acquiring:Downloading media artifact",
       "transcribing:Preparing AI-ready media artifacts"
     ]);
+  });
+
+  it("keeps chunking mode automatic for Gladia transcription", async () => {
+    const session = makeSession();
+    const downloadResult = makeDownloadResult(session);
+    let receivedArtifactMode = "";
+
+    const downloaderAdapter: DownloaderAdapter = {
+      async prepareSession() {
+        return session;
+      },
+      async downloadMedia() {
+        return downloadResult;
+      }
+    };
+    const preUploadCompressor: PreUploadCompressor = {
+      async prepareForAiUpload(input) {
+        receivedArtifactMode = input.artifactMode ?? "";
+        return {
+          normalizedAudioPath: session.artifacts.normalizedAudioPath,
+          aiUploadArtifactPaths: [`${session.artifacts.aiUploadDirectory}\\chunk-0000.ogg`],
+          selectedCodec: "opus",
+          chunkCount: 1,
+          chunkDurationsMs: [180_000],
+          vadApplied: false,
+          warnings: []
+        };
+      }
+    };
+
+    await processMediaUrl(
+      {
+        sourceKind: "media_url",
+        sourceValue: "https://www.youtube.com/watch?v=demo",
+        transcriptionProvider: "gladia",
+        transcriptionModel: "default",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
+        retentionMode: "delete_temp",
+        mediaCacheRoot: "D:\\media-cache",
+        vaultId: "vault-a",
+        mediaCompressionProfile: "balanced"
+      },
+      { downloaderAdapter, preUploadCompressor },
+      new AbortController().signal
+    );
+
+    expect(receivedArtifactMode).toBe("auto_chunks");
   });
 
   it("throws validation_error when sourceKind is not media_url", async () => {

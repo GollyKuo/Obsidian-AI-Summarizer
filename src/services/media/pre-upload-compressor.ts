@@ -48,6 +48,7 @@ export interface PreUploadCompressionRequest {
   session: MediaDownloadSession;
   downloadResult: MediaDownloadResult;
   profile: MediaCompressionProfile;
+  artifactMode?: "auto_chunks" | "single_artifact";
 }
 
 export interface PreUploadCompressionResult {
@@ -455,37 +456,43 @@ export function createPreUploadCompressor(
         }
 
         if (durationMs !== null && durationMs > CHUNK_THRESHOLD_SECONDS * 1000) {
-          const chunkPattern = path.join(
-            session.artifacts.aiUploadDirectory,
-            `chunk-%04d.${preset.extension}`
-          );
-          try {
-            await commandExecutor(ffmpegCommand, buildChunkArgs(outputPath, chunkPattern), signal);
-            const entries = await readdir(session.artifacts.aiUploadDirectory);
-            const chunkFiles = entries
-              .filter((entry) => chunkFilenamePattern(preset.extension).test(entry))
-              .sort(compareByNameAscending)
-              .map((entry) => path.join(session.artifacts.aiUploadDirectory, entry));
+          if (input.artifactMode === "single_artifact") {
+            warnings.push(
+              `Single AI upload artifact retained for long media (${Math.round(durationMs / 1000)}s) for file-upload transcription.`
+            );
+          } else {
+            const chunkPattern = path.join(
+              session.artifacts.aiUploadDirectory,
+              `chunk-%04d.${preset.extension}`
+            );
+            try {
+              await commandExecutor(ffmpegCommand, buildChunkArgs(outputPath, chunkPattern), signal);
+              const entries = await readdir(session.artifacts.aiUploadDirectory);
+              const chunkFiles = entries
+                .filter((entry) => chunkFilenamePattern(preset.extension).test(entry))
+                .sort(compareByNameAscending)
+                .map((entry) => path.join(session.artifacts.aiUploadDirectory, entry));
 
-            if (chunkFiles.length > 0) {
-              aiUploadArtifactPaths = chunkFiles;
+              if (chunkFiles.length > 0) {
+                aiUploadArtifactPaths = chunkFiles;
+                warnings.push(
+                  `Chunking applied for long media (${Math.round(durationMs / 1000)}s -> ${chunkFiles.length} chunks).`
+                );
+              }
+            } catch (error) {
+              if (isAbortError(error) || signal.aborted) {
+                throw new SummarizerError({
+                  category: "cancellation",
+                  message: "Media pre-upload compression cancelled by user.",
+                  recoverable: true,
+                  cause: error
+                });
+              }
+
               warnings.push(
-                `Chunking applied for long media (${Math.round(durationMs / 1000)}s -> ${chunkFiles.length} chunks).`
+                `Chunking skipped after failure: ${error instanceof Error ? error.message : String(error)}`
               );
             }
-          } catch (error) {
-            if (isAbortError(error) || signal.aborted) {
-              throw new SummarizerError({
-                category: "cancellation",
-                message: "Media pre-upload compression cancelled by user.",
-                recoverable: true,
-                cause: error
-              });
-            }
-
-            warnings.push(
-              `Chunking skipped after failure: ${error instanceof Error ? error.message : String(error)}`
-            );
           }
         }
 

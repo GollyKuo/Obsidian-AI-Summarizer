@@ -1290,6 +1290,7 @@ export class SummarizerFlowModal extends Modal {
         sourceValue: this.sourceValue,
         transcriptionProvider: this.plugin.settings.transcriptionProvider,
         transcriptionModel: this.plugin.settings.transcriptionModel,
+        geminiTranscriptionStrategy: this.plugin.settings.geminiTranscriptionStrategy,
         summaryProvider: this.plugin.settings.summaryProvider,
         summaryModel: this.plugin.settings.summaryModel,
         retentionMode: this.plugin.settings.retentionMode,

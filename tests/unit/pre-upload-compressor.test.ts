@@ -301,6 +301,57 @@ describe("pre-upload compressor", () => {
     });
   });
 
+  it("keeps long artifact as one file when single artifact mode is requested", async () => {
+    await withTempDirectory(async (tempDirectory) => {
+      const session = makeSession(tempDirectory);
+      let chunkCommandInvoked = false;
+      await fs.mkdir(session.sessionDirectory, { recursive: true });
+      await fs.writeFile(session.artifacts.downloadedPath, "downloaded", "utf8");
+
+      const compressor = createPreUploadCompressor({
+        commandExecutor: async (command, args) => {
+          if (command === "ffprobe") {
+            const probeTarget = args[args.length - 1];
+            if (probeTarget.endsWith("ai-upload.ogg")) {
+              return { stdout: "1000.0", stderr: "" };
+            }
+            return { stdout: "0", stderr: "" };
+          }
+
+          const outputPath = args[args.length - 1];
+          if (outputPath.includes("chunk-%04d.ogg")) {
+            chunkCommandInvoked = true;
+            throw new Error("chunking should not run in single artifact mode");
+          }
+
+          await fs.mkdir(path.dirname(outputPath), { recursive: true });
+          await fs.writeFile(outputPath, "ok", "utf8");
+          return { stdout: "", stderr: "" };
+        }
+      });
+
+      const result = await compressor.prepareForAiUpload(
+        {
+          session,
+          downloadResult: makeDownloadResult(session),
+          profile: "balanced",
+          artifactMode: "single_artifact"
+        },
+        new AbortController().signal
+      );
+
+      expect(chunkCommandInvoked).toBe(false);
+      expect(result.aiUploadArtifactPaths).toEqual([
+        path.join(session.artifacts.aiUploadDirectory, "ai-upload.ogg")
+      ]);
+      expect(result.chunkCount).toBe(1);
+      expect(result.chunkDurationsMs).toEqual([1000000]);
+      expect(
+        result.warnings.some((warning) => warning.includes("Single AI upload artifact retained"))
+      ).toBe(true);
+    });
+  });
+
   it("throws download_failure when all conversion presets fail", async () => {
     await withTempDirectory(async (tempDirectory) => {
       const session = makeSession(tempDirectory);

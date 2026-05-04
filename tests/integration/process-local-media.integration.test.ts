@@ -60,6 +60,7 @@ describe("processLocalMedia integration", () => {
     const preUploadWarnings = ["Compression fallback applied. Selected codec aac after 1 failed attempt(s)."];
     const stages: string[] = [];
     const warnings: string[] = [];
+    let receivedArtifactMode = "";
 
     const localMediaIngestionAdapter: LocalMediaIngestionAdapter = {
       async prepareSession() {
@@ -70,7 +71,8 @@ describe("processLocalMedia integration", () => {
       }
     };
     const preUploadCompressor: PreUploadCompressor = {
-      async prepareForAiUpload() {
+      async prepareForAiUpload(input) {
+        receivedArtifactMode = input.artifactMode ?? "";
         return {
           normalizedAudioPath: session.artifacts.normalizedAudioPath,
           aiUploadArtifactPaths: [`${session.artifacts.aiUploadDirectory}\\ai-upload.m4a`],
@@ -89,6 +91,7 @@ describe("processLocalMedia integration", () => {
         sourceValue: "D:\\source\\demo.mp3",
         transcriptionProvider: "gemini",
         transcriptionModel: "gemini-2.5-flash",
+        geminiTranscriptionStrategy: "files_api",
         summaryProvider: "gemini",
         summaryModel: "gemini-2.5-flash",
         retentionMode: "delete_temp",
@@ -109,6 +112,7 @@ describe("processLocalMedia integration", () => {
     );
 
     expect(result.session.sessionId).toBe(session.sessionId);
+    expect(receivedArtifactMode).toBe("single_artifact");
     expect(result.ingestionResult.downloadedPath).toBe(session.artifacts.downloadedPath);
     expect(result.preUploadResult.selectedCodec).toBe("aac");
     expect(result.transcriptReadyPayload.sourceType).toBe("local_media");

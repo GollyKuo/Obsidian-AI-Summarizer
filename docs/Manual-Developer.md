@@ -283,7 +283,7 @@ Release asset 應只包含程式與 metadata：
 內建預設仍是 Gemini，但文件與測試建議要反映目前實務策略：
 
 1. 日常媒體轉錄優先用 `Gladia` / `default`。
-2. Gemini 轉錄使用 `geminiTranscriptionStrategy`，預設 `auto`：優先 Gemini Files API 上傳抽音訊後的 AI-ready artifact，失敗時 fallback 到逐 chunk inline。
+2. Gemini 轉錄使用 `geminiTranscriptionStrategy`，預設 `auto`：優先 Gemini Files API 上傳抽音訊後的單一 AI-ready artifact，失敗時 fallback 到逐 chunk inline。
 3. `files_api` 可用於強制測試 Gemini remote file lifecycle；`inline_chunks` 可用於回歸既有逐 chunk inline 路徑。
 4. 若遇到 Gemini 429、503、timeout 或 high demand，不建議反覆重跑 Gemini，優先切 Gladia。
 5. Gemini Files API remote file lifecycle 必須與本機 retention 分開看待；本機 `delete_temp` / `keep_temp` 不代表 provider 端遠端檔案保留策略。

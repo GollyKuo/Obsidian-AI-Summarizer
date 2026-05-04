@@ -13,6 +13,7 @@ import type {
   LocalMediaIngestionSession
 } from "@services/media/local-media-ingestion-adapter";
 import type {
+  PreUploadCompressionRequest,
   PreUploadCompressionResult,
   PreUploadCompressor
 } from "@services/media/pre-upload-compressor";
@@ -83,6 +84,14 @@ function validateInput(input: ProcessLocalMediaInput): void {
       recoverable: true
     });
   }
+}
+
+function getAiUploadArtifactMode(
+  input: Pick<ProcessLocalMediaInput, "transcriptionProvider" | "geminiTranscriptionStrategy">
+): NonNullable<PreUploadCompressionRequest["artifactMode"]> {
+  return input.transcriptionProvider === "gemini" && input.geminiTranscriptionStrategy !== "inline_chunks"
+    ? "single_artifact"
+    : "auto_chunks";
 }
 
 function toTranscriptReadyPayload(
@@ -169,7 +178,8 @@ export async function processLocalMedia(
           {
             session: activeSession,
             downloadResult: activeIngestionResult,
-            profile: input.mediaCompressionProfile
+            profile: input.mediaCompressionProfile,
+            artifactMode: getAiUploadArtifactMode(input)
           },
           signal
         ),
