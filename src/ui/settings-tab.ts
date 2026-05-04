@@ -1,8 +1,7 @@
 import { execFile } from "node:child_process";
-import { access } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
-import { App, Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
+import { App, ButtonComponent, Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
@@ -82,7 +81,6 @@ const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const MANUAL_SLIDES_FILE_NAME = "Manual-slides.html";
 const DEFAULT_CUSTOM_TEMPLATE_BODY = [
   "---",
   'title: "{{title}}"',
@@ -142,10 +140,6 @@ interface DesktopDialog {
     properties: string[];
     filters?: Array<{ name: string; extensions: string[] }>;
   }): Promise<OpenDialogResult>;
-}
-
-interface DesktopShell {
-  openPath(targetPath: string): Promise<string>;
 }
 
 type MediaToolPathSettingKey = "ytDlpPath" | "ffmpegPath" | "ffprobePath";
@@ -508,20 +502,6 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return electron?.dialog ?? electron?.remote?.dialog ?? null;
   }
 
-  private getDesktopShell(): DesktopShell | null {
-    const maybeWindow = window as Window & {
-      require?: (moduleName: string) => unknown;
-    };
-
-    const electron = maybeWindow.require?.("electron") as
-      | {
-          shell?: DesktopShell;
-        }
-      | undefined;
-
-    return electron?.shell ?? null;
-  }
-
   private detectAppSurface(): AppSurface {
     return this.getDesktopDialog() ? "desktop" : "mobile";
   }
@@ -542,50 +522,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     return path.join(vaultBasePath, pluginRelativeDirectory);
   }
 
-  private resolveManualSlidesPath(): string | null {
-    const pluginDirectory = this.resolvePluginDirectory();
-    if (!pluginDirectory) {
-      return null;
-    }
-
-    return path.join(pluginDirectory, MANUAL_SLIDES_FILE_NAME);
-  }
-
   private hasVaultFilesystemAccess(): boolean {
     return this.resolvePluginDirectory() !== null;
-  }
-
-  private async openManualSlides(): Promise<void> {
-    const manualSlidesPath = this.resolveManualSlidesPath();
-    if (!manualSlidesPath) {
-      this.plugin.notify("目前環境無法解析 plugin 資料夾，請在桌面版 Obsidian 使用 HTML 簡報入口。");
-      return;
-    }
-
-    try {
-      await access(manualSlidesPath);
-    } catch {
-      this.plugin.notify(`尚未提供 ${MANUAL_SLIDES_FILE_NAME}。未來完成後請放在 plugin 資料夾根目錄。`);
-      return;
-    }
-
-    const shell = this.getDesktopShell();
-    if (!shell) {
-      this.plugin.notify("目前環境無法開啟本機 HTML 檔，請用檔案總管開啟 plugin 資料夾中的簡報。");
-      return;
-    }
-
-    try {
-      const errorMessage = await shell.openPath(manualSlidesPath);
-      if (errorMessage.length > 0) {
-        this.plugin.notify(`無法開啟 ${MANUAL_SLIDES_FILE_NAME}：${errorMessage}`);
-        this.plugin.reportWarning("manual_slides", errorMessage);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.plugin.notify(`無法開啟 ${MANUAL_SLIDES_FILE_NAME}：${message}`);
-      this.plugin.reportWarning("manual_slides", message);
-    }
   }
 
   private async pickMediaStorageDirectory(): Promise<void> {
@@ -2544,21 +2482,34 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderHelpStepList(containerEl: HTMLElement, title: string, steps: string[]): void {
-    containerEl.createEl("h3", { text: title });
-    const listEl = containerEl.createEl("ol");
+    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-help-section" });
+    sectionEl.createEl("h3", { cls: "ai-summarizer-help-section-title", text: title });
+    const listEl = sectionEl.createEl("ol", { cls: "ai-summarizer-help-list" });
     for (const step of steps) {
       listEl.createEl("li", { text: step });
     }
   }
 
   private renderHelp(containerEl: HTMLElement): void {
-    new Setting(containerEl)
-      .setName("新手快速指南")
-      .setDesc(
-        "這個分頁先保留最短路徑的操作提示。完整 HTML 簡報完成後，會由下方入口開啟。"
-      );
+    const helpEl = containerEl.createDiv({ cls: "ai-summarizer-help" });
+    const actionEl = helpEl.createDiv({ cls: "ai-summarizer-help-actions" });
+    const actionTextEl = actionEl.createDiv({ cls: "ai-summarizer-help-action-text" });
+    actionTextEl.createEl("h3", { text: "下一步" });
+    actionTextEl.createEl("p", { text: "先填 API key；如果要處理音訊或影片，再檢查媒體工具。" });
 
-    this.renderHelpStepList(containerEl, "第一次使用", [
+    const actionButtonsEl = actionEl.createDiv({ cls: "ai-summarizer-help-action-buttons" });
+    new ButtonComponent(actionButtonsEl).setButtonText("前往 AI 模型").onClick(() => {
+      this.activeSection = "ai_models";
+      this.display();
+    });
+    new ButtonComponent(actionButtonsEl).setButtonText("前往診斷").onClick(() => {
+      this.activeSection = "diagnostics";
+      this.display();
+    });
+
+    const sectionsEl = helpEl.createDiv({ cls: "ai-summarizer-help-sections" });
+
+    this.renderHelpStepList(sectionsEl, "第一次使用", [
       "安裝或更新 plugin 後，先確認 Community plugins 已啟用 AI Summarizer。",
       "到 AI 模型分頁填入 Gemini、Mistral 或 Gladia API key，並按測試確認可用。",
       "若要處理 YouTube、podcast 或本機音訊影片，到診斷分頁確認 ffmpeg、ffprobe、yt-dlp 可用。",
@@ -2566,32 +2517,13 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       "完成後用開啟筆記檢查摘要結果；若摘要失敗但有逐字稿，可改用逐字稿檔案重跑摘要。"
     ]);
 
-    this.renderHelpStepList(containerEl, "來源選擇", [
-      "網頁 URL：文章、文件頁、部落格，通常不需要媒體工具。",
-      "媒體 URL：YouTube、podcast 或直接媒體網址，需要媒體工具與轉錄 provider。",
-      "本機媒體：本機音訊或影片，需要媒體工具與轉錄 provider。",
-      "逐字稿檔案：已有 transcript.md 或 .txt 時，跳過轉錄只重跑摘要。"
+    this.renderHelpStepList(sectionsEl, "如何更新 plugin", [
+      "關閉 Obsidian，再下載新版 AI Summarizer release zip。",
+      "解壓縮 zip，打開 vault 裡的 .obsidian/plugins/ai-summarizer 資料夾。",
+      "只用新版 main.js、manifest.json、styles.css 覆蓋同名舊檔案；如果有 versions.json，也一起覆蓋。",
+      "不要刪掉整個 ai-summarizer 資料夾，避免移除 API key、provider、模型、輸出資料夾與工具路徑設定。",
+      "重新開啟 Obsidian，確認 AI Summarizer 仍啟用，並到 AI 模型與診斷分頁檢查設定。"
     ]);
-
-    const manualSlidesPath = this.resolveManualSlidesPath();
-    new Setting(containerEl)
-      .setName("HTML 簡報")
-      .setDesc(
-        manualSlidesPath
-          ? `未來完成 ${MANUAL_SLIDES_FILE_NAME} 後，請放在 plugin 資料夾根目錄：${manualSlidesPath}`
-          : `未來完成 ${MANUAL_SLIDES_FILE_NAME} 後，可由這裡開啟；目前環境無法解析 plugin 資料夾。`
-      )
-      .addButton((button) =>
-        button.setButtonText("開啟簡報").onClick(() => {
-          void this.openManualSlides();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("更新方式")
-      .setDesc(
-        "設定頁內的使用說明會跟著 main.js 更新。Manual-slides.html 是額外離線文件，不是 plugin 自動更新的必要檔案。"
-      );
   }
 
   private renderDiagnostics(containerEl: HTMLElement): void {

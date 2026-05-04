@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Summarizer 使用教學簡報</title>
+  <style>
+    :root {
+      --paper: #f7f3eb;
+      --paper-soft: #fbfaf6;
+      --ink: #26302f;
+      --muted: #65706c;
+      --line: #ded7ca;
+      --line-strong: #cfc3b4;
+      --green: #7f9b82;
+      --green-soft: #e6eee3;
+      --orange: #c98a58;
+      --orange-soft: #f5e4d5;
+      --panel: rgba(255, 255, 255, 0.78);
+      --shadow: 0 24px 70px rgba(39, 48, 47, 0.14);
+      --radius: 8px;
+      --mono: "Cascadia Mono", "Consolas", monospace;
+      --sans: "Segoe UI", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(247, 243, 235, 0.96)),
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(251, 250, 246, 0.92);
+      padding: 22px 18px;
+      overflow: auto;
+    }
+
+    .brand {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(127, 155, 130, 0.22), rgba(201, 138, 88, 0.18)),
+        var(--paper-soft);
+      display: grid;
+      place-items: center;
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .toc-title {
+      margin: 20px 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .toc {
+      display: grid;
+      gap: 4px;
+    }
+
+    .toc button {
+      width: 100%;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .toc button:hover,
+    .toc button.active {
+      background: var(--green-soft);
+      color: var(--ink);
+    }
+
+    .toc .number {
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .toc .label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .stage {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      height: 100vh;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 243, 235, 0.82);
+    }
+
+    .progress-wrap {
+      min-width: 0;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .progress {
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e7dfd4;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--green), var(--orange));
+      transition: width 180ms ease;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-button {
+      border: 1px solid var(--line-strong);
+      background: var(--paper-soft);
+      color: var(--ink);
+      min-width: 42px;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .nav-button:hover {
+      border-color: var(--green);
+      color: #4d6a51;
+    }
+
+    .nav-button:disabled {
+      cursor: default;
+      opacity: 0.38;
+    }
+
+    .viewport {
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+      padding: 30px;
+    }
+
+    .slides {
+      position: relative;
+      height: 100%;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: auto;
+      padding: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(251, 250, 246, 0.94)),
+        var(--paper-soft);
+      box-shadow: var(--shadow);
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    .slide.cover {
+      display: none;
+      align-content: center;
+      min-height: 100%;
+    }
+
+    .slide.cover.active {
+      display: grid;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      margin-bottom: 18px;
+      color: #5f765f;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 1px;
+      background: var(--green);
+    }
+
+    h2 {
+      max-width: 920px;
+      margin: 0 0 18px;
+      font-size: clamp(30px, 4.1vw, 54px);
+      line-height: 1.12;
+      font-weight: 680;
+    }
+
+    h3 {
+      margin: 30px 0 12px;
+      font-size: 22px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    p {
+      max-width: 920px;
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.75;
+    }
+
+    .lead {
+      max-width: 880px;
+      color: #4b5653;
+      font-size: 22px;
+      line-height: 1.7;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .panel,
+    .step,
+    .note,
+    .warning,
+    .compact-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h3,
+    .compact-card h3 {
+      margin-top: 0;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+      margin-top: 24px;
+      max-width: 980px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      padding: 16px 18px;
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 17px;
+    }
+
+    .step p {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .bubble {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: var(--green-soft);
+      color: #58765c;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .bubble.orange {
+      background: var(--orange-soft);
+      color: #9b633c;
+    }
+
+    .note,
+    .warning {
+      margin-top: 22px;
+      padding: 18px 20px;
+      max-width: 980px;
+    }
+
+    .note {
+      border-left: 5px solid var(--green);
+    }
+
+    .warning {
+      border-left: 5px solid var(--orange);
+    }
+
+    .note strong,
+    .warning strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    ul,
+    ol {
+      max-width: 940px;
+      margin: 14px 0 0;
+      padding-left: 1.35rem;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.72;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    code,
+    .code {
+      font-family: var(--mono);
+      font-size: 0.92em;
+      border: 1px solid #e1d5c7;
+      border-radius: 6px;
+      background: #fff9f1;
+      color: #6f5439;
+      padding: 0.1em 0.36em;
+      word-break: break-word;
+    }
+
+    pre {
+      max-width: 980px;
+      margin: 18px 0;
+      padding: 18px 20px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff9f1;
+      color: #5a4630;
+      font-family: var(--mono);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 22px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      font-size: 16px;
+    }
+
+    th,
+    td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.55;
+    }
+
+    th {
+      color: #40514d;
+      background: var(--green-soft);
+      font-weight: 650;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .kicker-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 24px 0 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      color: #4f5d59;
+      padding: 6px 12px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .pill.green {
+      border-color: #c9d8c8;
+      background: var(--green-soft);
+    }
+
+    .pill.orange {
+      border-color: #e8cdb9;
+      background: var(--orange-soft);
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 24px 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .mobile-menu {
+      display: none;
+    }
+
+    .print-link {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid var(--line-strong);
+    }
+
+    @media (max-width: 980px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        display: block;
+        height: auto;
+      }
+
+      .sidebar {
+        display: none;
+      }
+
+      .stage {
+        height: 100vh;
+      }
+
+      .topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 12px 14px;
+      }
+
+      .mobile-menu {
+        display: inline-block;
+      }
+
+      .viewport {
+        padding: 14px;
+      }
+
+      .slide {
+        padding: 28px 20px;
+      }
+
+      .grid,
+      .grid.three {
+        grid-template-columns: 1fr;
+      }
+
+      h2 {
+        font-size: 32px;
+      }
+
+      p,
+      ul,
+      ol {
+        font-size: 16px;
+      }
+
+      .lead {
+        font-size: 18px;
+      }
+
+      table {
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        padding: 10px;
+      }
+    }
+
+    @media print {
+      body {
+        overflow: visible;
+        background: #fff;
+      }
+
+      .app {
+        display: block;
+        height: auto;
+      }
+
+      .sidebar,
+      .topbar,
+      .footer {
+        display: none;
+      }
+
+      .stage,
+      .viewport,
+      .slides {
+        display: block;
+        height: auto;
+        overflow: visible;
+        padding: 0;
+      }
+
+      .slide,
+      .slide.cover {
+        position: static;
+        display: block !important;
+        min-height: 0;
+        page-break-after: always;
+        box-shadow: none;
+        border: 0;
+        border-radius: 0;
+        padding: 34px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="sidebar" aria-label="投影片目錄">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <h1>AI Summarizer 使用教學簡報</h1>
+        <p>Windows 使用者適用。這份簡報保留完整手冊內容，改成可以一步一步跟做的學習流程。</p>
+      </div>
+      <div class="toc-title">目錄</div>
+      <nav class="toc" id="toc"></nav>
+    </aside>
+
+    <section class="stage">
+      <header class="topbar">
+        <div class="progress-wrap">
+          <div class="progress-label">
+            <span id="currentTitle">封面</span>
+            <span><span id="currentIndex">1</span> / <span id="totalSlides">1</span></span>
+          </div>
+          <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+        </div>
+        <div class="controls">
+          <button class="nav-button mobile-menu" type="button" id="menuButton" title="開啟目錄">目錄</button>
+          <button class="nav-button" type="button" id="prevButton" title="上一頁">‹</button>
+          <button class="nav-button" type="button" id="nextButton" title="下一頁">›</button>
+        </div>
+      </header>
+
+      <div class="viewport">
+        <div class="slides" id="slides">
+          <article class="slide cover active" data-title="封面">
+            <div class="eyebrow">Windows 使用教學</div>
+            <h2>AI Summarizer 使用手冊簡報</h2>
+            <p class="lead">從安裝、啟用、第一次設定，到網頁摘要、媒體摘要、診斷與常見錯誤排查。適合一般使用者照著畫面逐步完成。</p>
+            <div class="kicker-row">
+              <span class="pill green">單檔離線 HTML</span>
+              <span class="pill orange">Obsidian Plugin</span>
+              <span class="pill">最後更新：2026-05-04</span>
+            </div>
+          </article>
+
+          <article class="slide" data-title="學習目標">
+            <div class="eyebrow">Overview</div>
+            <h2>看完後，你應該能完成這些事</h2>
+            <div class="grid">
+              <div class="panel">
+                <h3>安裝與更新</h3>
+                <p>知道 release zip 裡哪些檔案要放進 Obsidian plugin 資料夾，也知道更新時不要刪掉整個資料夾。</p>
+              </div>
+              <div class="panel">
+                <h3>第一次設定</h3>
+                <p>能填入 API key、設定輸出資料夾、設定媒體暫存資料夾，並完成基本測試。</p>
+              </div>
+              <div class="panel">
+                <h3>使用摘要功能</h3>
+                <p>能分辨 `網頁 URL`、`媒體 URL`、`本機媒體`、`逐字稿檔案` 的適用時機。</p>
+              </div>
+              <div class="panel">
+                <h3>排查問題</h3>
+                <p>遇到媒體工具、API key、輸出資料夾或錯誤代碼時，知道先看哪個設定頁。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="適合誰看">
+            <div class="eyebrow">Audience</div>
+            <h2>這份文件給誰看</h2>
+            <p class="lead">這份手冊給一般 Windows 使用者，不假設你熟悉程式開發、Node.js、npm 或終端機。</p>
+            <div class="steps">
+              <div class="step"><span class="bubble">1</span><div><strong>會下載 zip</strong><p>你只需要能下載並解壓縮安裝包。</p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>會用檔案總管</strong><p>你需要把檔案複製到指定的 Obsidian vault plugin 資料夾。</p></div></div>
+              <div class="step"><span class="bubble">3</span><div><strong>會開 Obsidian 設定</strong><p>你會在 Obsidian 裡啟用 Community plugins 並打開外掛設定頁。</p></div></div>
+              <div class="step"><span class="bubble">4</span><div><strong>會貼上 API key</strong><p>你需要把 Gemini、Mistral 或 Gladia 的 API key 貼到對應欄位。</p></div></div>
+            </div>
+            <div class="note">
+              <strong>開發者請看另一份文件</strong>
+              如果你要從原始碼建置、跑測試、同步測試 vault 或發版，請看 <code>Manual-Developer.md</code>。
+            </div>
+          </article>
+
+          <article class="slide" data-title="準備項目">
+            <div class="eyebrow">Preparation</div>
+            <h2>安裝前需要準備的東西</h2>
+            <div class="grid three">
+              <div class="panel">
+                <h3>Obsidian</h3>
+                <p>Windows 版 Obsidian 桌面程式。</p>
+              </div>
+              <div class="panel">
+                <h3>Vault</h3>
+                <p>一個你已經在使用，或準備用來存放摘要筆記的 Obsidian vault。</p>
+              </div>
+              <div class="panel">
+                <h3>Plugin 檔案</h3>
+                <p><code>AI Summarizer</code> 的 release zip，或已建置好的 plugin 檔案。</p>
+              </div>
+            </div>
+            <div class="warning">
+              <strong>不要把這份 HTML 當成 plugin 檔案</strong>
+              <code>Manual-slides.html</code> 只是離線閱讀或投影用的教學簡報，不是 Obsidian plugin 的必要檔案。
+            </div>
+          </article>
+
+          <article class="slide" data-title="API key">
+            <div class="eyebrow">API Keys</div>
+            <h2>依照使用情境準備 API key</h2>
+            <table>
+              <thead>
+                <tr><th>欄位</th><th>用途</th><th>建議</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>Gemini API Key</code></td><td>一般摘要的預設路徑。</td><td>如果只想先測試網頁摘要，可以先準備 Gemini。</td></tr>
+                <tr><td><code>Mistral API Key</code></td><td>摘要備援。</td><td>適合 Gemini 額度不足或高負載時使用。</td></tr>
+                <tr><td><code>Gladia API Key</code></td><td>YouTube、podcast、本機音訊或影片的媒體轉錄。</td><td>如果要穩定使用媒體摘要，建議一開始就準備。</td></tr>
+              </tbody>
+            </table>
+            <div class="note">
+              <strong>最小測試組合</strong>
+              只測網頁摘要：先準備 Gemini。要做媒體摘要：建議準備 Gemini、Mistral 與 Gladia 三組 API key。
+            </div>
+          </article>
+
+          <article class="slide" data-title="Release 檔案">
+            <div class="eyebrow">Release Package</div>
+            <h2>安裝包裡至少應該有三個 plugin 檔案</h2>
+            <div class="grid three">
+              <div class="panel"><h3><code>main.js</code></h3><p>外掛主要程式。</p></div>
+              <div class="panel"><h3><code>manifest.json</code></h3><p>Obsidian 用來辨識外掛的資訊檔。</p></div>
+              <div class="panel"><h3><code>styles.css</code></h3><p>外掛介面樣式。</p></div>
+            </div>
+            <div class="note">
+              <strong>選用檔案</strong>
+              如果安裝包也提供 <code>versions.json</code>，可以一起放進 plugin 資料夾。
+            </div>
+          </article>
+
+          <article class="slide" data-title="媒體額外需求">
+            <div class="eyebrow">Media Workflow</div>
+            <h2>媒體 URL 與本機媒體需要額外工具</h2>
+            <p>如果只使用 <code>網頁 URL</code> 或 <code>逐字稿檔案</code>，通常不需要額外媒體工具。</p>
+            <div class="grid">
+              <div class="panel">
+                <h3>需要的工具</h3>
+                <ul>
+                  <li><code>ffmpeg</code></li>
+                  <li><code>ffprobe</code></li>
+                  <li><code>yt-dlp</code></li>
+                  <li>一個放在 vault 外面的媒體暫存資料夾</li>
+                </ul>
+              </div>
+              <div class="panel">
+                <h3>安裝方式提醒</h3>
+                <p><code>ffmpeg</code> / <code>ffprobe</code> 可在 plugin 設定頁自動下載或更新。</p>
+                <p><code>yt-dlp</code> 目前不會自動下載，需要自行安裝，或指定已存在的 <code>yt-dlp.exe</code>。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="安裝總覽">
+            <div class="eyebrow">Install Flow</div>
+            <h2>安裝 Plugin 的完整路線</h2>
+            <div class="steps">
+              <div class="step"><span class="bubble">1</span><div><strong>解壓縮 release zip</strong><p>先確認裡面有 <code>main.js</code>、<code>manifest.json</code>、<code>styles.css</code>。</p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>找到 Obsidian vault</strong><p>找到你想安裝外掛的 vault 資料夾。</p></div></div>
+              <div class="step"><span class="bubble">3</span><div><strong>建立 plugin 資料夾</strong><p>在 vault 裡建立 <code>.obsidian\plugins\ai-summarizer\</code>。</p></div></div>
+              <div class="step"><span class="bubble">4</span><div><strong>複製檔案</strong><p>把 plugin 檔案放進 <code>ai-summarizer</code> 資料夾。</p></div></div>
+              <div class="step"><span class="bubble">5</span><div><strong>在 Obsidian 啟用</strong><p>重新開啟 Obsidian，進入 Community plugins 啟用。</p></div></div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="解壓縮">
+            <div class="eyebrow">Install Step 1</div>
+            <h2>解壓縮安裝包</h2>
+            <ol>
+              <li>下載 <code>AI Summarizer</code> 的 release zip。</li>
+              <li>在 Windows 檔案總管中對 zip 檔按右鍵，選擇解壓縮。</li>
+              <li>打開解壓縮後的資料夾。</li>
+              <li>確認可以看到 <code>main.js</code>、<code>manifest.json</code>、<code>styles.css</code>。</li>
+            </ol>
+            <div class="warning">
+              <strong>先不要急著複製整包</strong>
+              Obsidian 要讀到的是 plugin 資料夾中的檔案。你要確認最後的路徑裡直接放著 <code>manifest.json</code>，不要多包一層資料夾。
+            </div>
+          </article>
+
+          <article class="slide" data-title="找到 vault">
+            <div class="eyebrow">Install Step 2</div>
+            <h2>找到你的 Obsidian vault</h2>
+            <p>Vault 是你的筆記資料夾。它可能放在桌面、文件、雲端同步資料夾，或你自己指定的位置。</p>
+            <ol>
+              <li>如果你知道 vault 的位置，直接用 Windows 檔案總管打開。</li>
+              <li>如果不知道，在 Obsidian 左下角或 vault 管理畫面確認路徑。</li>
+              <li>Vault 裡應該會有一個隱藏資料夾 <code>.obsidian</code>。</li>
+            </ol>
+            <div class="note">
+              <strong>看不到 <code>.obsidian</code> 時</strong>
+              在 Windows 檔案總管開啟 <code>檢視 -> 顯示 -> 隱藏的項目</code>。
+            </div>
+          </article>
+
+          <article class="slide" data-title="建立資料夾">
+            <div class="eyebrow">Install Step 3</div>
+            <h2>建立 plugin 資料夾</h2>
+            <p>請在你的 vault 裡建立這個資料夾：</p>
+            <pre>&lt;你的 vault&gt;\.obsidian\plugins\ai-summarizer\</pre>
+            <p>如果 <code>.obsidian\plugins</code> 不存在，可以自己建立。</p>
+            <div class="warning">
+              <strong>資料夾名稱要一致</strong>
+              建議使用 <code>ai-summarizer</code>。如果資料夾層級錯誤，Obsidian 會找不到外掛。
+            </div>
+          </article>
+
+          <article class="slide" data-title="複製檔案">
+            <div class="eyebrow">Install Step 4</div>
+            <h2>複製 plugin 檔案</h2>
+            <p>把解壓縮後的 plugin 檔案複製到：</p>
+            <pre>&lt;你的 vault&gt;\.obsidian\plugins\ai-summarizer\</pre>
+            <p>最少需要確認這三個檔案都在同一層：</p>
+            <ul>
+              <li><code>main.js</code></li>
+              <li><code>manifest.json</code></li>
+              <li><code>styles.css</code></li>
+            </ul>
+          </article>
+
+          <article class="slide" data-title="啟用 Plugin">
+            <div class="eyebrow">Install Step 5</div>
+            <h2>在 Obsidian 啟用 AI Summarizer</h2>
+            <ol>
+              <li>關閉並重新開啟 Obsidian。</li>
+              <li>打開 <code>Settings</code>。</li>
+              <li>進入 <code>Community plugins</code>。</li>
+              <li>如果 Obsidian 要求關閉 Restricted mode，依畫面提示允許 Community plugins。</li>
+              <li>在 Installed plugins 找到 <code>AI Summarizer</code>。</li>
+              <li>啟用 <code>AI Summarizer</code>。</li>
+            </ol>
+            <div class="note">
+              <strong>啟用後如何打開</strong>
+              可以從左側 ribbon 的 <code>AI 摘要器</code>，或 command palette 的 <code>開啟 AI 摘要器</code> 開啟。
+            </div>
+          </article>
+
+          <article class="slide" data-title="更新原則">
+            <div class="eyebrow">Update</div>
+            <h2>更新 Plugin 時，重點是覆蓋程式檔，不刪設定</h2>
+            <p>一般 Windows 使用者更新時不需要使用終端機。</p>
+            <div class="warning">
+              <strong>不要先刪掉整個 <code>ai-summarizer</code> 資料夾</strong>
+              Obsidian 的 plugin 設定檔通常也放在同一個 plugin 資料夾中。如果整個資料夾被刪除，原本的 API key、provider、模型、輸出資料夾與工具路徑設定可能會一起消失。
+            </div>
+            <p>API key 與使用者設定不在 <code>main.js</code>、<code>manifest.json</code>、<code>styles.css</code> 裡。正常更新時只覆蓋這些 plugin 程式檔，不會清掉 API key。</p>
+          </article>
+
+          <article class="slide" data-title="更新步驟">
+            <div class="eyebrow">Update Steps</div>
+            <h2>使用 release zip 更新</h2>
+            <ol>
+              <li>關閉 Obsidian。</li>
+              <li>下載新版 <code>AI Summarizer</code> release zip。</li>
+              <li>解壓縮 zip。</li>
+              <li>打開 <code>&lt;你的 vault&gt;\.obsidian\plugins\ai-summarizer\</code>。</li>
+              <li>只用新版 <code>main.js</code>、<code>manifest.json</code>、<code>styles.css</code> 覆蓋同名舊檔案。</li>
+              <li>如果新版有提供 <code>versions.json</code>，也一起覆蓋。</li>
+              <li>不要刪除其他檔案，特別是設定資料檔。</li>
+              <li>重新開啟 Obsidian。</li>
+              <li>確認 <code>AI Summarizer</code> 仍然啟用。</li>
+              <li>到 <code>Settings -> AI Summarizer -> AI 模型</code> 確認 API key 還在。</li>
+              <li>到 <code>診斷</code> 按 <code>重新檢查</code>。</li>
+            </ol>
+          </article>
+
+          <article class="slide" data-title="更新後檢查">
+            <div class="eyebrow">After Update</div>
+            <h2>更新後建議做一次快速檢查</h2>
+            <div class="steps">
+              <div class="step"><span class="bubble">1</span><div><strong>打開 AI 摘要器</strong><p>確認外掛視窗能正常開啟。</p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>跑一次網頁 URL 測試</strong><p>這是最輕量的基本功能檢查。</p></div></div>
+              <div class="step"><span class="bubble">3</span><div><strong>檢查媒體工具</strong><p>如果你使用媒體功能，到 <code>診斷</code> 確認 <code>ffmpeg</code>、<code>ffprobe</code>、<code>yt-dlp</code> 都可用。</p></div></div>
+              <div class="step"><span class="bubble">4</span><div><strong>更新模型清單</strong><p>如果模型 autocomplete 沒有候選，到 <code>AI 模型</code> 分頁按 <code>更新</code>。</p></div></div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="HTML 簡報更新">
+            <div class="eyebrow">Manual Slides</div>
+            <h2>這份 HTML 簡報不會保存設定，也不會自動更新</h2>
+            <p><code>Settings -> AI Summarizer</code> 內的 <code>使用說明</code> 分頁會跟著 plugin 程式一起更新，不需要你額外更新 <code>Manual-slides.html</code>。</p>
+            <p>如果你是手動下載離線簡報 <code>Manual-slides.html</code> 來教學或投影，想看到新版教學內容時，請另外下載新版簡報檔。</p>
+            <div class="note">
+              <strong>簡單判斷</strong>
+              在 Obsidian 設定頁看說明：更新 plugin 即可。用瀏覽器開 <code>Manual-slides.html</code>：自行下載新版 HTML 才會看到新版簡報。
+            </div>
+          </article>
+
+          <article class="slide" data-title="第一次設定總覽">
+            <div class="eyebrow">First Run</div>
+            <h2>第一次設定分成三件事</h2>
+            <div class="grid three">
+              <div class="panel">
+                <h3>1. 填 API key</h3>
+                <p>在 <code>AI 模型</code> 分頁填入需要的 API key，並按 <code>測試</code>。</p>
+              </div>
+              <div class="panel">
+                <h3>2. 設定輸出位置</h3>
+                <p>決定摘要筆記要寫到 vault 根目錄，或指定資料夾。</p>
+              </div>
+              <div class="panel">
+                <h3>3. 設定媒體暫存</h3>
+                <p>如果會處理 YouTube、podcast 或本機媒體，請設定 vault 外的暫存資料夾。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="填 API key">
+            <div class="eyebrow">AI Model</div>
+            <h2>填入並測試 API key</h2>
+            <ol>
+              <li>打開 Obsidian <code>Settings</code>。</li>
+              <li>進入 <code>AI Summarizer</code>。</li>
+              <li>到 <code>AI 模型</code> 分頁。</li>
+              <li>填入 <code>Gemini API Key</code>。</li>
+              <li>將摘要 Provider 切到 <code>Mistral</code> 時，填入 <code>Mistral API Key</code>。</li>
+              <li>將轉錄 Provider 切到 <code>Gladia</code> 時，填入 <code>Gladia API Key</code>。</li>
+              <li>分別按 API key 旁的 <code>測試</code>，確認 key 可用。</li>
+            </ol>
+            <div class="note">
+              <strong>建議日常媒體設定</strong>
+              轉錄 Provider 用 <code>Gladia</code> / <code>default</code>。摘要 Provider 用 <code>Gemini</code> 或 <code>Mistral</code>。Mistral 摘要 Model 可先用 <code>mistral-small-latest</code>。
+            </div>
+          </article>
+
+          <article class="slide" data-title="輸出位置">
+            <div class="eyebrow">Output</div>
+            <h2>設定摘要筆記輸出位置</h2>
+            <ol>
+              <li>到 <code>輸出與媒體</code> 分頁。</li>
+              <li><code>輸出資料夾</code> 可留空，表示摘要筆記寫到 vault 根目錄。</li>
+              <li>也可以按 <code>搜尋資料夾</code>，選擇想放摘要筆記的資料夾。</li>
+            </ol>
+            <div class="note">
+              <strong>建議</strong>
+              如果你想讓摘要筆記集中管理，可以建立類似 <code>Summaries</code> 或 <code>AI Notes</code> 的資料夾，再設定為輸出位置。
+            </div>
+          </article>
+
+          <article class="slide" data-title="媒體暫存資料夾">
+            <div class="eyebrow">Media Cache</div>
+            <h2>設定媒體暫存資料夾</h2>
+            <p>如果你要處理 YouTube、podcast 或本機影片音訊，請設定媒體暫存資料夾。</p>
+            <ol>
+              <li>到 <code>輸出與媒體</code> 分頁。</li>
+              <li>找到 <code>媒體暫存資料夾</code>。</li>
+              <li>按 <code>選擇資料夾</code>。</li>
+              <li>選一個 vault 外面的資料夾。</li>
+            </ol>
+            <pre>D:\AI-Summarizer\media-cache</pre>
+            <div class="warning">
+              <strong>不要放在 vault 裡</strong>
+              避免大量暫存檔進入筆記同步，造成同步變慢或佔用空間。
+            </div>
+          </article>
+
+          <article class="slide" data-title="媒體工具檢查">
+            <div class="eyebrow">Diagnostics</div>
+            <h2>第一次使用媒體功能前，先檢查工具</h2>
+            <ol>
+              <li>打開 <code>Settings -> AI Summarizer -> 診斷</code>。</li>
+              <li>找到 <code>媒體工具路徑</code>。</li>
+              <li>在 <code>ffmpeg</code> 或 <code>ffprobe</code> 列按 <code>自動填入</code>。</li>
+              <li>等待外掛下載或更新 <code>ffmpeg</code> / <code>ffprobe</code>。</li>
+              <li>在 <code>yt-dlp</code> 列按 <code>自動偵測</code>。</li>
+              <li>如果找不到 <code>yt-dlp</code>，請先自行安裝，再用 <code>選擇檔案</code> 指到 <code>yt-dlp.exe</code>。</li>
+              <li>按 <code>媒體功能檢查</code> 的 <code>重新檢查</code>。</li>
+              <li>確認 <code>media_url</code> 與 <code>local_media</code> 顯示可用後，再開始媒體摘要。</li>
+            </ol>
+          </article>
+
+          <article class="slide" data-title="媒體工具注意">
+            <div class="eyebrow">Diagnostics Notes</div>
+            <h2>媒體工具檢查的三個注意事項</h2>
+            <div class="grid three">
+              <div class="panel">
+                <h3><code>ffmpeg</code> / <code>ffprobe</code></h3>
+                <p>自動下載主要支援 Windows 桌面版。</p>
+              </div>
+              <div class="panel">
+                <h3><code>yt-dlp</code></h3>
+                <p>目前不會自動下載。需要自行安裝，或指定已存在的執行檔。</p>
+              </div>
+              <div class="panel">
+                <h3><code>media cache root</code></h3>
+                <p>如果顯示不可用，請重新設定媒體暫存資料夾。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="輸入類型">
+            <div class="eyebrow">Input Types</div>
+            <h2>支援的輸入類型</h2>
+            <table>
+              <thead>
+                <tr><th>輸入類型</th><th>適合情境</th><th>是否需要媒體工具</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>網頁 URL</code></td><td>網頁文章、文件頁、部落格文章。</td><td>不需要</td></tr>
+                <tr><td><code>媒體 URL</code></td><td>YouTube、podcast、直接音訊或影片網址。</td><td>需要</td></tr>
+                <tr><td><code>本機媒體</code></td><td>本機音訊或影片檔。</td><td>需要</td></tr>
+                <tr><td><code>逐字稿檔案</code></td><td>已有 <code>transcript.md</code> 或 <code>.txt</code>，只想重跑摘要。</td><td>不需要</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="網頁 URL">
+            <div class="eyebrow">Workflow</div>
+            <h2>使用流程：網頁 URL</h2>
+            <ol>
+              <li>開啟 <code>AI 摘要器</code>。</li>
+              <li>選 <code>網頁 URL</code>。</li>
+              <li>輸入 <code>http</code> 或 <code>https</code> 網址。</li>
+              <li>按 <code>開始摘要</code>。</li>
+              <li>完成後按 <code>開啟筆記</code> 檢查結果。</li>
+            </ol>
+            <div class="note">
+              <strong>最適合第一次測試</strong>
+              這個流程不需要媒體工具，適合用來確認 API key、摘要 provider 與筆記輸出是否正常。
+            </div>
+          </article>
+
+          <article class="slide" data-title="媒體 URL">
+            <div class="eyebrow">Workflow</div>
+            <h2>使用流程：媒體 URL</h2>
+            <ol>
+              <li>到設定頁確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+              <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
+              <li>開啟 <code>AI 摘要器</code>。</li>
+              <li>選 <code>媒體 URL</code>。</li>
+              <li>輸入 YouTube、podcast 或直接媒體網址。</li>
+              <li>按 <code>開始摘要</code>。</li>
+              <li>完成後按 <code>開啟筆記</code>。</li>
+            </ol>
+          </article>
+
+          <article class="slide" data-title="本機媒體">
+            <div class="eyebrow">Workflow</div>
+            <h2>使用流程：本機媒體</h2>
+            <ol>
+              <li>到設定頁確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+              <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
+              <li>開啟 <code>AI 摘要器</code>。</li>
+              <li>選 <code>本機媒體</code>。</li>
+              <li>輸入檔案絕對路徑，或按 <code>選擇檔案</code>。</li>
+              <li>按 <code>開始摘要</code>。</li>
+            </ol>
+            <div class="warning">
+              <strong>媒體摘要的前置條件</strong>
+              本機媒體也需要 <code>ffmpeg</code>、<code>ffprobe</code>、媒體暫存資料夾，以及可用的轉錄 Provider。
+            </div>
+          </article>
+
+          <article class="slide" data-title="逐字稿檔案">
+            <div class="eyebrow">Workflow</div>
+            <h2>使用流程：逐字稿檔案</h2>
+            <ol>
+              <li>開啟 <code>AI 摘要器</code>。</li>
+              <li>選 <code>逐字稿檔案</code>。</li>
+              <li>輸入 <code>.md</code> 或 <code>.txt</code> 逐字稿路徑，或按 <code>選擇檔案</code>。</li>
+              <li>按 <code>開始摘要</code>。</li>
+            </ol>
+            <p>這個流程會跳過轉錄，直接用目前摘要 Provider 產生筆記。</p>
+            <div class="note">
+              <strong>適合使用時機</strong>
+              媒體轉錄已完成但摘要失敗、想手動修正逐字稿、或想改用 Mistral 重新摘要時，可以用這個流程。
+            </div>
+          </article>
+
+          <article class="slide" data-title="AI 模型設定">
+            <div class="eyebrow">Settings</div>
+            <h2>設定頁說明：AI 模型</h2>
+            <p>這裡設定轉錄與摘要使用的服務。</p>
+            <ul>
+              <li>媒體轉錄優先用 <code>Gladia</code> / <code>default</code>。</li>
+              <li>一般摘要可用 Gemini。</li>
+              <li>Gemini 額度不足時，摘要可改用 Mistral。</li>
+              <li>OpenRouter 是選用，只有切到 OpenRouter 摘要時才需要填 key。</li>
+            </ul>
+            <div class="note">
+              <strong>模型清單更新</strong>
+              <code>模型清單更新</code> 的 <code>更新</code> 會重新抓取 Gemini、OpenRouter、Mistral 的官方模型清單，供 autocomplete 使用。
+            </div>
+          </article>
+
+          <article class="slide" data-title="輸出與媒體設定">
+            <div class="eyebrow">Settings</div>
+            <h2>設定頁說明：輸出與媒體</h2>
+            <table>
+              <thead>
+                <tr><th>設定</th><th>用途</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>輸出資料夾</code></td><td>摘要筆記寫入 vault 的相對資料夾。空值表示 vault 根目錄。</td></tr>
+                <tr><td><code>媒體暫存檔保留</code></td><td>控制媒體處理完成後保留哪些暫存檔。</td></tr>
+                <tr><td><code>媒體暫存資料夾</code></td><td>媒體流程暫存目錄，請放在 vault 外。</td></tr>
+                <tr><td><code>媒體壓縮策略</code></td><td><code>balanced</code> 優先壓低上傳量，<code>quality</code> 保留較高音質。</td></tr>
+                <tr><td><code>預設輸入類型</code></td><td>開啟 <code>AI 摘要器</code> 時預先選中的來源。</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="筆記模板">
+            <div class="eyebrow">Settings</div>
+            <h2>設定頁說明：筆記模板</h2>
+            <div class="grid">
+              <div class="panel">
+                <h3><code>預設通用 Frontmatter</code></h3>
+                <p>使用內建格式輸出摘要筆記。</p>
+              </div>
+              <div class="panel">
+                <h3><code>自訂模板</code></h3>
+                <p>使用 vault 裡的模板檔。</p>
+              </div>
+            </div>
+            <p>自訂模板可使用 <code>{{title}}</code>、<code>{{source}}</code>、<code>{{summary}}</code>、<code>{{transcript}}</code> 等 placeholder。</p>
+            <div class="note">
+              <strong>完整模板規格</strong>
+              詳細 placeholder 與格式請看 <code>docs/template-spec.md</code>。
+            </div>
+          </article>
+
+          <article class="slide" data-title="診斷分頁">
+            <div class="eyebrow">Settings</div>
+            <h2>設定頁說明：診斷</h2>
+            <p>診斷分頁會檢查：</p>
+            <ul>
+              <li>Obsidian 目前環境。</li>
+              <li>媒體暫存資料夾是否可用。</li>
+              <li><code>yt-dlp</code>、<code>ffmpeg</code>、<code>ffprobe</code> 是否可用。</li>
+              <li><code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>逐字稿檔案</code> 是否可執行。</li>
+            </ul>
+            <div class="warning">
+              <strong>媒體流程失敗時，先看這一頁</strong>
+              診斷結果通常能指出是工具路徑、暫存資料夾，還是輸入類型不可用。
+            </div>
+          </article>
+
+          <article class="slide" data-title="使用說明分頁">
+            <div class="eyebrow">Settings</div>
+            <h2>設定頁說明：使用說明與獨立 HTML 簡報</h2>
+            <p>設定頁的 <code>使用說明</code> 分頁是新手入口，會帶你完成第一次使用與 plugin 更新檢查。</p>
+            <p>這個分頁提供 <code>前往 AI 模型</code> 與 <code>前往診斷</code> 按鈕，方便你先填 API key，再檢查媒體工具。</p>
+            <p>它也整理了更新 plugin 的最短步驟：關閉 Obsidian、覆蓋 release 檔案、不要刪掉整個 plugin 資料夾、重新開啟後檢查設定。</p>
+            <div class="note">
+              <strong>內容來源判斷</strong>
+              使用說明分頁的內容應以外掛內建內容為準，並隨 <code>main.js</code> 一起更新。獨立的 <code>Manual-slides.html</code> 適合離線瀏覽、課堂投影或分享給尚未安裝外掛的人。
+            </div>
+          </article>
+
+          <article class="slide" data-title="AI 摘要器按鈕">
+            <div class="eyebrow">Buttons</div>
+            <h2>按鈕功能索引：AI 摘要器視窗</h2>
+            <table>
+              <thead><tr><th>按鈕</th><th>功能</th></tr></thead>
+              <tbody>
+                <tr><td><code>網頁 URL</code> / <code>媒體 URL</code> / <code>本機媒體</code> / <code>逐字稿檔案</code></td><td>切換輸入來源。</td></tr>
+                <tr><td><code>填入範例</code></td><td>填入目前來源類型的範例。</td></tr>
+                <tr><td><code>選擇檔案</code></td><td>選擇本機媒體或逐字稿檔案。</td></tr>
+                <tr><td><code>媒體工具：...</code></td><td>檢查媒體工具狀態。</td></tr>
+                <tr><td><code>診斷</code></td><td>前往設定頁的診斷分頁。</td></tr>
+                <tr><td><code>選擇</code></td><td>選擇本次輸出的 vault 資料夾。</td></tr>
+                <tr><td><code>開始摘要</code></td><td>開始產生摘要。</td></tr>
+                <tr><td><code>取消</code></td><td>取消正在執行的流程。</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="結果畫面按鈕">
+            <div class="eyebrow">Buttons</div>
+            <h2>按鈕功能索引：成功、失敗與取消畫面</h2>
+            <table>
+              <thead><tr><th>按鈕</th><th>功能</th></tr></thead>
+              <tbody>
+                <tr><td><code>開啟筆記</code></td><td>開啟剛建立的摘要筆記。</td></tr>
+                <tr><td><code>複製路徑</code></td><td>複製摘要筆記路徑。</td></tr>
+                <tr><td><code>再摘要一次</code></td><td>用目前設定重新執行。</td></tr>
+                <tr><td><code>重試</code></td><td>失敗後重新執行。</td></tr>
+                <tr><td><code>前往診斷</code></td><td>開啟診斷分頁。</td></tr>
+                <tr><td><code>改用逐字稿檔案</code></td><td>使用已保留的逐字稿重跑摘要。</td></tr>
+                <tr><td><code>關閉</code></td><td>關閉視窗。</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="設定頁按鈕">
+            <div class="eyebrow">Buttons</div>
+            <h2>按鈕功能索引：設定頁</h2>
+            <table>
+              <thead><tr><th>按鈕</th><th>功能</th></tr></thead>
+              <tbody>
+                <tr><td><code>測試</code></td><td>測試目前 API key、provider 與模型是否可用。</td></tr>
+                <tr><td><code>新增</code> / <code>刪除目前模型</code></td><td>管理目前模型清單。</td></tr>
+                <tr><td><code>更新</code></td><td>更新官方模型清單。</td></tr>
+                <tr><td><code>搜尋資料夾</code></td><td>選擇摘要輸出資料夾。</td></tr>
+                <tr><td><code>選擇資料夾</code></td><td>選擇媒體暫存資料夾。</td></tr>
+                <tr><td><code>選資料夾與模板</code> / <code>建立範本</code></td><td>選擇或建立自訂模板。</td></tr>
+                <tr><td><code>選擇檔案</code></td><td>指定 <code>yt-dlp</code> / <code>ffmpeg</code> / <code>ffprobe</code> 執行檔。</td></tr>
+                <tr><td><code>自動偵測</code></td><td>從 PATH 尋找 <code>yt-dlp</code>。</td></tr>
+                <tr><td><code>自動填入</code></td><td>下載或更新 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
+                <tr><td><code>取消下載</code></td><td>取消正在下載的 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
+                <tr><td><code>重新檢查</code></td><td>重新執行媒體功能診斷。</td></tr>
+                <tr><td><code>前往 AI 模型</code> / <code>前往診斷</code></td><td>從使用說明分頁切到指定分頁。</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="FAQ：看不到 .obsidian">
+            <div class="eyebrow">FAQ</div>
+            <h2>我看不到 <code>.obsidian</code> 資料夾</h2>
+            <p class="lead">這通常是因為 Windows 檔案總管預設隱藏了隱藏項目。</p>
+            <div class="steps">
+              <div class="step"><span class="bubble">1</span><div><strong>打開 Windows 檔案總管</strong><p>進入你的 Obsidian vault 資料夾。</p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>開啟隱藏項目</strong><p>選 <code>檢視 -> 顯示 -> 隱藏的項目</code>。</p></div></div>
+              <div class="step"><span class="bubble">3</span><div><strong>再檢查一次</strong><p>你應該會看到 <code>.obsidian</code> 資料夾。</p></div></div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="FAQ：找不到外掛">
+            <div class="eyebrow">FAQ</div>
+            <h2>Obsidian 裡找不到 AI Summarizer</h2>
+            <p>請依序檢查：</p>
+            <ol>
+              <li>檔案是否放在 <code>&lt;vault&gt;\.obsidian\plugins\ai-summarizer\</code>。</li>
+              <li><code>manifest.json</code> 是否在這個資料夾裡。</li>
+              <li>Obsidian 是否已重新啟動。</li>
+              <li><code>Settings -> Community plugins</code> 是否允許 Community plugins。</li>
+            </ol>
+            <div class="warning">
+              <strong>最常見錯誤</strong>
+              解壓縮後多包了一層資料夾，導致 <code>manifest.json</code> 不在 <code>ai-summarizer</code> 的第一層。
+            </div>
+          </article>
+
+          <article class="slide" data-title="FAQ：Gemini 失敗">
+            <div class="eyebrow">FAQ</div>
+            <h2>Gemini 常常失敗或額度不足</h2>
+            <p>媒體轉錄建議改用 Gladia。摘要可以保留 Gemini，或改用 Mistral。</p>
+            <div class="grid">
+              <div class="panel">
+                <h3>處理媒體</h3>
+                <p>轉錄 Provider 設成 <code>Gladia</code>，Model 使用 <code>default</code>。</p>
+              </div>
+              <div class="panel">
+                <h3>摘要備援</h3>
+                <p>摘要 Provider 可改成 <code>Mistral</code>，並測試 API key 與模型。</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="slide" data-title="FAQ：媒體不能用">
+            <div class="eyebrow">FAQ</div>
+            <h2>媒體 URL 或本機媒體不能用</h2>
+            <p>先到 <code>Settings -> AI Summarizer -> 診斷</code>：</p>
+            <ol>
+              <li>按 <code>重新檢查</code>。</li>
+              <li>確認 <code>ffmpeg</code>、<code>ffprobe</code>、<code>yt-dlp</code> 可用。</li>
+              <li>確認媒體暫存資料夾可用。</li>
+              <li>確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+            </ol>
+          </article>
+
+          <article class="slide" data-title="FAQ：已有逐字稿">
+            <div class="eyebrow">FAQ</div>
+            <h2>摘要失敗，但已經有逐字稿</h2>
+            <p class="lead">選 <code>逐字稿檔案</code>，指定 <code>transcript.md</code>，再按 <code>開始摘要</code>。</p>
+            <div class="note">
+              <strong>這樣會跳過轉錄</strong>
+              外掛會只重跑摘要與筆記輸出。這很適合媒體下載或轉錄已經完成，但最後摘要階段失敗的情況。
+            </div>
+          </article>
+
+          <article class="slide" data-title="錯誤代碼">
+            <div class="eyebrow">Errors</div>
+            <h2>常見錯誤代碼</h2>
+            <table>
+              <thead><tr><th>錯誤</th><th>意思</th><th>處理方式</th></tr></thead>
+              <tbody>
+                <tr><td><code>validation_error</code></td><td>輸入格式不合法。</td><td>檢查 URL、檔案路徑或副檔名。</td></tr>
+                <tr><td><code>runtime_unavailable</code></td><td>目前環境或工具不可用。</td><td>到診斷分頁重新檢查。</td></tr>
+                <tr><td><code>download_failure</code></td><td>媒體下載或轉檔失敗。</td><td>檢查網址、<code>yt-dlp</code> 與 <code>ffmpeg</code>。</td></tr>
+                <tr><td><code>ai_failure</code></td><td>API key、provider、模型或額度問題。</td><td>測試 API key，或換 provider / 模型。</td></tr>
+                <tr><td><code>note_write_failure</code></td><td>筆記寫入失敗。</td><td>檢查輸出資料夾是否存在且可寫入。</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="slide" data-title="文件導航">
+            <div class="eyebrow">References</div>
+            <h2>文件導航</h2>
+            <div class="steps">
+              <div class="step"><span class="bubble">1</span><div><strong>一般 Windows 使用者手冊</strong><p><code>docs/Manual.md</code></p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>開發者手冊</strong><p><code>docs/Manual-Developer.md</code></p></div></div>
+              <div class="step"><span class="bubble">3</span><div><strong>發布與交付指南</strong><p><code>docs/distribution-guide.md</code></p></div></div>
+              <div class="step"><span class="bubble">4</span><div><strong>模板規格</strong><p><code>docs/template-spec.md</code></p></div></div>
+              <div class="step"><span class="bubble">5</span><div><strong>架構邊界</strong><p><code>docs/architecture-boundary.md</code></p></div></div>
+            </div>
+          </article>
+
+          <article class="slide cover" data-title="完成">
+            <div class="eyebrow">Finish</div>
+            <h2>完成安裝後，先跑一次網頁 URL 測試</h2>
+            <p class="lead">最小成功路徑是：啟用 plugin、填 Gemini API key、用 <code>網頁 URL</code> 產生一篇摘要筆記。確認成功後，再設定媒體工具與 Gladia 來處理 YouTube、podcast 或本機媒體。</p>
+            <div class="kicker-row">
+              <span class="pill green">先確認基本摘要</span>
+              <span class="pill orange">再檢查媒體工具</span>
+              <span class="pill">遇到問題先看診斷</span>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <footer class="footer">
+        <span>鍵盤：← / → 切換，Home / End 跳到開頭或結尾。</span>
+        <a class="print-link" href="javascript:window.print()">列印或另存 PDF</a>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const toc = document.getElementById("toc");
+    const currentTitle = document.getElementById("currentTitle");
+    const currentIndex = document.getElementById("currentIndex");
+    const totalSlides = document.getElementById("totalSlides");
+    const progressBar = document.getElementById("progressBar");
+    const prevButton = document.getElementById("prevButton");
+    const nextButton = document.getElementById("nextButton");
+    const menuButton = document.getElementById("menuButton");
+    let index = 0;
+
+    totalSlides.textContent = String(slides.length);
+
+    const tocButtons = slides.map((slide, slideIndex) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.innerHTML = `<span class="number">${String(slideIndex + 1).padStart(2, "0")}</span><span class="label">${slide.dataset.title}</span>`;
+      button.addEventListener("click", () => goTo(slideIndex));
+      toc.appendChild(button);
+      return button;
+    });
+
+    function goTo(nextIndex) {
+      index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      slides.forEach((slide, slideIndex) => {
+        slide.classList.toggle("active", slideIndex === index);
+        slide.scrollTop = 0;
+      });
+      tocButtons.forEach((button, slideIndex) => {
+        button.classList.toggle("active", slideIndex === index);
+      });
+      currentTitle.textContent = slides[index].dataset.title;
+      currentIndex.textContent = String(index + 1);
+      progressBar.style.width = `${((index + 1) / slides.length) * 100}%`;
+      prevButton.disabled = index === 0;
+      nextButton.disabled = index === slides.length - 1;
+      tocButtons[index].scrollIntoView({ block: "nearest" });
+    }
+
+    prevButton.addEventListener("click", () => goTo(index - 1));
+    nextButton.addEventListener("click", () => goTo(index + 1));
+    menuButton.addEventListener("click", () => {
+      const titleList = slides.map((slide, slideIndex) => `${slideIndex + 1}. ${slide.dataset.title}`).join("\n");
+      const answer = window.prompt(`輸入頁碼跳轉：\n\n${titleList}`, String(index + 1));
+      if (!answer) return;
+      const target = Number.parseInt(answer, 10);
+      if (Number.isFinite(target)) goTo(target - 1);
+    });
+
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowLeft") goTo(index - 1);
+      if (event.key === "ArrowRight" || event.key === " ") goTo(index + 1);
+      if (event.key === "Home") goTo(0);
+      if (event.key === "End") goTo(slides.length - 1);
+    });
+
+    goTo(0);
+  </script>
+</body>
+</html>

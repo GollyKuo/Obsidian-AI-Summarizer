@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-04 23:05
+最後更新：2026-05-04 23:42
 
 ## 用途
 
@@ -32,7 +32,7 @@
 - Gemini 大型媒體 v1 已採「逐 chunk inline 轉錄 -> 合併 transcript -> 全局摘要」；單段失敗時會保留已完成 partial transcript 作為 recovery artifact。
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
 - `features/` 已收斂為 UI 決策、實作指南與 visual QA；`CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
-- 設定頁使用說明與 HTML 簡報策略已定案：內建使用說明已加入 `Settings -> AI Summarizer`，但不得依賴獨立 `Manual-slides.html`；官方 Community Plugin 更新只保證標準 plugin assets，HTML 簡報只能作 optional 文件。
+- 設定頁使用說明與 HTML 簡報策略已定案：內建使用說明已加入 `Settings -> AI Summarizer`；`Manual-slides.html` 作為獨立下載文件，不在 settings 中開啟、嵌入或檢查檔案路徑。
 
 ## Release Checklist
 
@@ -125,14 +125,14 @@ Done When：
 ### CAP-306 In-App Help And HTML Tutorial Slides 內建說明與 HTML 教學簡報
 
 目標：
-讓新手在 Obsidian settings 內就能找到最短操作路徑，並預留未來 `Manual-slides.html` 的入口。
+讓新手在 Obsidian settings 內就能找到最短操作路徑；完整 `Manual-slides.html` 簡報作為獨立文件另行下載。
 
 - [x] 在 `Settings -> AI Summarizer` 新增 `使用說明` 分頁。（完成：2026-05-04 23:05）
-- [x] 使用說明分頁提供第一次使用與四種來源選擇的簡短指南。（完成：2026-05-04 23:05）
-- [x] 預留 `Manual-slides.html` 開啟按鈕，檔案尚未提供時以 notice 提示，不阻塞 settings 說明顯示。（完成：2026-05-04 23:05）
-- [ ] 建立單一內容來源，供 settings 使用說明與 `docs/Manual-slides.html` 共用。
+- [x] 使用說明分頁提供第一次使用、plugin 更新步驟，以及 `前往 AI 模型` / `前往診斷` 快速入口。（完成：2026-05-04 23:28）
+- [x] 將使用說明分頁改成緊湊 action row 與兩欄步驟 layout，移除大卡片式堆疊觀感。（完成：2026-05-04 23:42）
+- [x] 移除 settings 內的 `Manual-slides.html` 開啟入口與本機檔案檢查，定案為獨立下載文件。（完成：2026-05-04 23:14）
 - [ ] 產生 `docs/Manual-slides.html` 單檔簡報，供離線瀏覽與教學投影。
-- [ ] 決定 `Manual-slides.html` 是否作為 GitHub release optional artifact，並同步 workflow / distribution 文件。
+- [ ] 決定 `Manual-slides.html` 是否作為 GitHub release optional artifact；若採用，再同步 workflow / distribution 文件。
 
 ### CAP-401 Test Matrix And Smoke Gates 測試矩陣與 Smoke Gate
 

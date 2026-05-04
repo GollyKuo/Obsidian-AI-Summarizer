@@ -1,18 +1,21 @@
 ﻿# 開發日誌
 
-最後更新：2026-05-04 23:05
+最後更新：2026-05-04 23:42
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-04 23:05
+### Unreleased - 2026-05-04 23:42
 
 範圍：
-- 新增設定頁使用說明入口，並文件化 HTML 教學簡報的交付策略。
+- 新增設定頁使用說明，並定案 HTML 教學簡報為獨立下載文件。
 
 主要變更：
-- 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、來源選擇與 `Manual-slides.html` 開啟入口。
+- 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、plugin 更新步驟，以及 `前往 AI 模型` / `前往診斷` 快速入口。
+- 精簡 `使用說明` 分頁，移除多餘說明卡片，只保留可操作入口與步驟內容。
+- 更新 `styles.css`，將使用說明分頁收斂為緊湊 action row 與兩欄步驟 layout。
+- 移除 settings 內 `Manual-slides.html` 開啟入口、Electron shell 開啟邏輯與本機檔案存在檢查。
 - 更新 `docs/Manual.md`，說明 settings 內建使用說明與 optional `Manual-slides.html` 的更新差異。
-- 更新 `docs/Manual-Developer.md` 與 `docs/distribution-guide.md`，明確規範使用說明應打包進 `main.js`，獨立 HTML 簡報只作額外文件。
+- 更新 `docs/Manual-Developer.md` 與 `docs/distribution-guide.md`，明確規範使用說明應打包進 `main.js`，獨立 HTML 簡報只作額外下載文件，且不綁定 settings。
 - 更新 `docs/backlog.md`，新增並啟動 `CAP-306 In-App Help And HTML Tutorial Slides` capability。
 - 更新 `docs/backlog-active.md`，記錄本次決策、已完成的 settings 入口與後續 HTML 簡報待辦。
 

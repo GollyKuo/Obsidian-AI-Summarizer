@@ -40,7 +40,7 @@ versions.json
 
 `main.js` 是 build 產物，不需要把 `src/`、`node_modules/`、測試檔、文件或本機暫存資料交給使用者。
 
-若額外提供 `Manual-slides.html`，它只作為離線教學或投影文件，不是 plugin 必要 asset。不要讓設定頁使用說明依賴這個檔案才可顯示。
+若額外提供 `Manual-slides.html`，它只作為離線教學或投影文件，不是 plugin 必要 asset。不要讓設定頁使用說明依賴或開啟這個檔案。
 
 ### 使用者端
 
@@ -85,14 +85,14 @@ styles.css
 
 ### 使用說明與 HTML 簡報
 
-Obsidian Community Plugin 的標準安裝與更新流程只會下載 `manifest.json`、`main.js` 與 `styles.css`。因此，`Settings -> AI Summarizer` 內的 `使用說明` 分頁必須打包進 `main.js` 或由程式內建資料渲染，不應依賴獨立的 `Manual-slides.html`。
+Obsidian Community Plugin 的標準安裝與更新流程只會下載 `manifest.json`、`main.js` 與 `styles.css`。因此，`Settings -> AI Summarizer` 內的 `使用說明` 分頁必須打包進 `main.js` 或由程式內建資料渲染，不應依賴、尋找或開啟獨立的 `Manual-slides.html`。
 
 交付策略：
 
-1. `Manual-slides.html` 可作為 GitHub release 的 optional artifact，供使用者離線開啟或教學投影。
+1. `Manual-slides.html` 可作為 GitHub release 或文件頁的 optional artifact，供使用者自行下載後離線開啟或教學投影。
 2. 若 release zip 額外包含 `Manual-slides.html`，文件內容更新時必須重新產出並附上新版。
 3. 官方 Community Plugin 更新不應要求使用者手動覆蓋 `Manual-slides.html`。
-4. 設定頁說明與 HTML 簡報應盡量共用單一內容來源，避免同一教學流程出現兩份不同版本。
+4. 設定頁說明只保留快速上手內容；完整簡報作為獨立文件維護。
 
 建立 release tag 的本地指令：
 
