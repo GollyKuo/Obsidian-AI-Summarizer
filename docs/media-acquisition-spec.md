@@ -262,7 +262,8 @@ Gemini file upload 是 Gemini 轉錄 provider 的 vNext 傳輸策略，不是摘
 4. 若 Files API upload、processing polling、generateContent 或 delete 發生 timeout、provider error、rate limit 或不支援錯誤，必須可 fallback 到現有逐 chunk inline strategy。
 5. `transcriptionProvider = Gemini` 且 strategy 不是 `inline_chunks` 時，pre-upload 階段應使用 `single_artifact` 模式；`transcriptionProvider = Gladia` 或 Gemini `inline_chunks` 才維持長媒體 chunking。
 6. 若單一 artifact 後續觸及 Files API 大小、token、timeout 或輸出長度限制，才退回既有逐 chunk inline fallback 或未來的 provider-specific chunking。
-6. fallback 不得改變使用者可見輸出：最終仍產生合併 transcript、`transcript.md`、`subtitles.srt` 與同一套 summary handoff。
+7. Gemini 媒體轉錄 request timeout 應獨立於一般文字摘要 timeout；長音訊 Files API `generateContent` 不應沿用 120 秒短 timeout。
+8. fallback 不得改變使用者可見輸出：最終仍產生合併 transcript、`transcript.md`、`subtitles.srt` 與同一套 summary handoff。
 
 #### Remote file lifecycle
 

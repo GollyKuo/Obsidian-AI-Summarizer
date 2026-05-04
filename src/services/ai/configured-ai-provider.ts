@@ -19,6 +19,7 @@ import { formatTranscriptMarkdown, type TranscriptionProvider } from "@services/
 import { updateArtifactManifestWithRemoteFile } from "@services/media/artifact-manifest";
 
 const DEFAULT_AI_TIMEOUT_MS = 120_000;
+const DEFAULT_GEMINI_TRANSCRIPTION_TIMEOUT_MS = 10 * 60_000;
 const DEFAULT_GEMINI_FILE_POLL_INTERVAL_MS = 3_000;
 const DEFAULT_GEMINI_FILE_MAX_POLLING_MS = 10 * 60_000;
 
@@ -325,6 +326,7 @@ async function generateGeminiText(input: {
   parts: GeminiPart[];
   signal: AbortSignal;
   fetchImpl?: typeof fetch;
+  timeoutMs?: number;
 }): Promise<string> {
   const apiKey = requireApiKey(input.apiKey, "Gemini");
   const fetchImpl = getFetchImplementation(input.fetchImpl);
@@ -344,7 +346,8 @@ async function generateGeminiText(input: {
           }
         })
       },
-      input.signal
+      input.signal,
+      input.timeoutMs
     );
   } catch (error) {
     if (error instanceof SummarizerError) {
@@ -866,6 +869,7 @@ async function transcribeGeminiInlineArtifacts(input: {
   artifactPaths: string[];
   signal: AbortSignal;
   fetchImpl?: typeof fetch;
+  requestTimeoutMs: number;
 }): Promise<MediaTranscriptionResult> {
   const transcriptChunks: string[] = [];
   const transcriptSegments: TranscriptSegment[] = [];
@@ -880,7 +884,8 @@ async function transcribeGeminiInlineArtifacts(input: {
         model: input.model,
         parts: [{ text: buildTranscriptPrompt(input.normalizedText) }, audioPart],
         signal: input.signal,
-        fetchImpl: input.fetchImpl
+        fetchImpl: input.fetchImpl,
+        timeoutMs: input.requestTimeoutMs
       });
 
       transcriptChunks.push(transcriptMarkdown);
@@ -933,6 +938,7 @@ async function transcribeGeminiFilesApiArtifacts(input: {
   artifactMetadataPath?: string;
   pollIntervalMs: number;
   maxPollingMs: number;
+  requestTimeoutMs: number;
 }): Promise<MediaTranscriptionResult> {
   const apiKey = requireApiKey(input.apiKey, "Gemini");
   const fetchImpl = getFetchImplementation(input.fetchImpl);
@@ -988,7 +994,8 @@ async function transcribeGeminiFilesApiArtifacts(input: {
           }
         ],
         signal: input.signal,
-        fetchImpl
+        fetchImpl,
+        timeoutMs: input.requestTimeoutMs
       });
 
       transcriptChunks.push(transcriptMarkdown);
@@ -1068,6 +1075,7 @@ async function transcribeGeminiAudioArtifacts(input: {
   strategy: AISummarizerPluginSettings["geminiTranscriptionStrategy"];
   filePollIntervalMs: number;
   fileMaxPollingMs: number;
+  requestTimeoutMs: number;
 }): Promise<MediaTranscriptionResult> {
   if (input.strategy === "inline_chunks") {
     return transcribeGeminiInlineArtifacts(input);
@@ -1083,7 +1091,8 @@ async function transcribeGeminiAudioArtifacts(input: {
       fetchImpl: input.fetchImpl,
       artifactMetadataPath: input.artifactMetadataPath,
       pollIntervalMs: input.filePollIntervalMs,
-      maxPollingMs: input.fileMaxPollingMs
+      maxPollingMs: input.fileMaxPollingMs,
+      requestTimeoutMs: input.requestTimeoutMs
     });
   } catch (error) {
     if (input.strategy === "files_api" || (error instanceof SummarizerError && error.category === "cancellation")) {
@@ -1103,7 +1112,7 @@ async function transcribeGeminiAudioArtifacts(input: {
     } catch (inlineError) {
       throw new SummarizerError({
         category: inlineError instanceof SummarizerError ? inlineError.category : "ai_failure",
-        message: `Gemini Files API transcription failed, and inline chunk fallback also failed: ${getErrorMessage(inlineError)}`,
+        message: `Gemini Files API transcription failed: ${filesApiErrorMessage}; inline chunk fallback also failed: ${getErrorMessage(inlineError)}`,
         recoverable: true,
         cause: {
           provider: "Gemini",
@@ -1128,6 +1137,7 @@ export interface ConfiguredAiProviderOptions {
   gladiaRequestTimeoutMs?: number;
   geminiFilePollIntervalMs?: number;
   geminiFileMaxPollingMs?: number;
+  geminiTranscriptionRequestTimeoutMs?: number;
 }
 
 export function createConfiguredSummaryProvider(
@@ -1242,7 +1252,8 @@ export function createConfiguredTranscriptionProvider(
         artifactMetadataPath: input.artifactMetadataPath,
         strategy: settings.geminiTranscriptionStrategy,
         filePollIntervalMs: options.geminiFilePollIntervalMs ?? DEFAULT_GEMINI_FILE_POLL_INTERVAL_MS,
-        fileMaxPollingMs: options.geminiFileMaxPollingMs ?? DEFAULT_GEMINI_FILE_MAX_POLLING_MS
+        fileMaxPollingMs: options.geminiFileMaxPollingMs ?? DEFAULT_GEMINI_FILE_MAX_POLLING_MS,
+        requestTimeoutMs: options.geminiTranscriptionRequestTimeoutMs ?? DEFAULT_GEMINI_TRANSCRIPTION_TIMEOUT_MS
       });
     }
   };

@@ -519,7 +519,7 @@ describe("configured AI providers", () => {
         )
       ).rejects.toMatchObject({
         category: "ai_failure",
-        message: expect.stringContaining("Gemini Files API transcription failed, and inline chunk fallback also failed"),
+        message: expect.stringContaining("Gemini Files API transcription failed: Gemini Files API upload start failed"),
         causeValue: expect.objectContaining({
           provider: "Gemini",
           failureKind: "files_api_fallback_inline_failed",
@@ -528,6 +528,83 @@ describe("configured AI providers", () => {
         })
       });
       expect(fetchImpl).toHaveBeenCalledTimes(2);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("applies a configurable Gemini transcription request timeout", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    await writeFile(audioPath, Buffer.from("audio"));
+
+    try {
+      let callCount = 0;
+      const fetchImpl = vi.fn<typeof fetch>(async (_, init) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return new Response("", {
+            status: 200,
+            headers: {
+              "x-goog-upload-url": "https://upload.example/session-1"
+            }
+          });
+        }
+        if (callCount === 2) {
+          return jsonResponse({
+            file: {
+              name: "files/audio-1",
+              uri: "https://generativelanguage.googleapis.com/v1beta/files/audio-1",
+              mimeType: "audio/ogg",
+              state: "ACTIVE"
+            }
+          });
+        }
+        if (callCount === 3) {
+          return await new Promise<Response>((_, reject) => {
+            const requestSignal = init?.signal;
+            if (requestSignal instanceof AbortSignal) {
+              requestSignal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+            }
+          });
+        }
+        return new Response("", { status: 200 });
+      });
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "files_api"
+        },
+        {
+          fetchImpl,
+          geminiTranscriptionRequestTimeoutMs: 5
+        }
+      );
+
+      await expect(
+        provider.transcribeMedia(
+          {
+            metadata: {
+              title: "Media",
+              creatorOrAuthor: "Creator",
+              platform: "Local File",
+              source: audioPath,
+              created: "2026-04-25T00:00:00.000Z"
+            },
+            normalizedText: "",
+            transcript: [],
+            aiUploadArtifactPaths: [audioPath],
+            transcriptionProvider: "gemini",
+            transcriptionModel: "gemini-2.5-flash"
+          },
+          new AbortController().signal
+        )
+      ).rejects.toMatchObject({
+        category: "ai_failure",
+        message: "AI request timed out."
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(4);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
