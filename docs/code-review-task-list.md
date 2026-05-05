@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 23:48
+最後更新：2026-05-05 23:55
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -145,7 +145,7 @@
 
 ## P3：產品後續
 
-- [ ] 完成 `CAP-404` yt-dlp managed install/update。
+- [x] 完成 `CAP-404` yt-dlp managed install/update。
   - 檔案：`src/services/media/dependency-drift.ts`、`src/plugin/dependency-drift-monitor.ts`、`src/ui/settings-tab.ts`
   - 目前問題：ffmpeg/ffprobe 已有 managed install，yt-dlp 仍主要依賴 path/PATH 與 drift monitor。
   - 建議作法：新增 yt-dlp managed installer、checksum/source policy、settings action 與 diagnostics。
