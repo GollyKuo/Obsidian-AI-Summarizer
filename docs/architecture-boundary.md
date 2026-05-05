@@ -1,4 +1,4 @@
-﻿# Architecture Boundary
+# Architecture Boundary
 
 ## 專案目標
 

@@ -253,6 +253,7 @@ Gemini file upload 是 Gemini 轉錄 provider 的 vNext 傳輸策略，不是摘
 1. `transcriptionProvider = Gladia`：維持目前流程，先抽音訊、壓縮成 AI-ready audio，必要時切 chunk，逐段上傳 Gladia，輪詢結果後合併 transcript。
 2. `transcriptionProvider = Gemini`：進入 Gemini transcription strategy。預設建議採 `auto`，由策略決定使用 Files API 或逐 chunk inline fallback。
 3. `summaryProvider = Gemini` / `Mistral` / `OpenRouter`：只影響摘要階段，不得反向改變媒體轉錄傳輸方式。
+4. Gemini 轉錄與摘要的推薦模型皆為 `gemini-2.5-flash`；preview 模型可保留在 model catalog，但不作為文件建議路徑。
 
 #### Gemini transcription strategy: `auto`
 

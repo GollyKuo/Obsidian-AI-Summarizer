@@ -213,6 +213,7 @@ export class SummarizerFlowModal extends Modal {
   private mediaDiagnostics: RuntimeDiagnosticsSummary | null = null;
   private mediaDiagnosticsError: string | null = null;
   private mediaDiagnosticsLoading = false;
+  private isOpen = false;
 
   public constructor(plugin: AISummarizerPlugin) {
     super(plugin.app);
@@ -224,15 +225,31 @@ export class SummarizerFlowModal extends Modal {
   }
 
   public onOpen(): void {
+    this.isOpen = true;
     this.render();
   }
 
+  public close(): void {
+    if (this.isBusy() && !this.confirmCloseDuringActiveRun()) {
+      return;
+    }
+
+    super.close();
+  }
+
   public onClose(): void {
+    this.isOpen = false;
     if (this.abortController) {
       this.abortController.abort();
       this.abortController = null;
     }
     this.contentEl.empty();
+  }
+
+  private confirmCloseDuringActiveRun(): boolean {
+    return window.confirm(
+      "摘要流程正在執行中。\n\n關閉視窗會取消目前任務，尚未完成的摘要或筆記可能不會產生。\n\n確定要關閉並取消嗎？"
+    );
   }
 
   private getDesktopDialog(): DesktopDialog | null {
@@ -1216,6 +1233,10 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private render(): void {
+    if (!this.isOpen) {
+      return;
+    }
+
     const { contentEl } = this;
 
     contentEl.empty();

@@ -41,9 +41,10 @@
 
 Provider 建議：
 
-1. 媒體轉錄優先用 `Gladia` / `default`。
-2. 摘要可用 Gemini；Gemini 額度不足時改用 Mistral。
-3. OpenRouter/Qwen 保留為選用 transcript-first 摘要路徑。
+1. Gemini 轉錄與摘要推薦模型皆為 `gemini-2.5-flash`。
+2. 媒體轉錄若遇到 Gemini 429、503、timeout 或 high demand，優先切 `Gladia` / `default`。
+3. 摘要若遇到 Gemini 額度不足或高負載時改用 Mistral。
+4. OpenRouter/Qwen 保留為選用 transcript-first 摘要路徑。
 
 ## 本地建置
 
@@ -282,7 +283,7 @@ Release asset 應只包含程式與 metadata：
 
 內建預設仍是 Gemini，但文件與測試建議要反映目前實務策略：
 
-1. 日常媒體轉錄優先用 `Gladia` / `default`。
+1. Gemini 轉錄建議模型使用 `gemini-2.5-flash`。
 2. Gemini 轉錄使用 `geminiTranscriptionStrategy`，預設 `auto`：優先 Gemini Files API 上傳抽音訊後的單一 AI-ready artifact，失敗時 fallback 到逐 chunk inline。
 3. `files_api` 可用於強制測試 Gemini remote file lifecycle；`inline_chunks` 可用於回歸既有逐 chunk inline 路徑。
 4. Gemini 媒體轉錄 request timeout 使用專用預設 10 分鐘；一般文字摘要仍維持較短 timeout。
@@ -291,7 +292,7 @@ Release asset 應只包含程式與 metadata：
 
 ### 摘要 Provider
 
-1. Gemini 是內建預設摘要路徑。
+1. Gemini 是內建預設摘要路徑，建議模型使用 `gemini-2.5-flash`。
 2. Mistral 是建議備援摘要路徑，內建模型為 `mistral-small-latest`。
 3. OpenRouter/Qwen 是選用 transcript-first 摘要路徑。
 

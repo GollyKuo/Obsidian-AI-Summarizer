@@ -1,4 +1,4 @@
-﻿# Parity Contract
+# Parity Contract
 
 ## 目的
 

@@ -220,7 +220,7 @@ compressed audio -> Gemini file upload -> wait processing -> generate transcript
 
 ### 通用規則
 
-1. 新安裝預設轉錄模型使用 `gemini-3-flash-preview`。
+1. Gemini 轉錄與摘要推薦模型使用 `gemini-2.5-flash`。
 2. 若 Gemini、Gladia、OpenRouter 或 Mistral 回傳錯誤，流程直接呈現原 provider 的錯誤原因，不自動換 provider 或模型重跑。
 3. 轉錄成功但摘要失敗時，流程保留 recovery transcript，方便使用者之後手動重跑摘要。
 4. API key、模型不存在、容量不足、空輸出、安全阻擋、音訊不可讀等錯誤都應忠實回報為當下 provider 的 `ai_failure`。

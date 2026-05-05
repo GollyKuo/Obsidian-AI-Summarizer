@@ -127,6 +127,109 @@ describe("processMedia integration", () => {
     ]);
   });
 
+  it("normalizes fenced YAML summary output before writing the media note", async () => {
+    let capturedSummaryMarkdown = "";
+    let capturedDescription = "";
+
+    const runtimeProvider: RuntimeProvider = {
+      strategy: "local_bridge",
+      async processMediaUrl() {
+        return {
+          metadata: {
+            title: "Agentic Workflow Demo",
+            creatorOrAuthor: "Gary Chen",
+            platform: "YouTube",
+            source: "https://www.youtube.com/watch?v=demo",
+            created: "2026-05-04T00:00:00.000Z"
+          },
+          normalizedText: "ai-ready artifact text",
+          transcript: [],
+          warnings: []
+        };
+      },
+      async processLocalMedia() {
+        throw new Error("should not execute");
+      },
+      async processWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const transcriptionProvider: TranscriptionProvider = {
+      async transcribeMedia() {
+        return {
+          transcript: [],
+          transcriptMarkdown: "{0-1000} transcript",
+          warnings: []
+        };
+      }
+    };
+
+    const summaryProvider: SummaryProvider = {
+      async summarizeMedia() {
+        return {
+          summaryMarkdown: [
+            "```yaml",
+            "---",
+            'Book: ""',
+            'Author: ""',
+            'Description: "Agentic workflow course summary"',
+            "---",
+            "## 一、大型語言模型的限制與強化方向",
+            "LLM 可以透過 RAG、Fine-tuning 與 Agentic Workflow 補強。"
+          ].join("\n"),
+          warnings: []
+        };
+      },
+      async summarizeWebpage() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const noteWriter: NoteWriter = {
+      async writeMediaNote(input) {
+        capturedSummaryMarkdown = input.summaryMarkdown;
+        capturedDescription = input.summaryMetadata?.description ?? "";
+        return {
+          notePath: "Summaries/Agentic Workflow Demo.md",
+          createdAt: "2026-05-04T00:00:00.000Z",
+          warnings: []
+        };
+      },
+      async writeWebpageNote() {
+        throw new Error("should not execute");
+      }
+    };
+
+    const result = await processMedia(
+      {
+        sourceKind: "media_url",
+        sourceValue: "https://www.youtube.com/watch?v=demo",
+        transcriptionProvider: "gemini",
+        transcriptionModel: "gemini-2.5-flash",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash",
+        retentionMode: "delete_temp"
+      },
+      {
+        runtimeProvider,
+        transcriptionProvider,
+        summaryProvider,
+        noteWriter
+      },
+      new AbortController().signal
+    );
+
+    expect(capturedSummaryMarkdown).toBe(
+      "## 一、大型語言模型的限制與強化方向\nLLM 可以透過 RAG、Fine-tuning 與 Agentic Workflow 補強。"
+    );
+    expect(capturedSummaryMarkdown).not.toContain("```");
+    expect(capturedSummaryMarkdown).not.toContain("Book:");
+    expect(capturedDescription).toBe("Agentic workflow course summary");
+    expect(result.warnings.some((warning) => warning.includes("removed code fence"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("extracted summary metadata block"))).toBe(true);
+  });
+
   it("runs local_media pipeline: runtime -> summary -> note", async () => {
     let mediaUrlCallCount = 0;
     let localMediaCallCount = 0;

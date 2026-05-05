@@ -1,6 +1,6 @@
 # Encoding Safety
 
-最後更新：2026-05-04 00:00
+最後更新：2026-05-05 18:34
 
 ## 目的
 
@@ -111,7 +111,7 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
 - `?敺...`
 - `銝剜蕭...`
-- `�`
+- `U+FFFD replacement character`
 
 處理順序：
 
@@ -191,7 +191,9 @@ insert_final_newline = true
 ### `.gitattributes`
 
 ```gitattributes
+.gitattributes text eol=lf
 *.md text working-tree-encoding=UTF-8 eol=lf
+*.html text working-tree-encoding=UTF-8 eol=lf
 *.ts text working-tree-encoding=UTF-8 eol=lf
 *.tsx text working-tree-encoding=UTF-8 eol=lf
 *.json text working-tree-encoding=UTF-8 eol=lf

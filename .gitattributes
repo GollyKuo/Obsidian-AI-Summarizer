@@ -1,6 +1,9 @@
 * text=auto
 
+.gitattributes text eol=lf
+
 *.md text working-tree-encoding=UTF-8 eol=lf
+*.html text working-tree-encoding=UTF-8 eol=lf
 *.txt text working-tree-encoding=UTF-8 eol=lf
 *.json text working-tree-encoding=UTF-8 eol=lf
 *.toml text working-tree-encoding=UTF-8 eol=lf

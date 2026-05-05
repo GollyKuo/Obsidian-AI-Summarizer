@@ -176,6 +176,35 @@ Done When：
 - `Book`、`Author`、`Description`、`tags`、`Platform`、`Created` 欄位有測試覆蓋。
 - 手冊、規格與測試矩陣已同步。
 
+### CAP-208 Transcript Cleanup And Proofreading 逐字稿校對與清理
+
+責任邊界：
+在 `transcribe -> summarize` 之間新增可選 AI 校對 / 清理階段，修正明顯錯字、ASR 同音誤判、標點、斷句與重複贅詞，同時保留時間軸、原意與可追溯性。第一版採 `enableTranscriptCleanup = false`、清理失敗 fallback 到原始正規化逐字稿、共用既有 summary provider/model，並將 media flow 與 `transcript_file` 重跑摘要流程納入同一能力。
+
+文件：
+
+- [transcript-cleanup-plan.md](transcript-cleanup-plan.md)
+- [API_Instructions.md](API_Instructions.md#逐字稿校對--清理指令-transcript-cleanup-prompt)
+- [backlog.md](backlog.md#cap-208-transcript-cleanup-and-proofreading-逐字稿校對與清理)
+
+- [x] 在 `PROMPT_CONTRACT` 新增 `transcriptCleanupPrompt`，並新增 `buildTranscriptCleanupPrompt`。（完成：2026-05-05 08:20）
+- [x] 定義 cleanup provider 介面或在既有 provider 層新增 cleanup 方法。（完成：2026-05-05 08:20）
+- [x] 新增 `enableTranscriptCleanup` 與 cleanup failure mode 設定。（完成：2026-05-05 08:20）
+- [x] 將 media flow 接入 `transcribe -> normalize -> cleanup -> normalize -> summarize`。（完成：2026-05-05 08:20）
+- [x] 將 `transcript_file` flow 接入 `read -> cleanup -> summarize`。（完成：2026-05-05 08:20）
+- [x] 實作 cleanup failure fallback 與 warnings。（完成：2026-05-05 08:20）
+- [x] 落地 `transcript.raw.md` / `transcript.md` 或等效 artifact 可追溯策略。（完成：2026-05-05 08:20）
+- [x] 補 unit、integration 與長媒體 regression 測試。（完成：2026-05-05 08:20）
+
+Done When：
+
+- `PROMPT_CONTRACT` 支援 `transcriptCleanupPrompt`，並新增 prompt builder。
+- media flow 可在轉錄正規化後、摘要前選擇性執行 cleanup。
+- `transcript_file` flow 可在讀檔後、摘要前選擇性執行 cleanup。
+- cleanup disabled 時既有流程行為不變。
+- cleanup failure fallback 與 warnings 有 unit / integration 測試覆蓋。
+- `transcript.raw.md` / `transcript.md` 或等效 artifact 可追溯策略已落地。
+
 ## Completed User Experience 已完成使用體驗
 
 ### CAP-301 Minimal Interaction Flow 最小互動流程

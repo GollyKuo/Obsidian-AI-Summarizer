@@ -31,10 +31,10 @@ function stripHtmlToText(html: string): string {
 }
 
 export class FetchWebpageExtractor implements WebpageExtractor {
-  private readonly fetchImpl: typeof fetch;
+  private readonly fetchImpl?: typeof fetch;
 
-  public constructor(fetchImpl: typeof fetch = globalThis.fetch) {
-    this.fetchImpl = fetchImpl;
+  public constructor(fetchImpl?: typeof fetch) {
+    this.fetchImpl = fetchImpl ?? getDefaultFetchImplementation();
   }
 
   public async extractReadableText(url: string, signal: AbortSignal): Promise<string> {
@@ -65,4 +65,8 @@ export class FetchWebpageExtractor implements WebpageExtractor {
     }
     return readableText;
   }
+}
+
+function getDefaultFetchImplementation(): typeof fetch | undefined {
+  return globalThis.fetch?.bind(globalThis);
 }

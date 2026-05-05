@@ -60,7 +60,7 @@ Balanced compression spot check is recorded in [media-acquisition-spec.md](media
 
 | Case | Input | Transcription provider | Summary provider | Result |
 | --- | --- | --- | --- | --- |
-| Local media + Gladia | local media | Gladia / `default` | Gemini | pass; completed summary and wrote note |
+| Local media + Gladia | local media | Gladia / `default` | Gemini / `gemini-2.5-flash` | pass; completed summary and wrote note |
 | Mixed provider | local media | Gladia / `default` | OpenRouter/Qwen | pass; completed summary and wrote note |
 
 Additional check: final summaries did not expose `chunk` / `Chunk 1` / `part` processing markers.

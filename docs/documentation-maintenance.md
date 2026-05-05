@@ -1,6 +1,6 @@
 # Documentation Maintenance
 
-最後更新：2026-05-02 13:51
+最後更新：2026-05-05 18:34
 
 ## 用途
 
@@ -36,6 +36,12 @@
   - media acquisition、AI-ready artifact、transcript/subtitle 與 retention 規格。
 - `docs/Manual.md`
   - 使用者安裝、設定、操作、smoke test 與 vault sync 手冊。
+- `docs/Manual-Developer.md`
+  - 開發、建置、測試、vault sync 與交付操作手冊。
+- `docs/commands-reference.md`
+  - 工程側指令總表。
+- `docs/distribution-guide.md`
+  - 手動交付、GitHub release、官方上架、外部工具放置與打包隱私檢查。
 - `docs/dev_log.md`
   - 版本節點、完成內容與重要變更紀錄。
 - `docs/test-matrix.md`
@@ -44,6 +50,12 @@
   - 手動 smoke checklist。
 - `docs/release-gate.md`
   - release 放行條件、gate 與失敗處理 SOP。
+- `docs/release-build-vault-sop.md`
+  - build / release / commit / test / vault sync 操作 SOP。
+- `docs/dependency-update-strategy.md`
+  - `yt-dlp` / `ffmpeg` / `ffprobe` 版本漂移與更新策略。
+- `docs/encoding-safety.md`
+  - 中文文件與 Windows/PowerShell 編碼安全規則；舊的臨時事故筆記不得與此文件並存成第二套規則。
 - `docs/versioning-policy.md`
   - 版本節點、dev log 與版本號同步規則。
 
@@ -148,6 +160,7 @@
 
 - 正式規範以 `docs/` 內文件為準。
 - `.codex/references/documentation-maintenance.md` 只保存本文件的精簡執行 checklist。
+- 編碼安全正式規範只保留在 `docs/encoding-safety.md` 與其 `.codex/references/` 摘要，不再保留未索引的臨時筆記。
 - 不再維護 `docs/docs-governance.md` 或 `.codex/references/docs-governance.md`，避免文件治理規則分裂成兩份。
 
 ## 禁止模式
@@ -159,3 +172,4 @@
 5. 把 future / queued / parking 項目塞進 `docs/backlog-archive.md`。
 6. 把未定案討論直接寫成 architecture rule。
 7. 在 `.codex/references/` 建立與 `docs/` 正式規範互相競爭的第二套規則。
+8. 在 `docs/` 保留未連結、未命名規範化、且已被正式文件取代的臨時筆記。

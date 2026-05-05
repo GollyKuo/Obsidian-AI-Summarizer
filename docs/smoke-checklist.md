@@ -1,4 +1,4 @@
-﻿# Smoke Checklist
+# Smoke Checklist
 
 最後更新：2026-05-02 14:01
 
@@ -39,7 +39,7 @@
 
 | Case | Transcription provider | Summary provider | Result |
 |---|---|---|---|
-| Local media | Gladia / `default` | Gemini | pass; completed summary |
+| Local media | Gladia / `default` | Gemini / `gemini-2.5-flash` | pass; completed summary |
 | Mixed provider | Gladia / `default` | OpenRouter/Qwen | pass; completed summary |
 
 Additional check: final summaries did not show chunk processing markers.

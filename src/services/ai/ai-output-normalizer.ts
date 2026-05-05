@@ -55,7 +55,7 @@ function unquoteMetadataValue(value: string): string {
   return trimmed;
 }
 
-function unwrapWrappingCodeFence(markdown: string): {
+function unwrapSummaryCodeFence(markdown: string): {
   markdown: string;
   unwrapped: boolean;
 } {
@@ -71,6 +71,51 @@ function unwrapWrappingCodeFence(markdown: string): {
   return {
     markdown: match[1].trimStart(),
     unwrapped: true
+  };
+}
+
+function stripLeadingSummaryFence(markdown: string): {
+  markdown: string;
+  unwrapped: boolean;
+} {
+  const normalized = normalizeLineEndings(markdown).trim();
+  const match = normalized.match(/^```([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*)$/);
+  if (!match) {
+    return {
+      markdown,
+      unwrapped: false
+    };
+  }
+
+  const language = match[1].toLowerCase();
+  if (!["yaml", "yml", "markdown", "md"].includes(language)) {
+    return {
+      markdown,
+      unwrapped: false
+    };
+  }
+
+  const body = match[2].trimStart();
+  const frontmatterMatch = body.match(/^(---\n[\s\S]*?\n---)(?:\n```[ \t]*)?(?:\n|$)([\s\S]*)$/);
+  if (frontmatterMatch) {
+    const [, frontmatter = "", summaryBody = ""] = frontmatterMatch;
+    const parts = [frontmatter, summaryBody.trimStart()].filter((part) => part.length > 0);
+    return {
+      markdown: parts.join("\n"),
+      unwrapped: true
+    };
+  }
+
+  if (/^(---(?:\n|$)|#{1,6}\s+)/.test(body)) {
+    return {
+      markdown: body,
+      unwrapped: true
+    };
+  }
+
+  return {
+    markdown,
+    unwrapped: false
   };
 }
 
@@ -172,9 +217,12 @@ function removeBlankLineAfterHeading(markdown: string): { value: string; changed
 function normalizeSummaryMarkdown(markdown: string): MarkdownNormalizationResult {
   const warnings: string[] = [];
   const normalizedLineEnding = normalizeLineEndings(markdown);
-  const fenceHandled = unwrapWrappingCodeFence(normalizedLineEnding);
+  const wrappingFenceHandled = unwrapSummaryCodeFence(normalizedLineEnding);
+  const fenceHandled = wrappingFenceHandled.unwrapped
+    ? wrappingFenceHandled
+    : stripLeadingSummaryFence(normalizedLineEnding);
   if (fenceHandled.unwrapped) {
-    warnings.push("AI output contract: removed wrapping code fence from summary output.");
+    warnings.push("AI output contract: removed code fence from summary output.");
   }
   const metadataHandled = extractSummaryMetadata(fenceHandled.markdown);
   if (metadataHandled.extracted) {

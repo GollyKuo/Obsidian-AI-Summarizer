@@ -95,7 +95,73 @@ describe("ai-output-normalizer", () => {
       description: "Project setup lesson"
     });
     expect(
-      result.warnings.some((warning) => warning.includes("removed wrapping code fence"))
+      result.warnings.some((warning) => warning.includes("removed code fence"))
+    ).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("extracted summary metadata block"))
+    ).toBe(true);
+  });
+
+  it("strips an unclosed leading YAML fence before summary frontmatter", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: [
+        "```yaml",
+        "---",
+        'Book: ""',
+        'Author: "Gary Chen"',
+        'Description: "Agentic workflow lesson"',
+        "---",
+        "## 一、大型語言模型的限制與強化方向",
+        "LLM 可以透過 RAG 與 Agentic Workflow 補強。"
+      ].join("\n"),
+      transcriptMarkdown: "{0-1000} transcript",
+      warnings: []
+    });
+
+    expect(result.summaryMarkdown).toBe(
+      "## 一、大型語言模型的限制與強化方向\nLLM 可以透過 RAG 與 Agentic Workflow 補強。"
+    );
+    expect(result.summaryMarkdown).not.toContain("```");
+    expect(result.summaryMarkdown).not.toContain("Book:");
+    expect(result.summaryMetadata).toEqual({
+      book: "",
+      author: "Gary Chen",
+      description: "Agentic workflow lesson"
+    });
+    expect(
+      result.warnings.some((warning) => warning.includes("removed code fence"))
+    ).toBe(true);
+    expect(
+      result.warnings.some((warning) => warning.includes("extracted summary metadata block"))
+    ).toBe(true);
+  });
+
+  it("strips a YAML fence around metadata when summary body follows it", () => {
+    const result = normalizeMediaSummaryResult({
+      summaryMarkdown: [
+        "```yaml",
+        "---",
+        'Book: ""',
+        'Author: ""',
+        'Description: "Course summary"',
+        "---",
+        "```",
+        "## 一、課程重點",
+        "這是一般 Markdown 內文。"
+      ].join("\n"),
+      transcriptMarkdown: "{0-1000} transcript",
+      warnings: []
+    });
+
+    expect(result.summaryMarkdown).toBe("## 一、課程重點\n這是一般 Markdown 內文。");
+    expect(result.summaryMarkdown).not.toContain("```");
+    expect(result.summaryMetadata).toEqual({
+      book: "",
+      author: "",
+      description: "Course summary"
+    });
+    expect(
+      result.warnings.some((warning) => warning.includes("removed code fence"))
     ).toBe(true);
     expect(
       result.warnings.some((warning) => warning.includes("extracted summary metadata block"))

@@ -665,7 +665,7 @@
             <div class="kicker-row">
               <span class="pill green">單檔離線 HTML</span>
               <span class="pill orange">Obsidian Plugin</span>
-              <span class="pill">最後更新：2026-05-04</span>
+              <span class="pill">最後更新：2026-05-05</span>
             </div>
           </article>
 
@@ -683,7 +683,7 @@
               </div>
               <div class="panel">
                 <h3>使用摘要功能</h3>
-                <p>能分辨 `網頁 URL`、`媒體 URL`、`本機媒體`、`逐字稿檔案` 的適用時機。</p>
+                <p>能分辨 <code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>逐字稿檔案</code> 的適用時機。</p>
               </div>
               <div class="panel">
                 <h3>排查問題</h3>
@@ -739,14 +739,14 @@
                 <tr><th>欄位</th><th>用途</th><th>建議</th></tr>
               </thead>
               <tbody>
-                <tr><td><code>Gemini API Key</code></td><td>一般摘要的預設路徑。</td><td>如果只想先測試網頁摘要，可以先準備 Gemini。</td></tr>
-                <tr><td><code>Mistral API Key</code></td><td>摘要備援。</td><td>適合 Gemini 額度不足或高負載時使用。</td></tr>
-                <tr><td><code>Gladia API Key</code></td><td>YouTube、podcast、本機音訊或影片的媒體轉錄。</td><td>如果要穩定使用媒體摘要，建議一開始就準備。</td></tr>
+                <tr><td><code>Gemini API Key</code></td><td>轉錄與摘要的建議路徑。</td><td>轉錄模型與摘要模型都建議使用 <code>gemini-2.5-flash</code>。</td></tr>
+                <tr><td><code>Mistral API Key</code></td><td>摘要備用。</td><td>Gemini 摘要遇到額度不足、高負載或 503 時使用。</td></tr>
+                <tr><td><code>Gladia API Key</code></td><td>媒體轉錄備用。</td><td>Gemini 轉錄遇到高負載、timeout 或不可用時使用，Model 為 <code>default</code>。</td></tr>
               </tbody>
             </table>
             <div class="note">
               <strong>最小測試組合</strong>
-              只測網頁摘要：先準備 Gemini。要做媒體摘要：建議準備 Gemini、Mistral 與 Gladia 三組 API key。
+              只測網頁摘要：先準備 Gemini。要做媒體摘要：建議先用 Gemini / <code>gemini-2.5-flash</code>，並準備 Mistral 與 Gladia 作為備用路徑。
             </div>
           </article>
 
@@ -824,7 +824,7 @@
             </ol>
             <div class="note">
               <strong>看不到 <code>.obsidian</code> 時</strong>
-              在 Windows 檔案總管開啟 <code>檢視 -> 顯示 -> 隱藏的項目</code>。
+              在 Windows 檔案總管開啟 <code>檢視 &gt; 顯示 &gt; 隱藏的項目</code>。
             </div>
           </article>
 
@@ -894,7 +894,7 @@
               <li>不要刪除其他檔案，特別是設定資料檔。</li>
               <li>重新開啟 Obsidian。</li>
               <li>確認 <code>AI Summarizer</code> 仍然啟用。</li>
-              <li>到 <code>Settings -> AI Summarizer -> AI 模型</code> 確認 API key 還在。</li>
+              <li>到 <code>Settings &gt; AI Summarizer &gt; AI 模型</code> 確認 API key 還在。</li>
               <li>到 <code>診斷</code> 按 <code>重新檢查</code>。</li>
             </ol>
           </article>
@@ -913,7 +913,7 @@
           <article class="slide" data-title="HTML 簡報更新">
             <div class="eyebrow">Manual Slides</div>
             <h2>這份 HTML 簡報不會保存設定，也不會自動更新</h2>
-            <p><code>Settings -> AI Summarizer</code> 內的 <code>使用說明</code> 分頁會跟著 plugin 程式一起更新，不需要你額外更新 <code>Manual-slides.html</code>。</p>
+            <p><code>Settings &gt; AI Summarizer</code> 內的 <code>使用說明</code> 分頁會跟著 plugin 程式一起更新，不需要你額外更新 <code>Manual-slides.html</code>。</p>
             <p>如果你是手動下載離線簡報 <code>Manual-slides.html</code> 來教學或投影，想看到新版教學內容時，請另外下載新版簡報檔。</p>
             <div class="note">
               <strong>簡單判斷</strong>
@@ -954,7 +954,7 @@
             </ol>
             <div class="note">
               <strong>建議日常媒體設定</strong>
-              轉錄 Provider 若用 <code>Gemini</code>，轉錄 Model 建議選 <code>gemini-2.5-flash</code>；若用 <code>Gladia</code>，Model 使用 <code>default</code>。摘要 Provider 可用 <code>Gemini</code> 或 <code>Mistral</code>。
+              轉錄 Provider 建議用 <code>Gemini</code>，轉錄 Model 選 <code>gemini-2.5-flash</code>；<code>Gladia</code> / <code>default</code> 作為媒體轉錄備用。摘要 Provider 建議用 <code>Gemini</code>，摘要 Model 選 <code>gemini-2.5-flash</code>；<code>Mistral</code> 作為摘要備用。
             </div>
           </article>
 
@@ -993,7 +993,7 @@
             <div class="eyebrow">Diagnostics</div>
             <h2>第一次使用媒體功能前，先檢查工具</h2>
             <ol>
-              <li>打開 <code>Settings -> AI Summarizer -> 診斷</code>。</li>
+              <li>打開 <code>Settings &gt; AI Summarizer &gt; 診斷</code>。</li>
               <li>找到 <code>媒體工具路徑</code>。</li>
               <li>在 <code>ffmpeg</code> 或 <code>ffprobe</code> 列按 <code>自動填入</code>。</li>
               <li>等待外掛下載或更新 <code>ffmpeg</code> / <code>ffprobe</code>。</li>
@@ -1059,7 +1059,8 @@
             <div class="eyebrow">Workflow</div>
             <h2>使用流程：媒體 URL</h2>
             <ol>
-              <li>到設定頁確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
+              <li>到設定頁確認轉錄 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Gladia</code> / <code>default</code> 作為備用。</li>
+              <li>確認摘要 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Mistral</code> 作為備用。</li>
               <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
               <li>開啟 <code>AI 摘要器</code>。</li>
               <li>選 <code>媒體 URL</code>。</li>
@@ -1073,7 +1074,8 @@
             <div class="eyebrow">Workflow</div>
             <h2>使用流程：本機媒體</h2>
             <ol>
-              <li>到設定頁確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
+              <li>到設定頁確認轉錄 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Gladia</code> / <code>default</code> 作為備用。</li>
+              <li>確認摘要 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Mistral</code> 作為備用。</li>
               <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
               <li>開啟 <code>AI 摘要器</code>。</li>
               <li>選 <code>本機媒體</code>。</li>
@@ -1093,12 +1095,13 @@
               <li>開啟 <code>AI 摘要器</code>。</li>
               <li>選 <code>逐字稿檔案</code>。</li>
               <li>輸入 <code>.md</code> 或 <code>.txt</code> 逐字稿路徑，或按 <code>選擇檔案</code>。</li>
+              <li>摘要建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Mistral</code> 作為備用。</li>
               <li>按 <code>開始摘要</code>。</li>
             </ol>
             <p>這個流程會跳過轉錄，直接用目前摘要 Provider 產生筆記。</p>
             <div class="note">
               <strong>適合使用時機</strong>
-              媒體轉錄已完成但摘要失敗、想手動修正逐字稿、或想改用 Mistral 重新摘要時，可以用這個流程。
+              媒體轉錄已完成但摘要失敗、想手動修正逐字稿、或想改用 Mistral 備用路徑重新摘要時，可以用這個流程。
             </div>
           </article>
 
@@ -1107,10 +1110,10 @@
             <h2>設定頁說明：AI 模型</h2>
             <p>這裡設定轉錄與摘要使用的服務。</p>
             <ul>
-              <li>媒體轉錄若使用 <code>Gemini</code>，轉錄 Model 建議選 <code>gemini-2.5-flash</code>。</li>
-              <li>媒體轉錄若使用 <code>Gladia</code>，Model 使用 <code>default</code>。</li>
-              <li>一般摘要可用 Gemini。</li>
-              <li>Gemini 額度不足時，摘要可改用 Mistral。</li>
+              <li>轉錄 Provider 建議使用 <code>Gemini</code>，轉錄 Model 選 <code>gemini-2.5-flash</code>。</li>
+              <li><code>Gladia</code> 是媒體轉錄備用 Provider，Model 使用 <code>default</code>。</li>
+              <li>摘要 Provider 建議使用 <code>Gemini</code>，摘要 Model 選 <code>gemini-2.5-flash</code>。</li>
+              <li><code>Mistral</code> 是摘要備用 Provider，適合 Gemini 額度不足或高負載時使用。</li>
               <li>OpenRouter 是選用，只有切到 OpenRouter 摘要時才需要填 key。</li>
             </ul>
             <div class="note">
@@ -1247,7 +1250,7 @@
             <p class="lead">這通常是因為 Windows 檔案總管預設隱藏了隱藏項目。</p>
             <div class="steps">
               <div class="step"><span class="bubble">1</span><div><strong>打開 Windows 檔案總管</strong><p>進入你的 Obsidian vault 資料夾。</p></div></div>
-              <div class="step"><span class="bubble">2</span><div><strong>開啟隱藏項目</strong><p>選 <code>檢視 -> 顯示 -> 隱藏的項目</code>。</p></div></div>
+              <div class="step"><span class="bubble">2</span><div><strong>開啟隱藏項目</strong><p>選 <code>檢視 &gt; 顯示 &gt; 隱藏的項目</code>。</p></div></div>
               <div class="step"><span class="bubble">3</span><div><strong>再檢查一次</strong><p>你應該會看到 <code>.obsidian</code> 資料夾。</p></div></div>
             </div>
           </article>
@@ -1260,7 +1263,7 @@
               <li>檔案是否放在 <code>&lt;vault&gt;\.obsidian\plugins\ai-summarizer\</code>。</li>
               <li><code>manifest.json</code> 是否在這個資料夾裡。</li>
               <li>Obsidian 是否已重新啟動。</li>
-              <li><code>Settings -> Community plugins</code> 是否允許 Community plugins。</li>
+              <li><code>Settings &gt; Community plugins</code> 是否允許 Community plugins。</li>
             </ol>
             <div class="warning">
               <strong>最常見錯誤</strong>
@@ -1271,14 +1274,14 @@
           <article class="slide" data-title="FAQ：Gemini 失敗">
             <div class="eyebrow">FAQ</div>
             <h2>Gemini 常常失敗或額度不足</h2>
-            <p>媒體轉錄建議改用 Gladia。摘要可以保留 Gemini，或改用 Mistral。</p>
+            <p>轉錄與摘要都先建議使用 Gemini 的 <code>gemini-2.5-flash</code>。如果 Gemini 遇到額度不足、高負載或 503，再切到備用 provider。</p>
             <div class="grid">
               <div class="panel">
-                <h3>處理媒體</h3>
-                <p>轉錄 Provider 設成 <code>Gladia</code>，Model 使用 <code>default</code>。</p>
+                <h3>轉錄備用</h3>
+                <p>轉錄 Provider 可改成 <code>Gladia</code>，Model 使用 <code>default</code>。</p>
               </div>
               <div class="panel">
-                <h3>摘要備援</h3>
+                <h3>摘要備用</h3>
                 <p>摘要 Provider 可改成 <code>Mistral</code>，並測試 API key 與模型。</p>
               </div>
             </div>
@@ -1287,12 +1290,13 @@
           <article class="slide" data-title="FAQ：媒體不能用">
             <div class="eyebrow">FAQ</div>
             <h2>媒體 URL 或本機媒體不能用</h2>
-            <p>先到 <code>Settings -> AI Summarizer -> 診斷</code>：</p>
+            <p>先到 <code>Settings &gt; AI Summarizer &gt; 診斷</code>：</p>
             <ol>
               <li>按 <code>重新檢查</code>。</li>
               <li>確認 <code>ffmpeg</code>、<code>ffprobe</code>、<code>yt-dlp</code> 可用。</li>
               <li>確認媒體暫存資料夾可用。</li>
-              <li>確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
+              <li>確認轉錄 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Gladia</code> / <code>default</code> 作為備用。</li>
+              <li>確認摘要 Provider 與 Model 可用；建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Mistral</code> 作為備用。</li>
             </ol>
           </article>
 
@@ -1336,7 +1340,7 @@
           <article class="slide cover" data-title="完成">
             <div class="eyebrow">Finish</div>
             <h2>完成安裝後，先跑一次網頁 URL 測試</h2>
-            <p class="lead">最小成功路徑是：啟用 plugin、填 Gemini API key、用 <code>網頁 URL</code> 產生一篇摘要筆記。確認成功後，再設定媒體工具與 Gladia 來處理 YouTube、podcast 或本機媒體。</p>
+            <p class="lead">最小成功路徑是：啟用 plugin、填 Gemini API key、用 <code>gemini-2.5-flash</code> 與 <code>網頁 URL</code> 產生一篇摘要筆記。確認成功後，再設定媒體工具；必要時準備 Gladia 作為轉錄備用。</p>
             <div class="kicker-row">
               <span class="pill green">先確認基本摘要</span>
               <span class="pill orange">再檢查媒體工具</span>
