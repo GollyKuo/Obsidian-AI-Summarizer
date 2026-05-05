@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 19:22
+最後更新：2026-05-05 19:45
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -47,7 +47,7 @@
   - 建議作法：新增共用 `http-ai-client` 或 `provider-error.ts`，統一 timeout、JSON parse、body excerpt 長度、header/key redaction、response shape diagnostics。
   - 驗證：補測 provider error body 包含 key/token 時不會出現在 thrown error、log message 或 warning 中。
 
-- [ ] 強化 Gemini Files API remote file cleanup 的可觀測性與補償策略。
+- [x] 強化 Gemini Files API remote file cleanup 的可觀測性與補償策略。
   - 檔案：`src/services/ai/configured-ai-provider.ts`、`src/services/media/artifact-manifest.ts`
   - 目前問題：remote file lifecycle 已寫入 manifest，但刪除失敗、取消、或 manifest 不存在時的後續補償仍偏 best-effort。長媒體測試若大量使用 Files API，可能留下 provider-side remote files。
   - 建議作法：將 remote file delete 狀態納入明確 result/warning，提供可重跑 cleanup 的 manifest-driven helper。
@@ -67,25 +67,25 @@
 
 ## P1：使用者輸入與輸出品質
 
-- [ ] 強化 Webpage extraction。
+- [x] 強化 Webpage extraction。
   - 檔案：`src/services/web/webpage-extractor.ts`、`src/services/web/metadata-extractor.ts`、`src/orchestration/process-webpage.ts`
   - 目前問題：目前以簡單 regex strip HTML；metadata extractor 永遠回 `Untitled Webpage`。真實網站的 title、description、article text、HTML entity、動態內容與 charset 會很容易退化。
   - 建議作法：至少解析 `<title>`、`meta[name=description]`、OpenGraph、canonical URL；HTML entity 改用可靠 decode；正文抽取加入 length gate 與 fallback warnings。
   - 驗證：新增含 title/meta/script/style/entity/empty article 的 unit tests 與 webpage regression。
 
-- [ ] 對 transcript file 的 pseudo timing segmentation 增加更清楚的語意。
+- [x] 對 transcript file 的 pseudo timing segmentation 增加更清楚的語意。
   - 檔案：`src/orchestration/process-transcript-file.ts`
   - 目前問題：`.md/.txt` 逐字稿沒有時間軸時，目前每行用 1 秒 pseudo segment。這對 summary chunking 足夠，但對 cleanup prompt 的「保留 timing marker」語意不夠真實。
   - 建議作法：新增 `timingSource: "synthetic" | "explicit"` 或 equivalent metadata，讓 cleanup prompt / chunking 可以用不同策略。
   - 驗證：補 transcript file 無 timing、已有 `{HH:MM:SS}` timing、混合空行與註解的 tests。
 
-- [ ] 改善 note writer 的 template/frontmatter 邊界。
+- [x] 改善 note writer 的 template/frontmatter 邊界。
   - 檔案：`src/services/obsidian/note-writer.ts`、`src/services/obsidian/template-resolver.ts`
   - 目前問題：預設 frontmatter 與 custom template path 都由 note writer 同時處理；custom template 如果自行包含 frontmatter，placeholder 插入與 fallback append 容易產生雙 frontmatter 或重複 summary。
   - 建議作法：拆出 `renderBuiltinNote` / `renderCustomTemplateNote`，新增 frontmatter detection 與 warnings。
   - 驗證：補 custom template 已含 frontmatter、沒有 `{{summary}}`、沒有 `{{transcript}}`、unknown placeholder 的 tests。
 
-- [ ] 將 `generateFlashcards` 從 note tag placeholder 擴展成明確 capability boundary。
+- [x] 將 `generateFlashcards` 從 note tag placeholder 擴展成明確 capability boundary。
   - 檔案：`src/services/obsidian/note-writer.ts`、`src/ui/flow-modal/SummarizerFlowModal.ts`、`docs/flashcard-generation-spec.md`
   - 目前問題：目前只影響 tags placeholder，還沒有真正 flashcard 生成 pipeline；UI 上若讓使用者理解成已生成閃卡會有落差。
   - 建議作法：短期把 UI 文案明確標示為「預留/標記」；中期實作獨立 flashcard generation output contract。
