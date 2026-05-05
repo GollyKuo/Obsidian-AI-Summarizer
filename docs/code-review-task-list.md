@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 22:52
+最後更新：2026-05-05 23:20
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -99,7 +99,7 @@
   - 建議作法：依 section 拆成 `settings/ai-models-section.ts`、`settings/output-media-section.ts`、`settings/templates-section.ts`、`settings/help-section.ts`、`settings/diagnostics-section.ts`，保留同一 PluginSettingTab shell。
   - 驗證：先補 section-level smoke helpers，再拆檔，最後跑 `npm run typecheck`、`npm run build`、`npm run smoke:desktop`。
 
-- [ ] 拆分 Flow Modal。
+- [x] 拆分 Flow Modal。
   - 檔案：`src/ui/flow-modal/SummarizerFlowModal.ts`
   - 目前問題：單檔約 1400 行，混合 state machine、rendering、folder picker、template controls、runtime diagnostics、job execution。任務取消、close gate、result panel 與 source switching 容易互相影響。
   - 建議作法：抽出 `flow-state.ts`、`flow-renderer.ts`、`flow-job-runner.ts`、`folder-picker-modal.ts`，保留 public modal class 薄化。
