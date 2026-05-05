@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 23:41
+最後更新：2026-05-05 23:48
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -117,7 +117,7 @@
   - 建議作法：建立共用 `abortableTimeout`、`withAbortSignal`、`toCancellationError` helpers，統一 `SummarizerError` category 與 recoverable semantics。
   - 驗證：補 fetch timeout、polling abort、child process abort、ffmpeg install abort 的共同測試。
 
-- [ ] 加入 lint / dependency hygiene gate。
+- [x] 加入 lint / dependency hygiene gate。
   - 檔案：`package.json`、`tsconfig.json`、CI 或 release docs
   - 目前問題：沒有 ESLint、unused dependency check、unused exports check。React 未使用這類問題只能靠人工掃描。
   - 建議作法：加入 ESLint TypeScript config，至少啟用 no-unused-vars、no-floating-promises、consistent-type-imports；另加 `depcheck` 或等效腳本。
