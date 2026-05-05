@@ -52,7 +52,11 @@ import {
   listBuiltinTemplates,
   UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
 } from "@services/obsidian/template-library";
-import { FLOW_MODAL_TITLE } from "@ui/flow-modal/copy";
+import {
+  FLASHCARD_MARKER_LABEL,
+  FLASHCARD_MARKER_TOOLTIP,
+  FLOW_MODAL_TITLE
+} from "@ui/flow-modal/copy";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
 type UiStatus = "idle" | "running" | "cancelling" | "completed" | "failed" | "cancelled";
@@ -990,7 +994,9 @@ export class SummarizerFlowModal extends Modal {
     flashcardCheckboxEl.type = "checkbox";
     flashcardCheckboxEl.disabled = this.isBusy();
     flashcardCheckboxEl.checked = this.plugin.settings.generateFlashcards;
-    flashcardControlEl.createSpan({ text: "製作閃卡內容" });
+    flashcardControlEl.setAttribute("title", FLASHCARD_MARKER_TOOLTIP);
+    flashcardControlEl.setAttribute("aria-label", FLASHCARD_MARKER_TOOLTIP);
+    flashcardControlEl.createSpan({ text: FLASHCARD_MARKER_LABEL });
     flashcardCheckboxEl.addEventListener("change", () => {
       this.plugin.settings.generateFlashcards = flashcardCheckboxEl.checked;
       void this.plugin.saveSettings();

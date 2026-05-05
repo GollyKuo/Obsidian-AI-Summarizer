@@ -52,6 +52,41 @@ describe("note writer", () => {
     expect(writtenContent).toContain("tags:\n  - Flashcard");
   });
 
+  it("omits the Flashcard tag when marker mode is disabled", async () => {
+    let writtenContent = "";
+    const storage = {
+      async exists(): Promise<boolean> {
+        return false;
+      },
+      async write(_path: string, content: string): Promise<void> {
+        writtenContent = content;
+      },
+      async readTemplate(): Promise<string | null> {
+        return null;
+      }
+    };
+
+    const writer = new ObsidianNoteWriter(storage, {
+      outputFolder: "Summaries",
+      templateReference: "",
+      generateFlashcards: false
+    });
+
+    await writer.writeWebpageNote({
+      metadata: {
+        title: "Article",
+        creatorOrAuthor: "Author",
+        platform: "Web",
+        source: "https://example.com/article",
+        created: "2026-04-24T08:00:00.000Z"
+      },
+      summaryMarkdown: "## Summary\n\nHello"
+    });
+
+    expect(writtenContent).toContain("tags:");
+    expect(writtenContent).not.toContain("Flashcard");
+  });
+
   it("uses builtin template references without reading custom template storage", async () => {
     let writtenContent = "";
     let readTemplateCalls = 0;

@@ -1,6 +1,6 @@
 # Flashcard Generation Spec 閃卡生成規格
 
-狀態：placeholder
+狀態：marker-only placeholder
 
 ## 目的
 
@@ -9,7 +9,7 @@
 目標能力：
 
 - 在摘要內容成功寫入 Obsidian 後，可選擇再由 AI 產生閃卡資訊。
-- Flow Modal 先保留 `製作閃卡內容` 選項，實際生成規則後續補上。
+- Flow Modal 先保留 `加入 Flashcard 標記` 選項，實際生成規則後續補上。
 
 ## 待定規則
 
@@ -27,10 +27,18 @@
 
 目前預留介面：
 
-- `執行前摘要` 顯示 `製作閃卡內容` checkbox。
+- `執行前摘要` 顯示 `加入 Flashcard 標記` checkbox。
 - 預設值來自 plugin settings。
 - 使用者在 Flow Modal 中變更後會自動記憶為下次預設。
 - 目前不改變摘要流程，也不產生閃卡內容。
+- 開啟時只會在 note frontmatter 的 `tags` placeholder 加入 `Flashcard`，作為未來閃卡流程的標記。
+
+## 目前輸出契約
+
+- `generateFlashcards: false`：不新增 `Flashcard` tag。
+- `generateFlashcards: true`：只新增 `Flashcard` tag。
+- 不呼叫額外 AI provider。
+- 不新增閃卡區塊、附檔或獨立筆記。
 
 ## 實作待辦
 
