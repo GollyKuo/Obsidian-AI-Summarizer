@@ -73,7 +73,7 @@ export interface DiagnosticsSectionOptions {
   saveSettings: () => Promise<void>;
   onAutoDetectMediaToolExecutable: (settingKey: MediaToolPathSettingKey, toolName: string) => void;
   onCancelProjectMediaToolInstall: () => void;
-  onInstallOrUpdateProjectMediaTools: () => void;
+  onInstallOrUpdateProjectMediaTool: (settingKey: MediaToolPathSettingKey) => void;
   onInvalidateRuntimeDiagnostics: () => void;
   onPickMediaToolExecutable: (settingKey: MediaToolPathSettingKey) => void;
   onRefreshDiagnostics: () => void;
@@ -164,8 +164,8 @@ function renderMediaToolPathSetting(
     .setName(toolName)
     .setDesc(
       isYtDlp
-        ? "可留空使用系統 PATH；按「自動偵測」會尋找 PATH 中的 yt-dlp 並寫入路徑。目前不會自動下載 yt-dlp。"
-        : "可留空使用系統 PATH；按「自動填入」會在外掛資料夾的 tools/ffmpeg 中檢查、下載或更新 ffmpeg/ffprobe，並寫入路徑。"
+        ? "可留空使用系統 PATH；按「自動偵測」會尋找 PATH 中的 yt-dlp，按「自動填入」會下載或更新外掛資料夾內的 yt-dlp。"
+        : "可留空使用系統 PATH；按「自動偵測」會尋找 PATH 中的工具，按「自動填入」會下載或更新外掛資料夾內的 ffmpeg/ffprobe。"
     )
     .addText((text) =>
       text
@@ -183,20 +183,24 @@ function renderMediaToolPathSetting(
       })
     )
     .addButton((button) =>
-      isYtDlp
-        ? button.setButtonText("自動偵測").onClick(() => {
-            options.onAutoDetectMediaToolExecutable(settingKey, toolName);
-          })
-        : button
-            .setButtonText(options.mediaToolInstallInProgress ? "取消下載" : "自動填入")
-            .setDisabled(!options.mediaToolInstallInProgress && !options.hasVaultFilesystemAccess)
-            .onClick(() => {
-              if (options.mediaToolInstallInProgress) {
-                options.onCancelProjectMediaToolInstall();
-                return;
-              }
-              options.onInstallOrUpdateProjectMediaTools();
-            })
+      button
+        .setButtonText("自動偵測")
+        .setDisabled(options.mediaToolInstallInProgress)
+        .onClick(() => {
+          options.onAutoDetectMediaToolExecutable(settingKey, toolName);
+        })
+    )
+    .addButton((button) =>
+      button
+        .setButtonText(options.mediaToolInstallInProgress ? "取消下載" : "自動填入")
+        .setDisabled(!options.mediaToolInstallInProgress && !options.hasVaultFilesystemAccess)
+        .onClick(() => {
+          if (options.mediaToolInstallInProgress) {
+            options.onCancelProjectMediaToolInstall();
+            return;
+          }
+          options.onInstallOrUpdateProjectMediaTool(settingKey);
+        })
     );
 }
 

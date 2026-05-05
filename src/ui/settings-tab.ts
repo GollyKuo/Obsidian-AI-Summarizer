@@ -47,6 +47,7 @@ import {
   type RuntimeDiagnosticsSummary
 } from "@services/media/runtime-diagnostics";
 import { ensureLatestProjectFfmpegTools } from "@services/media/ffmpeg-tool-installer";
+import { ensureLatestProjectYtDlpTool } from "@services/media/yt-dlp-tool-installer";
 import {
   createCustomTemplateReference,
   getCustomTemplatePath
@@ -727,45 +728,62 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
   }
 
-  private async installOrUpdateProjectMediaTools(): Promise<void> {
+  private async installOrUpdateProjectMediaTool(settingKey: MediaToolPathSettingKey): Promise<void> {
     if (this.mediaToolInstallInProgress) {
       return;
     }
 
     const pluginDirectory = this.resolvePluginDirectory();
     if (!pluginDirectory) {
-      this.plugin.notify("自動安裝 ffmpeg/ffprobe 需要 Obsidian 桌面版的檔案系統存取。");
+      this.plugin.notify("自動安裝媒體工具需要 Obsidian 桌面版的檔案系統存取。");
       return;
     }
 
     const abortController = new AbortController();
     this.mediaToolInstallAbortController = abortController;
     this.mediaToolInstallInProgress = true;
-    this.plugin.notify("正在檢查並安裝 ffmpeg/ffprobe，第一次下載可能需要一些時間。");
+    const isYtDlp = settingKey === "ytDlpPath";
+    const toolLabel = isYtDlp ? "yt-dlp" : "ffmpeg/ffprobe";
+    this.plugin.notify(`正在檢查並安裝 ${toolLabel}，第一次下載可能需要一些時間。`);
     this.display();
 
     try {
-      const result = await ensureLatestProjectFfmpegTools(pluginDirectory, {
-        signal: abortController.signal,
-        onDownloadAttempt: (source) => {
-          this.plugin.notify(`正在從 ${source.name} 下載 ffmpeg/ffprobe。`);
-        }
-      });
-      this.plugin.settings.ffmpegPath = result.ffmpegPath;
-      this.plugin.settings.ffprobePath = result.ffprobePath;
+      if (isYtDlp) {
+        const result = await ensureLatestProjectYtDlpTool(pluginDirectory, {
+          signal: abortController.signal,
+          onDownloadAttempt: (source) => {
+            this.plugin.notify(`正在從 ${source.name} 下載 yt-dlp。`);
+          }
+        });
+        this.plugin.settings.ytDlpPath = result.ytDlpPath;
+        this.plugin.notify(
+          result.installed
+            ? `已安裝 yt-dlp ${result.version} (${result.sourceName}): ${result.binDirectory}`
+            : `yt-dlp ${result.version} 已是最新版: ${result.binDirectory}`
+        );
+      } else {
+        const result = await ensureLatestProjectFfmpegTools(pluginDirectory, {
+          signal: abortController.signal,
+          onDownloadAttempt: (source) => {
+            this.plugin.notify(`正在從 ${source.name} 下載 ffmpeg/ffprobe。`);
+          }
+        });
+        this.plugin.settings.ffmpegPath = result.ffmpegPath;
+        this.plugin.settings.ffprobePath = result.ffprobePath;
+        this.plugin.notify(
+          result.installed
+            ? `已安裝 ffmpeg/ffprobe ${result.version} (${result.sourceName}): ${result.binDirectory}`
+            : `ffmpeg/ffprobe ${result.version} 已是最新版: ${result.binDirectory}`
+        );
+      }
       this.runtimeDiagnostics = null;
       await this.plugin.saveSettings();
-      this.plugin.notify(
-        result.installed
-          ? `已安裝 ffmpeg/ffprobe ${result.version} (${result.sourceName}): ${result.binDirectory}`
-          : `ffmpeg/ffprobe ${result.version} 已是最新版: ${result.binDirectory}`
-      );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (abortController.signal.aborted) {
-        this.plugin.notify("已取消 ffmpeg/ffprobe 下載。");
+        this.plugin.notify(`已取消 ${toolLabel} 下載。`);
       } else {
-        this.plugin.notify(`ffmpeg/ffprobe 自動安裝失敗：${message}`);
+        this.plugin.notify(`${toolLabel} 自動安裝失敗：${message}`);
         this.plugin.reportWarning("media_tool_detection", message);
       }
     } finally {
@@ -781,7 +799,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     }
 
     this.mediaToolInstallAbortController?.abort();
-    this.plugin.notify("正在取消 ffmpeg/ffprobe 下載。");
+    this.plugin.notify("正在取消媒體工具下載。");
   }
 
   private async refreshDiagnostics(): Promise<void> {
@@ -2196,8 +2214,8 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       onCancelProjectMediaToolInstall: () => {
         this.cancelProjectMediaToolInstall();
       },
-      onInstallOrUpdateProjectMediaTools: () => {
-        void this.installOrUpdateProjectMediaTools();
+      onInstallOrUpdateProjectMediaTool: (settingKey) => {
+        void this.installOrUpdateProjectMediaTool(settingKey);
       },
       onInvalidateRuntimeDiagnostics: () => {
         this.runtimeDiagnostics = null;
