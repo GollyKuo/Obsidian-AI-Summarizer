@@ -7,7 +7,7 @@ import type {
   MediaTranscriptionResult,
   TranscriptSegment
 } from "@domain/types";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { abortableSleep, throwIfCancelled } from "@orchestration/cancellation";
 import { readProviderErrorDetail } from "@services/ai/provider-error";
 import { formatTranscriptMarkdown } from "@services/ai/transcription-provider";
 
@@ -336,41 +336,6 @@ async function createPreRecordedJob(input: {
   return payload;
 }
 
-function sleep(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(
-        new SummarizerError({
-          category: "cancellation",
-          message: "Gladia polling cancelled by user.",
-          recoverable: true
-        })
-      );
-      return;
-    }
-
-    const cleanup = (): void => {
-      signal.removeEventListener("abort", abort);
-    };
-    const timeout = setTimeout(() => {
-      cleanup();
-      resolve();
-    }, ms);
-    const abort = (): void => {
-      clearTimeout(timeout);
-      cleanup();
-      reject(
-        new SummarizerError({
-          category: "cancellation",
-          message: "Gladia polling cancelled by user.",
-          recoverable: true
-        })
-      );
-    };
-    signal.addEventListener("abort", abort, { once: true });
-  });
-}
-
 async function fetchJobResult(input: {
   apiKey: string;
   jobId: string;
@@ -451,7 +416,7 @@ async function pollJobUntilDone(input: {
       });
     }
 
-    await sleep(input.pollIntervalMs, input.signal);
+    await abortableSleep(input.pollIntervalMs, input.signal, "Gladia polling cancelled by user.");
   }
 
   throw new SummarizerError({

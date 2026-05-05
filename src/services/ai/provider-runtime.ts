@@ -1,5 +1,5 @@
 import { SummarizerError } from "@domain/errors";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { throwIfCancelled, withAbortSignal } from "@orchestration/cancellation";
 
 export const DEFAULT_AI_TIMEOUT_MS = 120_000;
 
@@ -76,19 +76,26 @@ export async function fetchWithTimeout(
   throwIfCancelled(signal);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
-  const abort = (): void => controller.abort();
-  signal.addEventListener("abort", abort, { once: true });
 
   try {
-    return await fetchImpl(url, {
-      ...init,
-      signal: controller.signal
-    });
+    return await withAbortSignal(
+      signal,
+      controller,
+      (linkedSignal) =>
+        fetchImpl(url, {
+          ...init,
+          signal: linkedSignal
+        }),
+      "AI request cancelled by user."
+    );
   } catch (error) {
-    if (signal.aborted || controller.signal.aborted) {
+    if (error instanceof SummarizerError && error.category === "cancellation") {
+      throw error;
+    }
+    if (controller.signal.aborted) {
       throw new SummarizerError({
-        category: signal.aborted ? "cancellation" : "ai_failure",
-        message: signal.aborted ? "AI request cancelled by user." : "AI request timed out.",
+        category: "ai_failure",
+        message: "AI request timed out.",
         recoverable: true,
         cause: error
       });
@@ -96,6 +103,5 @@ export async function fetchWithTimeout(
     throw error;
   } finally {
     clearTimeout(timeout);
-    signal.removeEventListener("abort", abort);
   }
 }

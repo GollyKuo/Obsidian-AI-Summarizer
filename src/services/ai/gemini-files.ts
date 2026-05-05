@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { SummarizerError } from "@domain/errors";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { abortableSleep, throwIfCancelled } from "@orchestration/cancellation";
 import { readProviderErrorDetail } from "@services/ai/provider-error";
 import {
   buildProviderDiagnostics,
@@ -265,7 +265,11 @@ export async function waitForGeminiFileActive(input: {
       });
     }
 
-    await new Promise((resolve) => setTimeout(resolve, input.pollIntervalMs));
+    await abortableSleep(
+      input.pollIntervalMs,
+      input.signal,
+      "Gemini Files API polling cancelled by user."
+    );
     currentFile = {
       ...currentFile,
       ...(await getGeminiFile({
