@@ -21,6 +21,7 @@ import {
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 import type { TranscriptionProvider } from "@services/ai/transcription-provider";
+import type { TranscriptCleanupProvider } from "@services/ai/ai-provider";
 import {
   createArtifactRetentionManager,
   type ArtifactLifecycleStatus
@@ -32,6 +33,7 @@ type MediaRequest = MediaUrlRequest | LocalMediaRequest;
 export interface ProcessMediaDependencies {
   runtimeProvider: RuntimeProvider;
   transcriptionProvider: TranscriptionProvider;
+  transcriptCleanupProvider?: TranscriptCleanupProvider;
   summaryProvider: SummaryProvider;
   noteWriter: NoteWriter;
 }
@@ -95,9 +97,14 @@ function segmentsToSrt(transcript: TranscriptSegment[], transcriptMarkdown: stri
   return `${cues.join("\n\n")}\n`;
 }
 
+function getRawTranscriptPath(transcriptPath: string): string {
+  return path.join(path.dirname(transcriptPath), "transcript.raw.md");
+}
+
 async function writeTranscriptArtifacts(
   mediaInput: MediaProcessResult,
-  transcription: MediaTranscriptionResult
+  transcription: MediaTranscriptionResult,
+  rawTranscription?: MediaTranscriptionResult
 ): Promise<void> {
   const artifactCleanup = mediaInput.artifactCleanup;
   if (!artifactCleanup) {
@@ -106,6 +113,12 @@ async function writeTranscriptArtifacts(
 
   try {
     await mkdir(path.dirname(artifactCleanup.transcriptPath), { recursive: true });
+    const rawTranscriptPath = rawTranscription
+      ? getRawTranscriptPath(artifactCleanup.transcriptPath)
+      : undefined;
+    if (rawTranscription && rawTranscriptPath) {
+      await writeFile(rawTranscriptPath, `${rawTranscription.transcriptMarkdown.trim()}\n`, "utf8");
+    }
     await writeFile(artifactCleanup.transcriptPath, `${transcription.transcriptMarkdown.trim()}\n`, "utf8");
     await writeFile(
       artifactCleanup.subtitlePath,
@@ -116,6 +129,7 @@ async function writeTranscriptArtifacts(
       artifactCleanup.metadataPath,
       {
         transcriptPath: artifactCleanup.transcriptPath,
+        rawTranscriptPath,
         subtitlePath: artifactCleanup.subtitlePath
       }
     );
@@ -126,6 +140,83 @@ async function writeTranscriptArtifacts(
       recoverable: true,
       cause: error
     });
+  }
+}
+
+function assertUsableCleanedTranscript(transcription: MediaTranscriptionResult): void {
+  if (transcription.transcriptMarkdown.trim().length === 0 || transcription.transcript.length === 0) {
+    throw new SummarizerError({
+      category: "validation_error",
+      message: "Transcript cleanup output was empty or did not preserve transcript timing markers.",
+      recoverable: true
+    });
+  }
+}
+
+async function maybeCleanupTranscript(input: {
+  request: MediaRequest;
+  dependencies: ProcessMediaDependencies;
+  metadata: MediaProcessResult["metadata"];
+  transcription: MediaTranscriptionResult;
+  signal: AbortSignal;
+  hooks?: JobRunHooks;
+}): Promise<{
+  transcription: MediaTranscriptionResult;
+  rawTranscription?: MediaTranscriptionResult;
+  warnings: string[];
+}> {
+  if (input.request.enableTranscriptCleanup !== true) {
+    return {
+      transcription: input.transcription,
+      warnings: []
+    };
+  }
+
+  const provider = input.dependencies.transcriptCleanupProvider;
+  if (!provider) {
+    return {
+      transcription: input.transcription,
+      warnings: ["Transcript cleanup skipped: cleanup provider is unavailable."]
+    };
+  }
+
+  try {
+    const cleanedRaw = await runJobStep(
+      "cleaning",
+      "Cleaning transcript before summary",
+      input.signal,
+      async () =>
+        provider.cleanupTranscript(
+          {
+            metadata: input.metadata,
+            transcript: input.transcription.transcript,
+            transcriptMarkdown: input.transcription.transcriptMarkdown,
+            cleanupProvider: input.request.summaryProvider,
+            cleanupModel: input.request.summaryModel
+          },
+          input.signal
+        ),
+      input.hooks
+    );
+    const cleaned = normalizeMediaTranscriptionResult(cleanedRaw);
+    assertUsableCleanedTranscript(cleaned);
+    return {
+      transcription: cleaned,
+      rawTranscription: input.transcription,
+      warnings: ["Transcript cleanup applied before summary."]
+    };
+  } catch (error) {
+    if (error instanceof SummarizerError && error.category === "cancellation") {
+      throw error;
+    }
+    if (input.request.transcriptCleanupFailureMode === "fail") {
+      throw error;
+    }
+
+    return {
+      transcription: input.transcription,
+      warnings: [`Transcript cleanup failed; using original transcript: ${getErrorMessage(error)}`]
+    };
   }
 }
 
@@ -241,12 +332,23 @@ export async function processMedia(
       hooks
     );
     const transcription = normalizeMediaTranscriptionResult(transcriptionRaw);
-    transcriptionResult = transcription;
+    const cleanupResult = await maybeCleanupTranscript({
+      request: input,
+      dependencies,
+      metadata: mediaInput.metadata,
+      transcription,
+      signal,
+      hooks
+    });
+    transcriptionResult = cleanupResult.transcription;
 
-    warnings.push(...transcription.warnings);
-    emitWarnings(transcription.warnings, hooks);
+    const cleanupOutputWarnings = cleanupResult.rawTranscription
+      ? cleanupResult.transcription.warnings
+      : [];
+    warnings.push(...transcription.warnings, ...cleanupOutputWarnings, ...cleanupResult.warnings);
+    emitWarnings([...transcription.warnings, ...cleanupOutputWarnings, ...cleanupResult.warnings], hooks);
 
-    await writeTranscriptArtifacts(mediaInput, transcription);
+    await writeTranscriptArtifacts(mediaInput, cleanupResult.transcription, cleanupResult.rawTranscription);
 
     const summaryRaw = await runJobStep(
       "summarizing",
@@ -256,7 +358,7 @@ export async function processMedia(
         const summaryInput = {
           metadata: mediaInput!.metadata,
           normalizedText: mediaInput!.normalizedText,
-          transcript: transcription.transcript,
+          transcript: cleanupResult.transcription.transcript,
           summaryProvider: input.summaryProvider,
           summaryModel: input.summaryModel
         };
@@ -272,7 +374,7 @@ export async function processMedia(
 
     const summary = normalizeMediaSummaryResult({
       summaryMarkdown: summaryRaw.summaryMarkdown,
-      transcriptMarkdown: transcription.transcriptMarkdown,
+      transcriptMarkdown: cleanupResult.transcription.transcriptMarkdown,
       warnings: summaryRaw.warnings
     });
     warnings.push(...summary.warnings);

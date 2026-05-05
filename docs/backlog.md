@@ -37,7 +37,7 @@
 3. `CAP-303` 文件補強不再列為 active 工作；既有完成項保留在 archive。
 4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
-6. `CAP-208` 逐字稿校對 / 清理階段已完成文件規劃，已轉入 active backlog，下一步可依 [transcript-cleanup-plan.md](transcript-cleanup-plan.md) 實作。
+6. `CAP-208` 逐字稿校對 / 清理階段已完成實作：摘要前可選 cleanup、fallback、raw transcript artifact 與測試已落地。
 
 ## Capability 總表
 
@@ -112,10 +112,10 @@
 
 #### CAP-208 Transcript Cleanup And Proofreading 逐字稿校對與清理
 
-狀態：`active`
+狀態：`completed`
 
 摘要：
-在 `transcribe -> summarize` 之間新增可選 AI 校對 / 清理階段，修正明顯錯字、ASR 同音誤判、標點、斷句與重複贅詞，同時保留時間軸、原意與可追溯性。第一版規劃採 `enableTranscriptCleanup = false`、清理失敗 fallback 到原始正規化逐字稿、共用既有 summary provider/model，並將 media flow 與 `transcript_file` 重跑摘要流程納入同一能力。實作計畫見 [transcript-cleanup-plan.md](transcript-cleanup-plan.md)，prompt 契約見 [API_Instructions.md](API_Instructions.md#逐字稿校對--清理指令-transcript-cleanup-prompt)。
+在 `transcribe -> summarize` 之間新增可選 AI 校對 / 清理階段，修正明顯錯字、ASR 同音誤判、標點、斷句與重複贅詞，同時保留時間軸、原意與可追溯性。第一版採 `enableTranscriptCleanup = false`、清理失敗 fallback 到原始正規化逐字稿、共用既有 summary provider/model，並將 media flow 與 `transcript_file` 重跑摘要流程納入同一能力。實作計畫見 [transcript-cleanup-plan.md](transcript-cleanup-plan.md)，prompt 契約見 [API_Instructions.md](API_Instructions.md#逐字稿校對--清理指令-transcript-cleanup-prompt)。
 
 Done When：
 

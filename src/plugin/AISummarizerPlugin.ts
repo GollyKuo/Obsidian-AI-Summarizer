@@ -20,6 +20,7 @@ import {
   normalizeModelCatalog,
   normalizeGeminiTranscriptionStrategy,
   normalizeRetentionMode,
+  normalizeTranscriptCleanupFailureMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
   normalizeTranscriptionModelForProvider,
@@ -91,6 +92,10 @@ export default class AISummarizerPlugin extends Plugin {
       modelCatalog,
       geminiTranscriptionStrategy: normalizeGeminiTranscriptionStrategy(
         loadedSettings?.geminiTranscriptionStrategy
+      ),
+      enableTranscriptCleanup: loadedSettings?.enableTranscriptCleanup === true,
+      transcriptCleanupFailureMode: normalizeTranscriptCleanupFailureMode(
+        loadedSettings?.transcriptCleanupFailureMode
       ),
       retentionMode: normalizeRetentionMode(loadedSettings?.retentionMode),
       generateFlashcards: loadedSettings?.generateFlashcards === true,

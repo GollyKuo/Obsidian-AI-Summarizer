@@ -29,6 +29,7 @@ import { processTranscriptFile } from "@orchestration/process-transcript-file";
 import { processWebpage } from "@orchestration/process-webpage";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import {
+  createConfiguredTranscriptCleanupProvider,
   createConfiguredSummaryProvider,
   createConfiguredTranscriptionProvider
 } from "@services/ai/configured-ai-provider";
@@ -338,6 +339,10 @@ export class SummarizerFlowModal extends Modal {
     return createConfiguredSummaryProvider(this.plugin.settings);
   }
 
+  private buildTranscriptCleanupProvider(): ReturnType<typeof createConfiguredTranscriptCleanupProvider> {
+    return createConfiguredTranscriptCleanupProvider(this.plugin.settings);
+  }
+
   private buildTranscriptionProvider(): ReturnType<typeof createConfiguredTranscriptionProvider> {
     return createConfiguredTranscriptionProvider(this.plugin.settings);
   }
@@ -470,6 +475,7 @@ export class SummarizerFlowModal extends Modal {
       "Processing media URL input": "取得媒體",
       "Processing local media input": "準備本機媒體",
       "Generating media transcript": "轉錄媒體內容",
+      "Cleaning transcript before summary": "校對逐字稿",
       "Generating media summary": "摘要媒體內容",
       "Writing media note into vault": "寫入筆記",
       "Validating media URL input": "驗證媒體 URL",
@@ -510,6 +516,7 @@ export class SummarizerFlowModal extends Modal {
       return [
         ...commonStart,
         { id: "acquiring", label: "讀取逐字稿" },
+        { id: "cleaning", label: "校對逐字稿" },
         ...commonEnd
       ];
     }
@@ -521,6 +528,7 @@ export class SummarizerFlowModal extends Modal {
         label: this.sourceType === "media_url" ? "取得媒體" : "準備本機媒體"
       },
       { id: "transcribing", label: "轉錄" },
+      { id: "cleaning", label: "校對逐字稿" },
       ...commonEnd
     ];
   }
@@ -936,6 +944,23 @@ export class SummarizerFlowModal extends Modal {
       void this.plugin.saveSettings();
     });
 
+    const cleanupFieldEl = this.createPreflightField(fieldsEl, "校對");
+    const cleanupRowEl = cleanupFieldEl.createDiv({
+      cls: "ai-summarizer-preflight-inline-row"
+    });
+    const cleanupControlEl = cleanupRowEl.createEl("label", {
+      cls: "ai-summarizer-preflight-checkbox"
+    });
+    const cleanupCheckboxEl = cleanupControlEl.createEl("input");
+    cleanupCheckboxEl.type = "checkbox";
+    cleanupCheckboxEl.disabled = this.isBusy() || this.sourceType === "webpage_url";
+    cleanupCheckboxEl.checked = this.plugin.settings.enableTranscriptCleanup;
+    cleanupControlEl.createSpan({ text: "摘要前校對逐字稿" });
+    cleanupCheckboxEl.addEventListener("change", () => {
+      this.plugin.settings.enableTranscriptCleanup = cleanupCheckboxEl.checked;
+      void this.plugin.saveSettings();
+    });
+
     const flashcardFieldEl = this.createPreflightField(fieldsEl, "閃卡");
     const flashcardRowEl = flashcardFieldEl.createDiv({
       cls: "ai-summarizer-preflight-inline-row"
@@ -1258,11 +1283,14 @@ export class SummarizerFlowModal extends Modal {
       {
         sourceKind: "transcript_file",
         sourceValue: this.sourceValue,
+        enableTranscriptCleanup: this.plugin.settings.enableTranscriptCleanup,
+        transcriptCleanupFailureMode: this.plugin.settings.transcriptCleanupFailureMode,
         summaryProvider: this.plugin.settings.summaryProvider,
         summaryModel: this.plugin.settings.summaryModel
       } satisfies TranscriptFileRequest,
       {
         summaryProvider: this.buildAiProvider(),
+        transcriptCleanupProvider: this.buildTranscriptCleanupProvider(),
         noteWriter: this.buildNoteWriter()
       },
       signal,
@@ -1291,6 +1319,8 @@ export class SummarizerFlowModal extends Modal {
         transcriptionProvider: this.plugin.settings.transcriptionProvider,
         transcriptionModel: this.plugin.settings.transcriptionModel,
         geminiTranscriptionStrategy: this.plugin.settings.geminiTranscriptionStrategy,
+        enableTranscriptCleanup: this.plugin.settings.enableTranscriptCleanup,
+        transcriptCleanupFailureMode: this.plugin.settings.transcriptCleanupFailureMode,
         summaryProvider: this.plugin.settings.summaryProvider,
         summaryModel: this.plugin.settings.summaryModel,
         retentionMode: this.plugin.settings.retentionMode,
@@ -1303,6 +1333,7 @@ export class SummarizerFlowModal extends Modal {
       {
         runtimeProvider: this.buildRuntimeProvider(),
         transcriptionProvider: this.buildTranscriptionProvider(),
+        transcriptCleanupProvider: this.buildTranscriptCleanupProvider(),
         summaryProvider: this.buildAiProvider(),
         noteWriter: this.buildNoteWriter()
       },

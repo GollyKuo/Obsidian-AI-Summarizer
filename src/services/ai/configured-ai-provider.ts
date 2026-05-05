@@ -7,15 +7,25 @@ import type {
   MediaSummaryInput,
   MediaTranscriptionInput,
   MediaTranscriptionResult,
+  TranscriptCleanupInput,
   TranscriptSegment,
   WebpageAiInput,
   WebpageSummaryResult
 } from "@domain/types";
 import { throwIfCancelled } from "@orchestration/cancellation";
-import type { SummaryProvider } from "@services/ai/ai-provider";
+import type { SummaryProvider, TranscriptCleanupProvider } from "@services/ai/ai-provider";
 import { transcribeWithGladia } from "@services/ai/gladia-transcription-provider";
-import { buildMediaSummaryPrompt, buildTranscriptPrompt, buildWebpageSummaryPrompt } from "@services/ai/prompt-builder";
-import { formatTranscriptMarkdown, type TranscriptionProvider } from "@services/ai/transcription-provider";
+import {
+  buildMediaSummaryPrompt,
+  buildTranscriptCleanupPrompt,
+  buildTranscriptPrompt,
+  buildWebpageSummaryPrompt
+} from "@services/ai/prompt-builder";
+import {
+  formatTranscriptMarkdown,
+  parseTranscriptMarkdownToSegments,
+  type TranscriptionProvider
+} from "@services/ai/transcription-provider";
 import { updateArtifactManifestWithRemoteFile } from "@services/media/artifact-manifest";
 
 const DEFAULT_AI_TIMEOUT_MS = 120_000;
@@ -1202,6 +1212,66 @@ export function createConfiguredSummaryProvider(
       });
 
       return { summaryMarkdown, warnings: [] };
+    }
+  };
+}
+
+export function createConfiguredTranscriptCleanupProvider(
+  settings: AISummarizerPluginSettings,
+  options: ConfiguredAiProviderOptions = {}
+): TranscriptCleanupProvider {
+  async function generateConfiguredCleanupText(input: {
+    cleanupProvider: TranscriptCleanupInput["cleanupProvider"];
+    cleanupModel: string;
+    prompt: string;
+    signal: AbortSignal;
+  }): Promise<string> {
+    if (input.cleanupProvider === "openrouter") {
+      return generateOpenRouterText({
+        apiKey: settings.openRouterApiKey,
+        model: input.cleanupModel,
+        prompt: input.prompt,
+        signal: input.signal,
+        fetchImpl: options.fetchImpl
+      });
+    }
+
+    if (input.cleanupProvider === "mistral") {
+      return generateMistralText({
+        apiKey: settings.mistralApiKey,
+        model: input.cleanupModel,
+        prompt: input.prompt,
+        signal: input.signal,
+        fetchImpl: options.fetchImpl
+      });
+    }
+
+    return generateGeminiText({
+      apiKey: settings.apiKey,
+      model: input.cleanupModel,
+      parts: [{ text: input.prompt }],
+      signal: input.signal,
+      fetchImpl: options.fetchImpl
+    });
+  }
+
+  return {
+    async cleanupTranscript(
+      input: TranscriptCleanupInput,
+      signal: AbortSignal
+    ): Promise<MediaTranscriptionResult> {
+      const transcriptMarkdown = await generateConfiguredCleanupText({
+        cleanupProvider: input.cleanupProvider,
+        cleanupModel: input.cleanupModel,
+        prompt: buildTranscriptCleanupPrompt(input),
+        signal
+      });
+
+      return {
+        transcript: parseTranscriptMarkdownToSegments(transcriptMarkdown, { requireTiming: true }),
+        transcriptMarkdown,
+        warnings: []
+      };
     }
   };
 }

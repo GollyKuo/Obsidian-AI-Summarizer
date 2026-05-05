@@ -1,5 +1,5 @@
 import { PROMPT_CONTRACT } from "@domain/prompts";
-import type { MediaSummaryInput, WebpageAiInput } from "@domain/types";
+import type { MediaSummaryInput, TranscriptCleanupInput, WebpageAiInput } from "@domain/types";
 
 function buildMetadataBlock(metadata: {
   title: string;
@@ -56,5 +56,19 @@ export function buildTranscriptPrompt(rawText: string): string {
     "",
     "## Raw Content",
     rawText
+  ].join("\n");
+}
+
+export function buildTranscriptCleanupPrompt(input: TranscriptCleanupInput): string {
+  return [
+    PROMPT_CONTRACT.transcriptCleanupPrompt,
+    "",
+    "以下為待校對與清理的逐字稿，請僅依據這些資料輸出清理後逐字稿：",
+    "",
+    "## Metadata",
+    buildMetadataBlock(input.metadata),
+    "",
+    "## Transcript",
+    input.transcriptMarkdown
   ].join("\n");
 }

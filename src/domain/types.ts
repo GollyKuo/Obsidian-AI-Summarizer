@@ -8,6 +8,7 @@ import type {
 export type SourceType = "media_url" | "webpage_url" | "local_media" | "transcript_file";
 export type RetentionMode = "delete_temp" | "keep_temp";
 export type GeminiTranscriptionStrategy = "auto" | "files_api" | "inline_chunks";
+export type TranscriptCleanupFailureMode = "fallback_to_original" | "fail";
 
 export interface SourceMetadata {
   title: string;
@@ -35,6 +36,8 @@ export interface MediaUrlRequest {
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
   geminiTranscriptionStrategy?: GeminiTranscriptionStrategy;
+  enableTranscriptCleanup?: boolean;
+  transcriptCleanupFailureMode?: TranscriptCleanupFailureMode;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
@@ -52,6 +55,8 @@ export interface LocalMediaRequest {
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
   geminiTranscriptionStrategy?: GeminiTranscriptionStrategy;
+  enableTranscriptCleanup?: boolean;
+  transcriptCleanupFailureMode?: TranscriptCleanupFailureMode;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   retentionMode: RetentionMode;
@@ -73,6 +78,8 @@ export interface WebpageRequest {
 export interface TranscriptFileRequest {
   sourceKind: "transcript_file";
   sourceValue: string;
+  enableTranscriptCleanup?: boolean;
+  transcriptCleanupFailureMode?: TranscriptCleanupFailureMode;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
 }
@@ -115,6 +122,14 @@ export interface MediaTranscriptionResult {
   transcript: TranscriptSegment[];
   transcriptMarkdown: string;
   warnings: string[];
+}
+
+export interface TranscriptCleanupInput {
+  metadata: SourceMetadata;
+  transcript: TranscriptSegment[];
+  transcriptMarkdown: string;
+  cleanupProvider: SummaryProvider;
+  cleanupModel: SummaryModel;
 }
 
 export interface MediaSummaryInput {

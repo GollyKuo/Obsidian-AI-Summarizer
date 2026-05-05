@@ -11,6 +11,7 @@ export type JobStatus =
   | "validating"
   | "acquiring"
   | "transcribing"
+  | "cleaning"
   | "summarizing"
   | "writing"
   | "completed"

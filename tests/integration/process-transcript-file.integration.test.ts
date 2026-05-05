@@ -164,6 +164,111 @@ describe("processTranscriptFile integration", () => {
     expect(result.warnings).toContain("Transcript retry: metadata.json was unavailable; using transcript file metadata fallback.");
   });
 
+  it("cleans transcript files before summarizing when enabled", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const transcriptPath = path.join(tempDirectory, "cleanup-transcript.md");
+    await writeFile(transcriptPath, "{0m0s - 0m1s} 原始錯字逐字稿", "utf8");
+
+    const capturedSummaryInputs: MediaSummaryInput[] = [];
+    const stageMessages: string[] = [];
+    const result = await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: transcriptPath,
+        enableTranscriptCleanup: true,
+        transcriptCleanupFailureMode: "fallback_to_original",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
+      },
+      {
+        transcriptCleanupProvider: {
+          async cleanupTranscript(input) {
+            expect(input.transcriptMarkdown).toContain("原始錯字逐字稿");
+            return {
+              transcript: [{ startMs: 0, endMs: 1000, text: "清理後逐字稿" }],
+              transcriptMarkdown: "{0m0s - 0m1s} 清理後逐字稿",
+              warnings: []
+            };
+          }
+        },
+        summaryProvider: {
+          async summarizeMedia(input) {
+            capturedSummaryInputs.push(input);
+            return { summaryMarkdown: "Cleaned transcript summary", warnings: [] };
+          },
+          async summarizeWebpage() {
+            throw new Error("not used");
+          }
+        },
+        noteWriter: {
+          async writeMediaNote() {
+            return { notePath: "Summaries/cleanup-transcript.md", createdAt: "2026-05-05T01:10:00.000Z", warnings: [] };
+          },
+          async writeWebpageNote() {
+            throw new Error("not used");
+          }
+        }
+      },
+      new AbortController().signal,
+      {
+        onStageChange: (status, message) => stageMessages.push(`${status}:${message}`)
+      }
+    );
+
+    expect(capturedSummaryInputs[0]?.transcript).toEqual([
+      { startMs: 0, endMs: 1000, text: "清理後逐字稿" }
+    ]);
+    expect(result.summary.transcriptMarkdown).toContain("清理後逐字稿");
+    expect(result.warnings).toContain("Transcript cleanup applied before summary.");
+    expect(stageMessages).toContain("cleaning:Cleaning transcript before summary");
+  });
+
+  it("falls back to the original transcript when cleanup fails", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const transcriptPath = path.join(tempDirectory, "fallback-transcript.md");
+    await writeFile(transcriptPath, "{0m0s - 0m1s} Original transcript", "utf8");
+
+    const capturedSummaryInputs: MediaSummaryInput[] = [];
+    const result = await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: transcriptPath,
+        enableTranscriptCleanup: true,
+        transcriptCleanupFailureMode: "fallback_to_original",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
+      },
+      {
+        transcriptCleanupProvider: {
+          async cleanupTranscript() {
+            throw new Error("cleanup unavailable");
+          }
+        },
+        summaryProvider: {
+          async summarizeMedia(input) {
+            capturedSummaryInputs.push(input);
+            return { summaryMarkdown: "Fallback cleanup summary", warnings: [] };
+          },
+          async summarizeWebpage() {
+            throw new Error("not used");
+          }
+        },
+        noteWriter: {
+          async writeMediaNote() {
+            return { notePath: "Summaries/fallback-transcript.md", createdAt: "2026-05-05T01:20:00.000Z", warnings: [] };
+          },
+          async writeWebpageNote() {
+            throw new Error("not used");
+          }
+        }
+      },
+      new AbortController().signal
+    );
+
+    expect(capturedSummaryInputs[0]?.transcript[0]?.text).toContain("Original transcript");
+    expect(result.warnings.some((warning) => warning.includes("Transcript cleanup failed; using original transcript"))).toBe(true);
+  });
+
   it("throws validation_error for non-transcript or empty inputs", async () => {
     const tempDirectory = await makeTempDirectory();
     const emptyTranscriptPath = path.join(tempDirectory, "empty.md");

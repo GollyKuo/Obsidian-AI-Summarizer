@@ -21,6 +21,7 @@ import {
   normalizeRetentionMode,
   normalizeSummaryModel,
   normalizeSummaryProvider,
+  normalizeTranscriptCleanupFailureMode,
   normalizeTranscriptionModel,
   normalizeTranscriptionModelForProvider,
   removeModelCatalogEntry,
@@ -34,6 +35,8 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS.summaryProvider).toBe(DEFAULT_SUMMARY_PROVIDER);
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_SUMMARY_MODEL);
     expect(DEFAULT_SETTINGS.generateFlashcards).toBe(false);
+    expect(DEFAULT_SETTINGS.enableTranscriptCleanup).toBe(false);
+    expect(DEFAULT_SETTINGS.transcriptCleanupFailureMode).toBe("fallback_to_original");
     expect(DEFAULT_SETTINGS.templateReference).toBe("builtin:universal-frontmatter");
     expect(DEFAULT_SETTINGS.geminiTranscriptionStrategy).toBe("auto");
     expect(DEFAULT_SETTINGS.ytDlpPath).toBe("");
@@ -99,6 +102,12 @@ describe("settings", () => {
     expect(normalizeRetentionMode("source")).toBe("keep_temp");
     expect(normalizeRetentionMode("all")).toBe("keep_temp");
     expect(normalizeRetentionMode("none")).toBe("delete_temp");
+  });
+
+  it("normalizes transcript cleanup failure mode", () => {
+    expect(normalizeTranscriptCleanupFailureMode("fallback_to_original")).toBe("fallback_to_original");
+    expect(normalizeTranscriptCleanupFailureMode("fail")).toBe("fail");
+    expect(normalizeTranscriptCleanupFailureMode("unknown")).toBe("fallback_to_original");
   });
 
   it("normalizes, upserts, removes, and exposes catalog options", () => {

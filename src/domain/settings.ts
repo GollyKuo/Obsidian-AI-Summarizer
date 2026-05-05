@@ -1,7 +1,8 @@
 import type {
   GeminiTranscriptionStrategy,
   RetentionMode,
-  SourceType
+  SourceType,
+  TranscriptCleanupFailureMode
 } from "@domain/types";
 import {
   DEFAULT_GEMINI_SUMMARY_MODEL,
@@ -55,6 +56,8 @@ export interface AISummarizerPluginSettings {
   transcriptionProvider: TranscriptionProvider;
   transcriptionModel: TranscriptionModel;
   geminiTranscriptionStrategy: GeminiTranscriptionStrategy;
+  enableTranscriptCleanup: boolean;
+  transcriptCleanupFailureMode: TranscriptCleanupFailureMode;
   summaryProvider: SummaryProvider;
   summaryModel: SummaryModel;
   modelCatalog: AiModelCatalogEntry[];
@@ -80,6 +83,8 @@ export const DEFAULT_SETTINGS: AISummarizerPluginSettings = {
   transcriptionProvider: DEFAULT_TRANSCRIPTION_PROVIDER,
   transcriptionModel: DEFAULT_TRANSCRIPTION_MODEL,
   geminiTranscriptionStrategy: "auto",
+  enableTranscriptCleanup: false,
+  transcriptCleanupFailureMode: "fallback_to_original",
   summaryProvider: DEFAULT_SUMMARY_PROVIDER,
   summaryModel: DEFAULT_SUMMARY_MODEL,
   modelCatalog: [...DEFAULT_MODEL_CATALOG],
@@ -113,6 +118,12 @@ export function normalizeGeminiTranscriptionStrategy(
     return strategy;
   }
   return "auto";
+}
+
+export function normalizeTranscriptCleanupFailureMode(
+  rawMode: unknown
+): TranscriptCleanupFailureMode {
+  return rawMode === "fail" ? "fail" : "fallback_to_original";
 }
 
 export {

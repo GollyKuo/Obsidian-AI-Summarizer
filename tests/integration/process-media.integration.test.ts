@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { SummarizerError } from "@domain/errors";
 import { processMedia } from "@orchestration/process-media";
+import type { MediaSummaryInput } from "@domain/types";
 import type { RuntimeProvider } from "@runtime/runtime-provider";
 import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
@@ -217,6 +218,149 @@ describe("processMedia integration", () => {
     expect(
       result.warnings.some((warning) => warning.includes("AI output contract: normalized summary heading"))
     ).toBe(true);
+  });
+
+  it("cleans transcript before summary and preserves the raw transcript artifact", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "ai-summarizer-cleanup-"));
+    try {
+      const transcriptPath = path.join(tempDirectory, "transcript.md");
+      const subtitlePath = path.join(tempDirectory, "subtitles.srt");
+      const metadataPath = path.join(tempDirectory, "metadata.json");
+      const aiUploadDirectory = path.join(tempDirectory, "ai-upload");
+      await mkdir(aiUploadDirectory, { recursive: true });
+      await writeFile(
+        metadataPath,
+        JSON.stringify({
+          sessionId: "cleanup-demo",
+          sourceType: "media_url",
+          title: "Cleanup Demo",
+          creatorOrAuthor: "Demo",
+          platform: "YouTube",
+          createdAt: "2026-05-05T00:00:00.000Z",
+          originalFilename: "source.mp3",
+          downloadedPath: path.join(tempDirectory, "source.mp3"),
+          sourceArtifactPath: path.join(tempDirectory, "source.mp3"),
+          normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+          transcriptPath,
+          subtitlePath,
+          derivedArtifactPaths: [],
+          uploadArtifactPaths: [],
+          chunkCount: 0,
+          chunkDurationsMs: [],
+          vadApplied: false,
+          selectedCodec: null,
+          warnings: []
+        }),
+        "utf8"
+      );
+
+      const capturedSummaryInputs: MediaSummaryInput[] = [];
+      const capturedNoteInputs: string[] = [];
+      const stageMessages: string[] = [];
+
+      const result = await processMedia(
+        {
+          sourceKind: "media_url",
+          sourceValue: "https://www.youtube.com/watch?v=cleanup",
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash",
+          enableTranscriptCleanup: true,
+          transcriptCleanupFailureMode: "fallback_to_original",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash",
+          retentionMode: "keep_temp",
+          mediaCompressionProfile: "balanced"
+        },
+        {
+          runtimeProvider: {
+            strategy: "local_bridge",
+            async processMediaUrl() {
+              return {
+                metadata: {
+                  title: "Cleanup Demo",
+                  creatorOrAuthor: "Demo",
+                  platform: "YouTube",
+                  source: "https://www.youtube.com/watch?v=cleanup",
+                  created: "2026-05-05T00:00:00.000Z"
+                },
+                normalizedText: "cleanup normalized text",
+                transcript: [],
+                artifactCleanup: {
+                  downloadedPath: path.join(tempDirectory, "source.mp3"),
+                  normalizedAudioPath: path.join(tempDirectory, "normalized.wav"),
+                  transcriptPath,
+                  subtitlePath,
+                  metadataPath,
+                  aiUploadDirectory,
+                  aiUploadArtifactPaths: []
+                },
+                warnings: []
+              };
+            },
+            async processLocalMedia() {
+              throw new Error("not used");
+            },
+            async processWebpage() {
+              throw new Error("not used");
+            }
+          },
+          transcriptionProvider: {
+            async transcribeMedia() {
+              return {
+                transcript: [{ startMs: 0, endMs: 1000, text: "原始錯字逐字稿" }],
+                transcriptMarkdown: "{0m0s - 0m1s} 原始錯字逐字稿",
+                warnings: []
+              };
+            }
+          },
+          transcriptCleanupProvider: {
+            async cleanupTranscript(input) {
+              expect(input.cleanupProvider).toBe("gemini");
+              expect(input.cleanupModel).toBe("gemini-2.5-flash");
+              expect(input.transcriptMarkdown).toContain("原始錯字逐字稿");
+              return {
+                transcript: [{ startMs: 0, endMs: 1000, text: "清理後逐字稿" }],
+                transcriptMarkdown: "{0m0s - 0m1s} 清理後逐字稿",
+                warnings: []
+              };
+            }
+          },
+          summaryProvider: {
+            async summarizeMedia(input) {
+              capturedSummaryInputs.push(input);
+              return { summaryMarkdown: "Cleanup summary", warnings: [] };
+            },
+            async summarizeWebpage() {
+              throw new Error("not used");
+            }
+          },
+          noteWriter: {
+            async writeMediaNote(input) {
+              capturedNoteInputs.push(input.transcriptMarkdown);
+              return { notePath: "Summaries/Cleanup Demo.md", createdAt: "2026-05-05T00:00:00.000Z", warnings: [] };
+            },
+            async writeWebpageNote() {
+              throw new Error("not used");
+            }
+          }
+        },
+        new AbortController().signal,
+        {
+          onStageChange: (status, message) => stageMessages.push(`${status}:${message}`)
+        }
+      );
+
+      expect(capturedSummaryInputs[0]?.transcript).toEqual([
+        { startMs: 0, endMs: 1000, text: "清理後逐字稿" }
+      ]);
+      expect(capturedNoteInputs[0]).toContain("清理後逐字稿");
+      expect(result.warnings).toContain("Transcript cleanup applied before summary.");
+      await expect(readFile(transcriptPath, "utf8")).resolves.toContain("清理後逐字稿");
+      await expect(readFile(path.join(tempDirectory, "transcript.raw.md"), "utf8")).resolves.toContain("原始錯字逐字稿");
+      expect(stageMessages).toContain("cleaning:Cleaning transcript before summary");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 
   it("applies chunking strategy when transcript is large", async () => {

@@ -23,7 +23,7 @@ import {
   type TranscriptionModel,
   type TranscriptionProvider
 } from "@domain/settings";
-import type { RetentionMode, SourceType } from "@domain/types";
+import type { RetentionMode, SourceType, TranscriptCleanupFailureMode } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { testAiApiAvailability } from "@services/ai/api-health-check";
 import {
@@ -78,6 +78,7 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSection; label: string }> = [
 
 const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
 const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
+const TRANSCRIPT_CLEANUP_FAILURE_MODE_OPTIONS: TranscriptCleanupFailureMode[] = ["fallback_to_original", "fail"];
 const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -121,6 +122,11 @@ const DIAGNOSTIC_CAPABILITY_LABELS: Record<SourceType, string> = {
 const RETENTION_LABELS: Record<RetentionMode, string> = {
   delete_temp: "刪除暫存檔",
   keep_temp: "保留暫存檔"
+};
+
+const TRANSCRIPT_CLEANUP_FAILURE_MODE_LABELS: Record<TranscriptCleanupFailureMode, string> = {
+  fallback_to_original: "失敗時使用原始逐字稿",
+  fail: "失敗時中止流程"
 };
 
 const MEDIA_COMPRESSION_LABELS: Record<MediaCompressionProfile, string> = {
@@ -2183,6 +2189,34 @@ export class AISummarizerSettingTab extends PluginSettingTab {
       );
   }
 
+  private renderTranscriptCleanupSettings(containerEl: HTMLElement): void {
+    addInlineHeading(containerEl, "逐字稿校對", "摘要前清理");
+
+    new Setting(containerEl)
+      .setName("摘要前校對逐字稿")
+      .setDesc("啟用後，媒體與逐字稿檔案流程會在摘要前先用目前摘要 provider/model 做最小必要校對；預設關閉。")
+      .addToggle((toggle) =>
+        toggle.setValue(this.plugin.settings.enableTranscriptCleanup).onChange(async (value) => {
+          this.plugin.settings.enableTranscriptCleanup = value;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName("校對失敗處理")
+      .setDesc("建議保留 fallback，避免校對階段暫時失敗時整個摘要流程中止。")
+      .addDropdown((dropdown) => {
+        for (const mode of TRANSCRIPT_CLEANUP_FAILURE_MODE_OPTIONS) {
+          dropdown.addOption(mode, TRANSCRIPT_CLEANUP_FAILURE_MODE_LABELS[mode]);
+        }
+        dropdown.setValue(this.plugin.settings.transcriptCleanupFailureMode).onChange(async (value) => {
+          this.plugin.settings.transcriptCleanupFailureMode = value as TranscriptCleanupFailureMode;
+          await this.plugin.saveSettings();
+        });
+      });
+  }
+
   private renderAiModelSettings(containerEl: HTMLElement): void {
     new Setting(containerEl)
       .setName("模型清單更新")
@@ -2198,6 +2232,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     this.renderManagedTranscriptionSettings(containerEl);
     this.renderManagedSummarySettings(containerEl);
+    this.renderTranscriptCleanupSettings(containerEl);
   }
 
   private renderOutputAndMediaSettings(containerEl: HTMLElement): void {

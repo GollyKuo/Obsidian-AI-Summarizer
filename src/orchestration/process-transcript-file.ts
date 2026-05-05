@@ -3,20 +3,26 @@ import path from "node:path";
 import { SummarizerError } from "@domain/errors";
 import type {
   MediaSummaryResult,
+  MediaTranscriptionResult,
   SourceMetadata,
   TranscriptFileRequest,
   TranscriptSegment,
   WriteResult
 } from "@domain/types";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
-import { normalizeMediaSummaryResult } from "@services/ai/ai-output-normalizer";
+import {
+  normalizeMediaSummaryResult,
+  normalizeMediaTranscriptionResult
+} from "@services/ai/ai-output-normalizer";
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 import type { SummaryProvider } from "@services/ai/ai-provider";
+import type { TranscriptCleanupProvider } from "@services/ai/ai-provider";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 
 export interface ProcessTranscriptFileDependencies {
   summaryProvider: SummaryProvider;
+  transcriptCleanupProvider?: TranscriptCleanupProvider;
   noteWriter: NoteWriter;
   readTextFile?: (targetPath: string) => Promise<string>;
 }
@@ -131,6 +137,20 @@ function transcriptMarkdownToSegments(transcriptMarkdown: string): TranscriptSeg
     }));
 }
 
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function assertUsableCleanedTranscript(transcription: MediaTranscriptionResult): void {
+  if (transcription.transcriptMarkdown.trim().length === 0 || transcription.transcript.length === 0) {
+    throw new SummarizerError({
+      category: "validation_error",
+      message: "Transcript cleanup output was empty or did not preserve transcript timing markers.",
+      recoverable: true
+    });
+  }
+}
+
 async function readTranscriptFile(input: {
   transcriptPath: string;
   readTextFile: (targetPath: string) => Promise<string>;
@@ -175,6 +195,75 @@ async function readTranscriptFile(input: {
   };
 }
 
+async function maybeCleanupTranscriptFile(input: {
+  request: TranscriptFileRequest;
+  dependencies: ProcessTranscriptFileDependencies;
+  transcriptFile: Awaited<ReturnType<typeof readTranscriptFile>>;
+  signal: AbortSignal;
+  hooks?: JobRunHooks;
+}): Promise<{
+  transcriptMarkdown: string;
+  transcript: TranscriptSegment[];
+  warnings: string[];
+}> {
+  if (input.request.enableTranscriptCleanup !== true) {
+    return {
+      transcriptMarkdown: input.transcriptFile.transcriptMarkdown,
+      transcript: input.transcriptFile.transcript,
+      warnings: []
+    };
+  }
+
+  const provider = input.dependencies.transcriptCleanupProvider;
+  if (!provider) {
+    return {
+      transcriptMarkdown: input.transcriptFile.transcriptMarkdown,
+      transcript: input.transcriptFile.transcript,
+      warnings: ["Transcript cleanup skipped: cleanup provider is unavailable."]
+    };
+  }
+
+  try {
+    const cleanedRaw = await runJobStep(
+      "cleaning",
+      "Cleaning transcript before summary",
+      input.signal,
+      async () =>
+        provider.cleanupTranscript(
+          {
+            metadata: input.transcriptFile.metadata,
+            transcript: input.transcriptFile.transcript,
+            transcriptMarkdown: input.transcriptFile.transcriptMarkdown,
+            cleanupProvider: input.request.summaryProvider,
+            cleanupModel: input.request.summaryModel
+          },
+          input.signal
+        ),
+      input.hooks
+    );
+    const cleanedTranscription = normalizeMediaTranscriptionResult(cleanedRaw);
+    assertUsableCleanedTranscript(cleanedTranscription);
+    return {
+      transcriptMarkdown: cleanedTranscription.transcriptMarkdown,
+      transcript: cleanedTranscription.transcript,
+      warnings: ["Transcript cleanup applied before summary.", ...cleanedTranscription.warnings]
+    };
+  } catch (error) {
+    if (error instanceof SummarizerError && error.category === "cancellation") {
+      throw error;
+    }
+    if (input.request.transcriptCleanupFailureMode === "fail") {
+      throw error;
+    }
+
+    return {
+      transcriptMarkdown: input.transcriptFile.transcriptMarkdown,
+      transcript: input.transcriptFile.transcript,
+      warnings: [`Transcript cleanup failed; using original transcript: ${getErrorMessage(error)}`]
+    };
+  }
+}
+
 export async function processTranscriptFile(
   input: TranscriptFileRequest,
   dependencies: ProcessTranscriptFileDependencies,
@@ -208,6 +297,16 @@ export async function processTranscriptFile(
   warnings.push(...transcriptFile.warnings);
   emitWarnings(transcriptFile.warnings, hooks);
 
+  const cleanupResult = await maybeCleanupTranscriptFile({
+    request: input,
+    dependencies,
+    transcriptFile,
+    signal,
+    hooks
+  });
+  warnings.push(...cleanupResult.warnings);
+  emitWarnings(cleanupResult.warnings, hooks);
+
   const summaryRaw = await runJobStep(
     "summarizing",
     "Regenerating summary from transcript",
@@ -217,7 +316,7 @@ export async function processTranscriptFile(
         {
           metadata: transcriptFile.metadata,
           normalizedText: `Transcript file: ${input.sourceValue.trim()}`,
-          transcript: transcriptFile.transcript,
+          transcript: cleanupResult.transcript,
           summaryProvider: input.summaryProvider,
           summaryModel: input.summaryModel
         },
@@ -229,7 +328,7 @@ export async function processTranscriptFile(
 
   const summary = normalizeMediaSummaryResult({
     summaryMarkdown: summaryRaw.summaryMarkdown,
-    transcriptMarkdown: transcriptFile.transcriptMarkdown,
+    transcriptMarkdown: cleanupResult.transcriptMarkdown,
     warnings: summaryRaw.warnings
   });
   warnings.push(...summary.warnings);

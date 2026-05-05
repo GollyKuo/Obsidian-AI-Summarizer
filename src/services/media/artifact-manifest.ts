@@ -13,6 +13,7 @@ export interface InitialArtifactManifestInput {
   sourceArtifactPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  rawTranscriptPath?: string;
   subtitlePath: string;
   warnings: string[];
 }
@@ -31,6 +32,7 @@ export interface MediaArtifactManifest {
   sourceArtifactPath: string;
   normalizedAudioPath: string;
   transcriptPath: string;
+  rawTranscriptPath?: string;
   subtitlePath: string;
   derivedArtifactPaths: string[];
   uploadArtifactPaths: string[];
@@ -73,6 +75,7 @@ export function buildInitialArtifactManifest(
     sourceArtifactPath: input.sourceArtifactPath,
     normalizedAudioPath: input.normalizedAudioPath,
     transcriptPath: input.transcriptPath,
+    rawTranscriptPath: input.rawTranscriptPath,
     subtitlePath: input.subtitlePath,
     derivedArtifactPaths: [],
     uploadArtifactPaths: [],
@@ -136,6 +139,7 @@ export async function updateArtifactManifestWithTranscriptArtifacts(
   metadataPath: string,
   input: {
     transcriptPath: string;
+    rawTranscriptPath?: string;
     subtitlePath: string;
   },
   writeFile: (targetPath: string, content: string) => Promise<void> = async (targetPath, content) => {
@@ -161,6 +165,7 @@ export async function updateArtifactManifestWithTranscriptArtifacts(
     {
       ...manifest,
       transcriptPath: input.transcriptPath,
+      rawTranscriptPath: input.rawTranscriptPath ?? manifest.rawTranscriptPath,
       subtitlePath: input.subtitlePath
     },
     writeFile
