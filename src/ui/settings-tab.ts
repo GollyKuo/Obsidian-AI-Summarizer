@@ -63,6 +63,7 @@ import {
   TRANSCRIPT_CLEANUP_FAILURE_MODE_LABELS,
   type SettingsSection
 } from "@ui/settings-copy";
+import { renderAiModelsSection } from "@ui/settings/ai-models-section";
 import { renderDiagnosticsSection } from "@ui/settings/diagnostics-section";
 import { renderHelpSection } from "@ui/settings/help-section";
 import { renderOutputMediaSection } from "@ui/settings/output-media-section";
@@ -2116,21 +2117,21 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderAiModelSettings(containerEl: HTMLElement): void {
-    new Setting(containerEl)
-      .setName("模型清單更新")
-      .setDesc("自動完成會使用 Gemini / OpenRouter / Mistral 官方模型清單；Mistral 需要先填 API Key。")
-      .addButton((button) =>
-        button
-          .setButtonText(this.modelDataListRefreshInProgress ? "更新中..." : "更新")
-          .setDisabled(this.modelDataListRefreshInProgress)
-          .onClick(() => {
-            void this.refreshManagedModelDataLists();
-          })
-      );
-
-    this.renderManagedTranscriptionSettings(containerEl);
-    this.renderManagedSummarySettings(containerEl);
-    this.renderTranscriptCleanupSettings(containerEl);
+    renderAiModelsSection(containerEl, {
+      modelDataListRefreshInProgress: this.modelDataListRefreshInProgress,
+      onRefreshManagedModelDataLists: () => {
+        void this.refreshManagedModelDataLists();
+      },
+      renderManagedSummarySettings: (targetEl) => {
+        this.renderManagedSummarySettings(targetEl);
+      },
+      renderManagedTranscriptionSettings: (targetEl) => {
+        this.renderManagedTranscriptionSettings(targetEl);
+      },
+      renderTranscriptCleanupSettings: (targetEl) => {
+        this.renderTranscriptCleanupSettings(targetEl);
+      }
+    });
   }
 
   private renderOutputAndMediaSettings(containerEl: HTMLElement): void {
