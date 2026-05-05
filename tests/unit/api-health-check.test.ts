@@ -140,4 +140,24 @@ describe("api-health-check", () => {
     expect(result.message).toContain("HTTP 400");
     expect(result.message).toContain("API key not valid");
   });
+
+  it("redacts secrets from provider error details", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        jsonResponse({ error: { message: "API key AIzaSySecretValue12345 not valid" } }, 400)
+      );
+
+    const result = await testAiApiAvailability({
+      kind: "transcription",
+      provider: "gemini",
+      model: "gemini-2.5-flash",
+      apiKey: "bad-key",
+      fetchImpl
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("[REDACTED_API_KEY]");
+    expect(result.message).not.toContain("AIzaSySecretValue12345");
+  });
 });

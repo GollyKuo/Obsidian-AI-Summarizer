@@ -21,6 +21,7 @@ import {
   buildTranscriptPrompt,
   buildWebpageSummaryPrompt
 } from "@services/ai/prompt-builder";
+import { readProviderErrorDetail } from "@services/ai/provider-error";
 import {
   formatTranscriptMarkdown,
   parseTranscriptMarkdownToSegments,
@@ -93,12 +94,6 @@ interface MistralResponse {
   error?: {
     message?: string;
   };
-}
-
-interface AiErrorDetail {
-  message: string;
-  payload?: unknown;
-  bodyExcerpt?: string;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -236,28 +231,6 @@ async function fetchWithTimeout(
   }
 }
 
-async function readErrorDetail(response: Response): Promise<AiErrorDetail> {
-  const body = await response.text();
-  if (body.trim().length === 0) {
-    return { message: "" };
-  }
-
-  try {
-    const payload = JSON.parse(body) as { error?: { message?: unknown }; message?: unknown };
-    const detail = payload.error?.message ?? payload.message;
-    return {
-      message: typeof detail === "string" ? detail : "",
-      payload,
-      bodyExcerpt: body.slice(0, 500)
-    };
-  } catch {
-    return {
-      message: body.trim(),
-      bodyExcerpt: body.slice(0, 500)
-    };
-  }
-}
-
 function extractGeminiText(payload: GeminiResponse): string {
   const text = payload.candidates
     ?.flatMap((candidate) => candidate.content?.parts ?? [])
@@ -377,7 +350,7 @@ async function generateGeminiText(input: {
   }
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -445,7 +418,7 @@ async function generateOpenRouterText(input: {
   }
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -512,7 +485,7 @@ async function generateMistralText(input: {
   }
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -634,7 +607,7 @@ async function uploadGeminiFile(input: {
   );
 
   if (!startResponse.ok) {
-    const detail = await readErrorDetail(startResponse);
+    const detail = await readProviderErrorDetail(startResponse);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -682,7 +655,7 @@ async function uploadGeminiFile(input: {
   );
 
   if (!uploadResponse.ok) {
-    const detail = await readErrorDetail(uploadResponse);
+    const detail = await readProviderErrorDetail(uploadResponse);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -725,7 +698,7 @@ async function getGeminiFile(input: {
   );
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -825,7 +798,7 @@ async function deleteGeminiFile(input: {
   );
 
   if (!response.ok && response.status !== 404) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message

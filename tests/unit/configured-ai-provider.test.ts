@@ -58,6 +58,52 @@ describe("configured AI providers", () => {
     });
   });
 
+  it("redacts provider secrets from thrown errors and diagnostics", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      jsonResponse(
+        {
+          error: {
+            message: "API key AIzaSySecretValue12345 is invalid"
+          },
+          token: "sk-secretToken123"
+        },
+        401
+      )
+    );
+    const provider = createConfiguredSummaryProvider(
+      {
+        ...DEFAULT_SETTINGS,
+        apiKey: "gemini-key"
+      },
+      { fetchImpl }
+    );
+
+    await expect(
+      provider.summarizeWebpage(
+        {
+          metadata: {
+            title: "Article",
+            creatorOrAuthor: "Author",
+            platform: "Web",
+            source: "https://example.com",
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          webpageText: "Article body",
+          summaryProvider: "gemini",
+          summaryModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      )
+    ).rejects.toMatchObject({
+      category: "ai_failure",
+      message: expect.stringContaining("[REDACTED_API_KEY]"),
+      causeValue: expect.objectContaining({
+        providerError: expect.not.stringContaining("AIzaSySecretValue12345"),
+        bodyExcerpt: expect.not.stringContaining("sk-secretToken123")
+      })
+    });
+  });
+
   it("summarizes media with OpenRouter chat completions", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       jsonResponse({

@@ -4,6 +4,7 @@ import type {
   TranscriptionModel,
   TranscriptionProvider
 } from "@domain/settings";
+import { readProviderErrorDetail } from "@services/ai/provider-error";
 
 export type ApiHealthCheckRequest =
   | ApiHealthCheckGeminiRequest
@@ -64,39 +65,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function getNestedMessage(value: unknown): string {
-  if (!isRecord(value)) {
-    return "";
-  }
-
-  const directMessage = value.message;
-  if (typeof directMessage === "string" && directMessage.trim().length > 0) {
-    return directMessage.trim();
-  }
-
-  const error = value.error;
-  if (isRecord(error)) {
-    return getNestedMessage(error);
-  }
-
-  return "";
-}
-
 function isAbortError(error: unknown): boolean {
   return isRecord(error) && error.name === "AbortError";
 }
 
 async function readErrorMessage(response: Response): Promise<string> {
-  const text = await response.text();
-  if (text.trim().length === 0) {
-    return "";
-  }
-
-  try {
-    return getNestedMessage(JSON.parse(text)) || text.trim();
-  } catch {
-    return text.trim();
-  }
+  const detail = await readProviderErrorDetail(response);
+  return detail.message || detail.bodyExcerpt || "";
 }
 
 async function fetchWithTimeout(

@@ -8,6 +8,7 @@ import type {
   TranscriptSegment
 } from "@domain/types";
 import { throwIfCancelled } from "@orchestration/cancellation";
+import { readProviderErrorDetail } from "@services/ai/provider-error";
 import { formatTranscriptMarkdown } from "@services/ai/transcription-provider";
 
 const GLADIA_API_BASE_URL = "https://api.gladia.io/v2";
@@ -57,12 +58,6 @@ interface GladiaUtterance {
   text?: string;
   language?: string;
   speaker?: number;
-}
-
-interface GladiaErrorDetail {
-  message: string;
-  payload?: unknown;
-  bodyExcerpt?: string;
 }
 
 export interface GladiaTranscriptionOptions {
@@ -156,32 +151,6 @@ async function fetchWithTimeout(
   }
 }
 
-async function readErrorDetail(response: Response): Promise<GladiaErrorDetail> {
-  const body = await response.text();
-  if (body.trim().length === 0) {
-    return { message: "" };
-  }
-
-  try {
-    const payload = JSON.parse(body) as {
-      error?: { message?: unknown };
-      message?: unknown;
-      detail?: unknown;
-    };
-    const detail = payload.error?.message ?? payload.message ?? payload.detail;
-    return {
-      message: typeof detail === "string" ? detail : "",
-      payload,
-      bodyExcerpt: body.slice(0, 500)
-    };
-  } catch {
-    return {
-      message: body.trim(),
-      bodyExcerpt: body.slice(0, 500)
-    };
-  }
-}
-
 function guessUploadMimeType(filePath: string): string {
   const lower = filePath.toLowerCase();
   if (lower.endsWith(".ogg") || lower.endsWith(".opus")) {
@@ -250,7 +219,7 @@ async function uploadArtifact(input: {
   }
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -337,7 +306,7 @@ async function createPreRecordedJob(input: {
   }
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
@@ -423,7 +392,7 @@ async function fetchJobResult(input: {
   );
 
   if (!response.ok) {
-    const detail = await readErrorDetail(response);
+    const detail = await readProviderErrorDetail(response);
     throw new SummarizerError({
       category: "ai_failure",
       message: detail.message
