@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 22:27
+最後更新：2026-05-05 22:29
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -125,7 +125,7 @@
 
 ## P2：測試補強
 
-- [ ] 補 UI 字串與主要中文文案 regression。
+- [x] 補 UI 字串與主要中文文案 regression。
   - 檔案：`src/ui/settings-tab.ts`、`src/ui/flow-modal/SummarizerFlowModal.ts`、`src/ui/source-guidance.ts`
   - 目前問題：大量使用者可見中文文案直接散在 UI 檔案中；拼字、模型建議或文案漂移不一定被 tests 抓到。
   - 建議作法：把重要 label/placeholder/help copy 移到集中常數，新增 snapshot-like unit tests。
