@@ -9,6 +9,7 @@ import type {
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
+import type { ArtifactRetentionInput } from "@services/media/artifact-retention";
 import type { PreUploadCompressor } from "@services/media/pre-upload-compressor";
 
 function makeSession(): MediaDownloadSession {
@@ -259,6 +260,7 @@ describe("processMediaUrl integration", () => {
   it("throws download_failure when pre-upload compressor fails", async () => {
     const session = makeSession();
     const downloadResult = makeDownloadResult(session);
+    const cleanupInputs: ArtifactRetentionInput[] = [];
     const downloaderAdapter: DownloaderAdapter = {
       async prepareSession() {
         return session;
@@ -291,11 +293,31 @@ describe("processMediaUrl integration", () => {
           vaultId: "vault-a",
           mediaCompressionProfile: "balanced"
         },
-        { downloaderAdapter, preUploadCompressor },
+        {
+          downloaderAdapter,
+          preUploadCompressor,
+          artifactRetentionManager: {
+            buildPlan() {
+              return { keepPaths: [], removeTargets: [] };
+            },
+            async cleanup(input) {
+              cleanupInputs.push(input);
+              return ["cleanup warning"];
+            }
+          }
+        },
         new AbortController().signal
       )
     ).rejects.toMatchObject({
       category: "download_failure"
     });
+    expect(cleanupInputs).toEqual([
+      {
+        retentionMode: "delete_temp",
+        lifecycleStatus: "failed",
+        artifacts: session.artifacts,
+        aiUploadArtifactPaths: []
+      }
+    ]);
   });
 });
