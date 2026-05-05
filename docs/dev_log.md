@@ -1,10 +1,16 @@
 # 開發日誌
 
-最後更新：2026-05-06 00:31
+最後更新：2026-05-06 00:49
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-06 00:31
+### Unreleased - 2026-05-06 00:49
+
+Manual alignment:
+- 對齊 `docs/Manual.md` 與 `docs/Manual-slides.html` 到目前 UI 與設定現況：媒體流程預設建議 `Gemini` / `gemini-2.5-flash`，`Gladia` / `default` 作為轉錄備援。
+- 修正設定頁工具按鈕說明，反映 `yt-dlp` 與 `ffmpeg` / `ffprobe` 都支援 managed install、PATH 偵測與取消下載。
+- 補上 Flow Modal 的 `摘要前校對逐字稿` / `摘要前校對文字` 與 `加入 Flashcard 標記` 說明；文字檔案 slide 也補明 403 / 登入牆 / 付費牆 workaround。
+- 驗證：`git diff --check -- docs\Manual.md docs\Manual-slides.html`
 
 CAP-508 Text File Summary Input:
 - 將 `transcript_file` 使用者入口改為「文字檔案」，保留 `.md` / `.txt` 路徑輸入與選檔能力，作為被 403、登入牆、付費牆或動態網頁阻擋時的手動正文替代流程。
