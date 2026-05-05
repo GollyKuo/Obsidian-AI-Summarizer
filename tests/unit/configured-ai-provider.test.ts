@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -433,6 +433,111 @@ describe("configured AI providers", () => {
       );
       expect(fetchImpl.mock.calls[3][0]).toBe("https://generativelanguage.googleapis.com/v1beta/files/audio-1");
       expect(fetchImpl.mock.calls[3][1]?.method).toBe("DELETE");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("records failed Gemini Files API cleanup in the artifact manifest", async () => {
+    const tempDirectory = await mkdtemp(path.join(os.tmpdir(), "configured-ai-provider-"));
+    const audioPath = path.join(tempDirectory, "ai-upload.ogg");
+    const metadataPath = path.join(tempDirectory, "metadata.json");
+    await writeFile(audioPath, Buffer.from("audio"));
+    await writeFile(
+      metadataPath,
+      JSON.stringify({
+        sessionId: "session-a",
+        sourceType: "local_media",
+        title: "Media",
+        creatorOrAuthor: "Creator",
+        platform: "Local File",
+        createdAt: "2026-04-25T00:00:00.000Z",
+        originalFilename: "ai-upload.ogg",
+        downloadedPath: audioPath,
+        sourceArtifactPath: audioPath,
+        normalizedAudioPath: audioPath,
+        transcriptPath: path.join(tempDirectory, "transcript.md"),
+        subtitlePath: path.join(tempDirectory, "subtitles.srt"),
+        derivedArtifactPaths: [],
+        uploadArtifactPaths: [audioPath],
+        chunkCount: 1,
+        chunkDurationsMs: [1000],
+        vadApplied: false,
+        selectedCodec: null,
+        remoteFiles: [],
+        warnings: []
+      }),
+      "utf8"
+    );
+
+    try {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValueOnce(
+          new Response("", {
+            status: 200,
+            headers: {
+              "x-goog-upload-url": "https://upload.example/session-1"
+            }
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            file: {
+              name: "files/audio-1",
+              uri: "https://generativelanguage.googleapis.com/v1beta/files/audio-1",
+              mimeType: "audio/ogg",
+              state: "ACTIVE"
+            }
+          })
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            candidates: [{ content: { parts: [{ text: "{00:00:00-00:00:01} file api transcript" }] } }]
+          })
+        )
+        .mockResolvedValueOnce(jsonResponse({ error: { message: "delete unavailable" } }, 503));
+      const provider = createConfiguredTranscriptionProvider(
+        {
+          ...DEFAULT_SETTINGS,
+          apiKey: "gemini-key",
+          geminiTranscriptionStrategy: "files_api"
+        },
+        { fetchImpl }
+      );
+
+      const result = await provider.transcribeMedia(
+        {
+          metadata: {
+            title: "Media",
+            creatorOrAuthor: "Creator",
+            platform: "Local File",
+            source: audioPath,
+            created: "2026-04-25T00:00:00.000Z"
+          },
+          normalizedText: "",
+          transcript: [],
+          aiUploadArtifactPaths: [audioPath],
+          artifactMetadataPath: metadataPath,
+          transcriptionProvider: "gemini",
+          transcriptionModel: "gemini-2.5-flash"
+        },
+        new AbortController().signal
+      );
+
+      expect(result.warnings.some((warning) => warning.includes("remote file cleanup failed"))).toBe(true);
+      const manifest = JSON.parse(await readFile(metadataPath, "utf8")) as {
+        remoteFiles: Array<{ name: string; deleteState?: string; warning?: string }>;
+        warnings: string[];
+      };
+      expect(manifest.remoteFiles).toEqual([
+        expect.objectContaining({
+          name: "files/audio-1",
+          deleteState: "failed",
+          warning: expect.stringContaining("delete unavailable")
+        })
+      ]);
+      expect(manifest.warnings.some((warning) => warning.includes("delete unavailable"))).toBe(true);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

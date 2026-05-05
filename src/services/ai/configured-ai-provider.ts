@@ -823,11 +823,19 @@ async function safeUpdateRemoteFileManifest(
   warnings: string[]
 ): Promise<void> {
   if (!metadataPath) {
+    if (input.deleteState !== "deleted") {
+      warnings.push(
+        `Gemini remote file manifest unavailable; remote file ${input.name} cannot be tracked for retry cleanup.`
+      );
+    }
     return;
   }
 
   try {
-    await updateArtifactManifestWithRemoteFile(metadataPath, input);
+    const manifestWarnings = await updateArtifactManifestWithRemoteFile(metadataPath, input);
+    warnings.push(
+      ...manifestWarnings.map((warning) => `Gemini remote file manifest update warning: ${warning}`)
+    );
   } catch (error) {
     warnings.push(`Gemini remote file manifest update failed: ${getErrorMessage(error)}`);
   }

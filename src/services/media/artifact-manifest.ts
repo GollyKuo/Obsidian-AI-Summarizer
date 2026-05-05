@@ -213,6 +213,14 @@ export async function updateArtifactManifestWithRemoteFile(
   return [];
 }
 
+export function getRemoteFileCleanupCandidates(
+  manifest: Pick<MediaArtifactManifest, "remoteFiles"> | null | undefined
+): RemoteFileLifecycleRecord[] {
+  return (manifest?.remoteFiles ?? []).filter(
+    (remoteFile) => remoteFile.deleteState !== "deleted" && remoteFile.name.trim().length > 0
+  );
+}
+
 export async function updateArtifactManifestWithTranscriptArtifacts(
   metadataPath: string,
   input: {

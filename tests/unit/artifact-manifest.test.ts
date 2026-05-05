@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildInitialArtifactManifest,
+  getRemoteFileCleanupCandidates,
   readArtifactManifest,
   updateArtifactManifestWithRemoteFile,
   updateArtifactManifestWithTranscriptArtifacts
@@ -102,6 +103,50 @@ describe("artifact manifest", () => {
 
     expect(warnings).toEqual([
       "Artifact manifest metadata.json contains invalid JSON; using recoverable fallback."
+    ]);
+  });
+
+  it("returns remote files that still need cleanup compensation", () => {
+    const candidates = getRemoteFileCleanupCandidates({
+      remoteFiles: [
+        {
+          provider: "Gemini",
+          strategy: "files_api",
+          localArtifactPath: "D:\\cache\\session\\audio-1.mp3",
+          name: "files/deleted",
+          uri: "https://example.com/files/deleted",
+          mimeType: "audio/mpeg",
+          state: "ACTIVE",
+          createdAt: "2026-05-02T00:00:00.000Z",
+          deleteState: "deleted"
+        },
+        {
+          provider: "Gemini",
+          strategy: "files_api",
+          localArtifactPath: "D:\\cache\\session\\audio-2.mp3",
+          name: "files/failed",
+          uri: "https://example.com/files/failed",
+          mimeType: "audio/mpeg",
+          state: "ACTIVE",
+          createdAt: "2026-05-02T00:00:00.000Z",
+          deleteState: "failed"
+        },
+        {
+          provider: "Gemini",
+          strategy: "files_api",
+          localArtifactPath: "D:\\cache\\session\\audio-3.mp3",
+          name: "files/untracked",
+          uri: "https://example.com/files/untracked",
+          mimeType: "audio/mpeg",
+          state: "ACTIVE",
+          createdAt: "2026-05-02T00:00:00.000Z"
+        }
+      ]
+    });
+
+    expect(candidates.map((candidate) => candidate.name)).toEqual([
+      "files/failed",
+      "files/untracked"
     ]);
   });
 });
