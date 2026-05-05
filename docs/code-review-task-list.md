@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 23:29
+最後更新：2026-05-05 23:41
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -111,7 +111,7 @@
   - 建議作法：抽出 common `prepareMediaForTranscription` pipeline，source-specific adapter 只負責 acquisition。
   - 驗證：保留現有 integration tests，再新增 shared behavior tests：completed cleanup、failed cleanup、single artifact mode、auto chunks。
 
-- [ ] 統一 cancellation handling。
+- [x] 統一 cancellation handling。
   - 檔案：`src/orchestration/job-runner.ts`、`src/services/media/downloader-adapter.ts`、`src/services/media/pre-upload-compressor.ts`、`src/services/ai/**`
   - 目前問題：各層用 `AbortSignal`，但 timeout、child process、fetch、polling loop、installer request 的 cancellation 包裝不同。
   - 建議作法：建立共用 `abortableTimeout`、`withAbortSignal`、`toCancellationError` helpers，統一 `SummarizerError` category 與 recoverable semantics。
