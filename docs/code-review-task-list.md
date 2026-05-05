@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 23:55
+最後更新：2026-05-06 00:02
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -151,7 +151,7 @@
   - 建議作法：新增 yt-dlp managed installer、checksum/source policy、settings action 與 diagnostics。
   - 驗證：Windows path、PATH fallback、managed install、update available、download failure tests。
 
-- [ ] 將 model catalog 建議、官方 API 查詢與預設模型策略分層。
+- [x] 將 model catalog 建議、官方 API 查詢與預設模型策略分層。
   - 檔案：`src/domain/model-selection.ts`、`src/ui/model-autocomplete.ts`、`src/ui/settings-tab.ts`
   - 目前問題：default catalog、user catalog、official models API、manual entry 與 selected fallback 混在同一組 helper。後續 provider 增加時會變重。
   - 建議作法：拆成 `model-defaults.ts`、`model-catalog.ts`、`provider-model-discovery.ts`。
