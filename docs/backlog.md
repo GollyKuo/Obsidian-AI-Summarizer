@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-05 00:45
+最後更新：2026-05-05
 
 ## 用途
 
@@ -37,6 +37,7 @@
 3. `CAP-303` 文件補強不再列為 active 工作；既有完成項保留在 archive。
 4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
+6. `CAP-208` 逐字稿校對 / 清理階段已完成文件規劃，已轉入 active backlog，下一步可依 [transcript-cleanup-plan.md](transcript-cleanup-plan.md) 實作。
 
 ## Capability 總表
 
@@ -108,6 +109,22 @@
 
 摘要：
 已落地轉錄/摘要模型拆分、provider routing、OpenRouter 診斷、Gladia pre-recorded transcription provider、Gladia media URL smoke、Gladia local media / mixed provider smoke、失敗 transcript recovery、summary final synthesis、Gemini 逐 chunk inline 轉錄合併、Gemini Files API `auto` strategy、`transcript.md` / `subtitles.srt` handoff，以及 `transcript_file` 手動只重跑摘要 UX，並移除 AI provider 自動 fallback。細節已移入 [backlog-archive.md](backlog-archive.md)。
+
+#### CAP-208 Transcript Cleanup And Proofreading 逐字稿校對與清理
+
+狀態：`active`
+
+摘要：
+在 `transcribe -> summarize` 之間新增可選 AI 校對 / 清理階段，修正明顯錯字、ASR 同音誤判、標點、斷句與重複贅詞，同時保留時間軸、原意與可追溯性。第一版規劃採 `enableTranscriptCleanup = false`、清理失敗 fallback 到原始正規化逐字稿、共用既有 summary provider/model，並將 media flow 與 `transcript_file` 重跑摘要流程納入同一能力。實作計畫見 [transcript-cleanup-plan.md](transcript-cleanup-plan.md)，prompt 契約見 [API_Instructions.md](API_Instructions.md#逐字稿校對--清理指令-transcript-cleanup-prompt)。
+
+Done When：
+
+- `PROMPT_CONTRACT` 支援 `transcriptCleanupPrompt`，並新增 prompt builder。
+- media flow 可在轉錄正規化後、摘要前選擇性執行 cleanup。
+- `transcript_file` flow 可在讀檔後、摘要前選擇性執行 cleanup。
+- cleanup disabled 時既有流程行為不變。
+- cleanup failure fallback 與 warnings 有 unit / integration 測試覆蓋。
+- `transcript.raw.md` / `transcript.md` 或等效 artifact 可追溯策略已落地。
 
 #### CAP-206 Note Output And Artifact Retention 筆記輸出與產物保留
 

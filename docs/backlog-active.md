@@ -1,6 +1,6 @@
 # Active Backlog
 
-最後更新：2026-05-05 00:45
+最後更新：2026-05-05
 
 ## 用途
 
@@ -16,6 +16,7 @@
 ## 目前主線
 
 1. 收尾最終交付前安全重置。
+2. `CAP-208` 逐字稿校對 / 清理階段準備實作。
 
 ## 當前阻塞與決策
 
@@ -26,6 +27,7 @@
 - 舊版 `Media Summarizer` 只吸收行為與經驗，不回搬 GUI 直連式架構，也不修改舊版專案內容。
 - `features/` 已收斂為 UI 決策、實作指南與 visual QA；`CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive，Settings Tab polish 留在 `CAP-305` parking，不納入近期執行。
 - 設定頁使用說明與 HTML 簡報策略已完成：內建使用說明已加入 `Settings -> AI Summarizer`；`docs/Manual-slides.html` 作為獨立下載文件，不在 settings 中開啟、嵌入或檢查檔案路徑。
+- `CAP-208` 第一版採保守策略：`enableTranscriptCleanup = false`、清理失敗 fallback 到原始正規化逐字稿、先共用既有 summary provider/model。完整規劃見 [transcript-cleanup-plan.md](transcript-cleanup-plan.md)。
 
 ## 下一個切換點
 
@@ -37,3 +39,24 @@
 ## Final Handoff Gate 最終交付檢查
 
 - [ ] 最終專案交付前安全重置：確認 repo 與同步到 vault 的 plugin 副本都已回復乾淨狀態，並清空任何使用者輸入、本機測試資料、媒體產物、cache、API key、provider key、token，以及 settings、logs、drafts、build outputs、ignored local files 中可能殘留的 secrets。
+
+## CAP-208 Transcript Cleanup And Proofreading 逐字稿校對與清理
+
+狀態：`active`
+
+文件：
+
+- [transcript-cleanup-plan.md](transcript-cleanup-plan.md)
+- [API_Instructions.md](API_Instructions.md#逐字稿校對--清理指令-transcript-cleanup-prompt)
+- [backlog.md](backlog.md#cap-208-transcript-cleanup-and-proofreading-逐字稿校對與清理)
+
+待辦：
+
+- [ ] 在 `PROMPT_CONTRACT` 新增 `transcriptCleanupPrompt`，並新增 `buildTranscriptCleanupPrompt`。
+- [ ] 定義 cleanup provider 介面或在既有 provider 層新增 cleanup 方法。
+- [ ] 新增 `enableTranscriptCleanup` 與 cleanup failure mode 設定。
+- [ ] 將 media flow 接入 `transcribe -> normalize -> cleanup -> normalize -> summarize`。
+- [ ] 將 `transcript_file` flow 接入 `read -> cleanup -> summarize`。
+- [ ] 實作 cleanup failure fallback 與 warnings。
+- [ ] 落地 `transcript.raw.md` / `transcript.md` 或等效 artifact 可追溯策略。
+- [ ] 補 unit、integration 與長媒體 regression 測試。

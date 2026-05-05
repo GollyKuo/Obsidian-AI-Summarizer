@@ -954,7 +954,7 @@
             </ol>
             <div class="note">
               <strong>建議日常媒體設定</strong>
-              轉錄 Provider 用 <code>Gladia</code> / <code>default</code>。摘要 Provider 用 <code>Gemini</code> 或 <code>Mistral</code>。Mistral 摘要 Model 可先用 <code>mistral-small-latest</code>。
+              轉錄 Provider 若用 <code>Gemini</code>，轉錄 Model 建議選 <code>gemini-2.5-flash</code>；若用 <code>Gladia</code>，Model 使用 <code>default</code>。摘要 Provider 可用 <code>Gemini</code> 或 <code>Mistral</code>。
             </div>
           </article>
 
@@ -1059,7 +1059,7 @@
             <div class="eyebrow">Workflow</div>
             <h2>使用流程：媒體 URL</h2>
             <ol>
-              <li>到設定頁確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+              <li>到設定頁確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
               <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
               <li>開啟 <code>AI 摘要器</code>。</li>
               <li>選 <code>媒體 URL</code>。</li>
@@ -1073,7 +1073,7 @@
             <div class="eyebrow">Workflow</div>
             <h2>使用流程：本機媒體</h2>
             <ol>
-              <li>到設定頁確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+              <li>到設定頁確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
               <li>到 <code>診斷</code> 分頁確認媒體工具可用。</li>
               <li>開啟 <code>AI 摘要器</code>。</li>
               <li>選 <code>本機媒體</code>。</li>
@@ -1107,7 +1107,8 @@
             <h2>設定頁說明：AI 模型</h2>
             <p>這裡設定轉錄與摘要使用的服務。</p>
             <ul>
-              <li>媒體轉錄優先用 <code>Gladia</code> / <code>default</code>。</li>
+              <li>媒體轉錄若使用 <code>Gemini</code>，轉錄 Model 建議選 <code>gemini-2.5-flash</code>。</li>
+              <li>媒體轉錄若使用 <code>Gladia</code>，Model 使用 <code>default</code>。</li>
               <li>一般摘要可用 Gemini。</li>
               <li>Gemini 額度不足時，摘要可改用 Mistral。</li>
               <li>OpenRouter 是選用，只有切到 OpenRouter 摘要時才需要填 key。</li>
@@ -1291,7 +1292,7 @@
               <li>按 <code>重新檢查</code>。</li>
               <li>確認 <code>ffmpeg</code>、<code>ffprobe</code>、<code>yt-dlp</code> 可用。</li>
               <li>確認媒體暫存資料夾可用。</li>
-              <li>確認轉錄 Provider 已切到 <code>Gladia</code>。</li>
+              <li>確認轉錄 Provider 與 Model 可用；<code>Gemini</code> 建議 <code>gemini-2.5-flash</code>，<code>Gladia</code> 使用 <code>default</code>。</li>
             </ol>
           </article>
 
