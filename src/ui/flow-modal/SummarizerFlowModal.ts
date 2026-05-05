@@ -1,33 +1,12 @@
 import { Modal, normalizePath, TFile, TFolder } from "obsidian";
 import type { ErrorCategory } from "@domain/errors";
 import type { JobStatus } from "@domain/jobs";
-import type {
-  LocalMediaRequest,
-  MediaUrlRequest,
-  SourceType,
-  TranscriptFileRequest,
-  WebpageRequest
-} from "@domain/types";
-import { processMedia } from "@orchestration/process-media";
-import { processTranscriptFile } from "@orchestration/process-transcript-file";
-import { processWebpage } from "@orchestration/process-webpage";
+import type { SourceType } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
-import {
-  createConfiguredTranscriptCleanupProvider,
-  createConfiguredSummaryProvider,
-  createConfiguredTranscriptionProvider
-} from "@services/ai/configured-ai-provider";
-import { BasicMetadataExtractor } from "@services/web/metadata-extractor";
-import { FetchWebpageExtractor } from "@services/web/webpage-extractor";
 import {
   collectRuntimeDiagnostics,
   type RuntimeDiagnosticsSummary
 } from "@services/media/runtime-diagnostics";
-import type { RuntimeProvider } from "@runtime/runtime-provider";
-import { createRuntimeProvider } from "@runtime/runtime-factory";
-import type { NoteWriter } from "@services/obsidian/note-writer";
-import { ObsidianNoteWriter } from "@services/obsidian/note-writer";
-import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
 import { FLOW_MODAL_TITLE } from "@ui/flow-modal/copy";
 import {
   type FlowExecutionPanelOptions,
@@ -37,6 +16,7 @@ import {
   renderStageStatus
 } from "@ui/flow-modal/execution-panels";
 import { FlowVaultFolderTreeModal } from "@ui/flow-modal/folder-picker-modal";
+import { runSummarizerFlow } from "@ui/flow-modal/flow-job-runner";
 import { renderPreflightSection } from "@ui/flow-modal/preflight-section";
 import type {
   DesktopDialog,
@@ -213,30 +193,6 @@ export class SummarizerFlowModal extends Modal {
     this.render();
   }
 
-  private buildRuntimeProvider(): RuntimeProvider {
-    return createRuntimeProvider(this.plugin.settings.runtimeStrategy);
-  }
-
-  private buildAiProvider(): ReturnType<typeof createConfiguredSummaryProvider> {
-    return createConfiguredSummaryProvider(this.plugin.settings);
-  }
-
-  private buildTranscriptCleanupProvider(): ReturnType<typeof createConfiguredTranscriptCleanupProvider> {
-    return createConfiguredTranscriptCleanupProvider(this.plugin.settings);
-  }
-
-  private buildTranscriptionProvider(): ReturnType<typeof createConfiguredTranscriptionProvider> {
-    return createConfiguredTranscriptionProvider(this.plugin.settings);
-  }
-
-  private buildNoteWriter(): NoteWriter {
-    return new ObsidianNoteWriter(new VaultNoteStorage(this.plugin.app.vault), {
-      outputFolder: this.plugin.settings.outputFolder,
-      templateReference: this.plugin.settings.templateReference,
-      generateFlashcards: this.plugin.settings.generateFlashcards
-    });
-  }
-
   private isBusy(): boolean {
     return this.status === "running" || this.status === "cancelling";
   }
@@ -352,35 +308,6 @@ export class SummarizerFlowModal extends Modal {
       this.mediaDiagnosticsLoading = false;
       this.render();
     }
-  }
-
-  private localizeStageMessage(message: string): string {
-    const messages: Record<string, string> = {
-      "Validating webpage input": "驗證網頁輸入",
-      "Fetching webpage content": "取得網頁內容",
-      "Generating webpage summary": "摘要網頁內容",
-      "Writing webpage note into vault": "寫入筆記",
-      "Validating media input": "驗證媒體輸入",
-      "Processing media URL input": "取得媒體",
-      "Processing local media input": "準備本機媒體",
-      "Generating media transcript": "轉錄媒體內容",
-      "Cleaning transcript before summary": "校對逐字稿",
-      "Generating media summary": "摘要媒體內容",
-      "Writing media note into vault": "寫入筆記",
-      "Validating media URL input": "驗證媒體 URL",
-      "Preparing media acquisition session": "準備媒體暫存工作區",
-      "Downloading media artifact": "下載媒體",
-      "Preparing AI-ready media artifacts": "準備 AI 可處理的媒體",
-      "Validating local media input": "驗證本機媒體",
-      "Preparing local media ingestion session": "準備本機媒體暫存工作區",
-      "Importing local media artifact": "匯入本機媒體",
-      "Validating transcript file input": "驗證逐字稿檔案",
-      "Reading transcript file": "讀取逐字稿",
-      "Regenerating summary from transcript": "依逐字稿重新摘要",
-      "Writing regenerated summary note into vault": "寫入筆記"
-    };
-
-    return messages[message] ?? message;
   }
 
   private getStageDescriptors(): StageDescriptor[] {
@@ -677,115 +604,6 @@ export class SummarizerFlowModal extends Modal {
     this.render();
   }
 
-  private async runWebpageFlow(signal: AbortSignal): Promise<{ notePath: string }> {
-    const result = await processWebpage(
-      {
-        sourceKind: "webpage_url",
-        sourceValue: this.sourceValue,
-        summaryProvider: this.plugin.settings.summaryProvider,
-        summaryModel: this.plugin.settings.summaryModel
-      },
-      {
-        webpageExtractor: new FetchWebpageExtractor(),
-        metadataExtractor: new BasicMetadataExtractor(),
-        summaryProvider: this.buildAiProvider(),
-        noteWriter: this.buildNoteWriter()
-      },
-      signal,
-      {
-        onStageChange: (status, message) => {
-          this.currentStageStatus = status;
-          this.stageMessage = this.localizeStageMessage(message);
-          this.render();
-        },
-        onWarning: (warning) => {
-          this.warningMessages.push(warning);
-          this.plugin.reportWarning("webpage_flow", warning);
-          this.render();
-        }
-      }
-    );
-
-    return { notePath: result.writeResult.notePath };
-  }
-
-  private async runTranscriptFileFlow(signal: AbortSignal): Promise<{ notePath: string }> {
-    const result = await processTranscriptFile(
-      {
-        sourceKind: "transcript_file",
-        sourceValue: this.sourceValue,
-        enableTranscriptCleanup: this.plugin.settings.enableTranscriptCleanup,
-        transcriptCleanupFailureMode: this.plugin.settings.transcriptCleanupFailureMode,
-        summaryProvider: this.plugin.settings.summaryProvider,
-        summaryModel: this.plugin.settings.summaryModel
-      } satisfies TranscriptFileRequest,
-      {
-        summaryProvider: this.buildAiProvider(),
-        transcriptCleanupProvider: this.buildTranscriptCleanupProvider(),
-        noteWriter: this.buildNoteWriter()
-      },
-      signal,
-      {
-        onStageChange: (status, message) => {
-          this.currentStageStatus = status;
-          this.stageMessage = this.localizeStageMessage(message);
-          this.render();
-        },
-        onWarning: (warning) => {
-          this.warningMessages.push(warning);
-          this.plugin.reportWarning("transcript_file_flow", warning);
-          this.render();
-        }
-      }
-    );
-
-    return { notePath: result.writeResult.notePath };
-  }
-
-  private async runMediaFlow(signal: AbortSignal): Promise<{ notePath: string }> {
-    const result = await processMedia(
-      {
-        sourceKind: this.sourceType,
-        sourceValue: this.sourceValue,
-        transcriptionProvider: this.plugin.settings.transcriptionProvider,
-        transcriptionModel: this.plugin.settings.transcriptionModel,
-        geminiTranscriptionStrategy: this.plugin.settings.geminiTranscriptionStrategy,
-        enableTranscriptCleanup: this.plugin.settings.enableTranscriptCleanup,
-        transcriptCleanupFailureMode: this.plugin.settings.transcriptCleanupFailureMode,
-        summaryProvider: this.plugin.settings.summaryProvider,
-        summaryModel: this.plugin.settings.summaryModel,
-        retentionMode: this.plugin.settings.retentionMode,
-        mediaCacheRoot: this.plugin.settings.mediaCacheRoot,
-        ytDlpPath: this.plugin.settings.ytDlpPath,
-        ffmpegPath: this.plugin.settings.ffmpegPath,
-        ffprobePath: this.plugin.settings.ffprobePath,
-        mediaCompressionProfile: this.plugin.settings.mediaCompressionProfile
-      } as MediaUrlRequest | LocalMediaRequest,
-      {
-        runtimeProvider: this.buildRuntimeProvider(),
-        transcriptionProvider: this.buildTranscriptionProvider(),
-        transcriptCleanupProvider: this.buildTranscriptCleanupProvider(),
-        summaryProvider: this.buildAiProvider(),
-        noteWriter: this.buildNoteWriter()
-      },
-      signal,
-      {
-        onStageChange: (status, message) => {
-          this.currentStageStatus = status;
-          this.stageMessage = this.localizeStageMessage(message);
-          this.render();
-        },
-        onWarning: (warning) => {
-          this.warningMessages.push(warning);
-          this.plugin.reportWarning("media_flow", warning);
-          this.render();
-        }
-      }
-    );
-
-    return { notePath: result.writeResult.notePath };
-  }
-
   private async startFlow(): Promise<void> {
     if (this.isBusy()) {
       return;
@@ -812,12 +630,22 @@ export class SummarizerFlowModal extends Modal {
     this.render();
 
     try {
-      const result =
-        this.sourceType === "webpage_url"
-          ? await this.runWebpageFlow(this.abortController.signal)
-          : this.sourceType === "transcript_file"
-            ? await this.runTranscriptFileFlow(this.abortController.signal)
-            : await this.runMediaFlow(this.abortController.signal);
+      const result = await runSummarizerFlow({
+        plugin: this.plugin,
+        signal: this.abortController.signal,
+        sourceType: this.sourceType,
+        sourceValue: this.sourceValue,
+        onStageChange: (status, message) => {
+          this.currentStageStatus = status;
+          this.stageMessage = message;
+          this.render();
+        },
+        onWarning: (scope, warning) => {
+          this.warningMessages.push(warning);
+          this.plugin.reportWarning(scope, warning);
+          this.render();
+        }
+      });
 
       this.status = "completed";
       this.currentStageStatus = "completed";
