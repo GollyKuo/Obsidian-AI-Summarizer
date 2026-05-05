@@ -665,7 +665,7 @@
             <div class="kicker-row">
               <span class="pill green">單檔離線 HTML</span>
               <span class="pill orange">Obsidian Plugin</span>
-              <span class="pill">最後更新：2026-05-05</span>
+              <span class="pill">最後更新：2026-05-06</span>
             </div>
           </article>
 
@@ -1100,7 +1100,7 @@
             <p>這個流程會跳過轉錄，直接用目前摘要 Provider 產生筆記。</p>
             <div class="note">
               <strong>適合使用時機</strong>
-              媒體轉錄已完成但摘要失敗、想手動修正逐字稿、或想改用 Mistral 備用路徑重新摘要時，可以用這個流程。
+              網頁被 403、登入牆、付費牆或動態內容阻擋時，可先複製正文存成 <code>.txt</code> / <code>.md</code> 再摘要；媒體轉錄已完成但摘要失敗、想手動修正逐字稿、或想改用 Mistral 備用路徑重新摘要時，也可以用這個流程。
             </div>
           </article>
 
@@ -1198,6 +1198,8 @@
                 <tr><td><code>媒體工具：...</code></td><td>檢查媒體工具狀態。</td></tr>
                 <tr><td><code>診斷</code></td><td>前往設定頁的診斷分頁。</td></tr>
                 <tr><td><code>選擇</code></td><td>選擇本次輸出的 vault 資料夾。</td></tr>
+                <tr><td><code>摘要前校對逐字稿</code> / <code>摘要前校對文字</code></td><td>摘要前先用目前摘要 provider/model 做最小必要校對；預設關閉。</td></tr>
+                <tr><td><code>加入 Flashcard 標記</code></td><td>只在筆記 tags 加入 <code>Flashcard</code> 標記，不會生成閃卡內容。</td></tr>
                 <tr><td><code>開始摘要</code></td><td>開始產生摘要。</td></tr>
                 <tr><td><code>取消</code></td><td>取消正在執行的流程。</td></tr>
               </tbody>
@@ -1234,9 +1236,9 @@
                 <tr><td><code>選擇資料夾</code></td><td>選擇媒體暫存資料夾。</td></tr>
                 <tr><td><code>選資料夾與模板</code> / <code>建立範本</code></td><td>選擇或建立自訂模板。</td></tr>
                 <tr><td><code>選擇檔案</code></td><td>指定 <code>yt-dlp</code> / <code>ffmpeg</code> / <code>ffprobe</code> 執行檔。</td></tr>
-                <tr><td><code>自動偵測</code></td><td>從 PATH 尋找 <code>yt-dlp</code>。</td></tr>
-                <tr><td><code>自動填入</code></td><td>下載或更新 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
-                <tr><td><code>取消下載</code></td><td>取消正在下載的 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
+                <tr><td><code>自動偵測</code></td><td>從 PATH 尋找 <code>yt-dlp</code> / <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
+                <tr><td><code>自動填入</code></td><td>下載或更新外掛資料夾內的 <code>yt-dlp</code> 或 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
+                <tr><td><code>取消下載</code></td><td>取消正在下載的 <code>yt-dlp</code> 或 <code>ffmpeg</code> / <code>ffprobe</code>。</td></tr>
                 <tr><td><code>重新檢查</code></td><td>重新執行媒體功能診斷。</td></tr>
                 <tr><td><code>前往 AI 模型</code> / <code>前往診斷</code></td><td>從使用說明分頁切到指定分頁。</td></tr>
               </tbody>

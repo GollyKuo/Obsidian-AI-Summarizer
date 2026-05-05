@@ -1,6 +1,6 @@
 # AI Summarizer 使用手冊（Windows）
 
-最後更新：2026-05-04
+最後更新：2026-05-06
 
 ## 目錄
 
@@ -44,7 +44,7 @@
 
 1. `Gemini API Key`：Gemini 轉錄與一般摘要使用；轉錄與摘要推薦模型皆為 `gemini-2.5-flash`。
 2. `Mistral API Key`：摘要備援，適合 Gemini 額度不足或高負載時使用。
-3. `Gladia API Key`：建議用於 YouTube、podcast、本機音訊或影片的媒體轉錄。
+3. `Gladia API Key`：媒體轉錄備援；Gemini 轉錄遇到 429、503、timeout 或 high demand 時，可切到 `Gladia` / `default`。
 
 如果你只想先測試網頁摘要，可以先準備 Gemini。若要穩定使用媒體摘要，建議一開始就準備 Gemini、Mistral 與 Gladia 三組 API key。
 
@@ -250,22 +250,24 @@ D:\AI-Summarizer\media-cache
 
 ### 媒體 URL
 
-1. 到設定頁確認轉錄 Provider 已切到 `Gladia`。
-2. 到 `診斷` 分頁確認媒體工具可用。
-3. 開啟 `AI 摘要器`。
-4. 選 `媒體 URL`。
-5. 輸入 YouTube、podcast 或直接媒體網址。
-6. 按 `開始摘要`。
-7. 完成後按 `開啟筆記`。
+1. 到設定頁確認轉錄 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Gladia` / `default` 作為備用。
+2. 確認摘要 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Mistral` 作為備用。
+3. 到 `診斷` 分頁確認媒體工具可用。
+4. 開啟 `AI 摘要器`。
+5. 選 `媒體 URL`。
+6. 輸入 YouTube、podcast 或直接媒體網址。
+7. 按 `開始摘要`。
+8. 完成後按 `開啟筆記`。
 
 ### 本機媒體
 
-1. 到設定頁確認轉錄 Provider 已切到 `Gladia`。
-2. 到 `診斷` 分頁確認媒體工具可用。
-3. 開啟 `AI 摘要器`。
-4. 選 `本機媒體`。
-5. 輸入檔案絕對路徑，或按 `選擇檔案`。
-6. 按 `開始摘要`。
+1. 到設定頁確認轉錄 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Gladia` / `default` 作為備用。
+2. 確認摘要 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Mistral` 作為備用。
+3. 到 `診斷` 分頁確認媒體工具可用。
+4. 開啟 `AI 摘要器`。
+5. 選 `本機媒體`。
+6. 輸入檔案絕對路徑，或按 `選擇檔案`。
+7. 按 `開始摘要`。
 
 ### 文字檔案
 
@@ -345,6 +347,8 @@ D:\AI-Summarizer\media-cache
 | `媒體工具：...` | 檢查媒體工具狀態 |
 | `診斷` | 前往設定頁的診斷分頁 |
 | `選擇` | 選擇本次輸出的 vault 資料夾 |
+| `摘要前校對逐字稿` / `摘要前校對文字` | 摘要前先用目前摘要 provider/model 做最小必要校對；預設關閉 |
+| `加入 Flashcard 標記` | 只在筆記 tags 加入 `Flashcard` 標記，不會生成閃卡內容 |
 | `開始摘要` | 開始產生摘要 |
 | `取消` | 取消正在執行的流程 |
 
@@ -373,9 +377,9 @@ D:\AI-Summarizer\media-cache
 | `選資料夾與模板` | 選擇自訂模板檔 |
 | `建立範本` | 建立起始模板檔 |
 | `選擇檔案` | 指定 `yt-dlp` / `ffmpeg` / `ffprobe` 執行檔 |
-| `自動偵測` | 從 PATH 尋找 `yt-dlp` |
-| `自動填入` | 下載或更新 `ffmpeg` / `ffprobe` |
-| `取消下載` | 取消正在下載的 `ffmpeg` / `ffprobe` |
+| `自動偵測` | 從 PATH 尋找 `yt-dlp` / `ffmpeg` / `ffprobe` |
+| `自動填入` | 下載或更新外掛資料夾內的 `yt-dlp` 或 `ffmpeg` / `ffprobe` |
+| `取消下載` | 取消正在下載的 `yt-dlp` 或 `ffmpeg` / `ffprobe` |
 | `重新檢查` | 重新執行媒體功能診斷 |
 | `前往 AI 模型` | 從使用說明分頁切到 AI 模型分頁 |
 | `前往診斷` | 從使用說明分頁切到診斷分頁 |
@@ -406,7 +410,8 @@ D:\AI-Summarizer\media-cache
 1. 按 `重新檢查`。
 2. 確認 `ffmpeg`、`ffprobe`、`yt-dlp` 可用。
 3. 確認媒體暫存資料夾可用。
-4. 確認轉錄 Provider 已切到 `Gladia`。
+4. 確認轉錄 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Gladia` / `default` 作為備用。
+5. 確認摘要 Provider 與 Model 可用；建議使用 `Gemini` / `gemini-2.5-flash`，`Mistral` 作為備用。
 
 ### 摘要失敗，但已經有逐字稿
 
