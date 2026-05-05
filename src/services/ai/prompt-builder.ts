@@ -60,6 +60,12 @@ export function buildTranscriptPrompt(rawText: string): string {
 }
 
 export function buildTranscriptCleanupPrompt(input: TranscriptCleanupInput): string {
+  const hasSyntheticTiming = input.transcript.some((segment) => segment.timingSource === "synthetic");
+  const hasExplicitTiming = input.transcript.some((segment) => segment.timingSource === "explicit");
+  const timingInstruction = hasSyntheticTiming && !hasExplicitTiming
+    ? "時間軸提示：此逐字稿沒有可信的原始時間碼；系統只為分段產生 synthetic timing。請清理文字內容，不要新增或宣稱精確時間碼。"
+    : "時間軸提示：若逐字稿包含既有時間碼，請保留原有 marker 與順序。";
+
   return [
     PROMPT_CONTRACT.transcriptCleanupPrompt,
     "",
@@ -67,6 +73,8 @@ export function buildTranscriptCleanupPrompt(input: TranscriptCleanupInput): str
     "",
     "## Metadata",
     buildMetadataBlock(input.metadata),
+    "",
+    timingInstruction,
     "",
     "## Transcript",
     input.transcriptMarkdown

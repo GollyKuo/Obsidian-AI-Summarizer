@@ -125,17 +125,61 @@ async function readManifestMetadata(
   };
 }
 
+const EXPLICIT_TIMING_MARKER =
+  /^\s*[\[{](?<start>(?:\d{1,2}:)?\d{1,2}:\d{2}|\d+h\d+m\d+s|\d+m\d+s|\d+(?:\.\d+)?s)(?:\s*[-–]\s*(?<end>(?:\d{1,2}:)?\d{1,2}:\d{2}|\d+h\d+m\d+s|\d+m\d+s|\d+(?:\.\d+)?s))?[\]}]/i;
+
+function parseTimingMarkerMs(value: string): number | null {
+  const normalized = value.trim().toLowerCase();
+  const hmsMatch = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})$/.exec(normalized);
+  if (hmsMatch) {
+    const hours = hmsMatch[1] ? Number.parseInt(hmsMatch[1], 10) : 0;
+    const minutes = Number.parseInt(hmsMatch[2], 10);
+    const seconds = Number.parseInt(hmsMatch[3], 10);
+    return ((hours * 60 + minutes) * 60 + seconds) * 1000;
+  }
+
+  const unitMatch = /^(?:(\d+)h)?(?:(\d+)m)?(\d+(?:\.\d+)?)s$/.exec(normalized);
+  if (unitMatch) {
+    const hours = unitMatch[1] ? Number.parseInt(unitMatch[1], 10) : 0;
+    const minutes = unitMatch[2] ? Number.parseInt(unitMatch[2], 10) : 0;
+    const seconds = Number.parseFloat(unitMatch[3]);
+    return Math.round(((hours * 60 + minutes) * 60 + seconds) * 1000);
+  }
+
+  return null;
+}
+
 function transcriptMarkdownToSegments(transcriptMarkdown: string): TranscriptSegment[] {
+  let syntheticIndex = 0;
   return transcriptMarkdown
     .split(/\r?\n/g)
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .filter((line) => !line.startsWith("<!--"))
-    .map((line, index) => ({
-      startMs: index * 1000,
-      endMs: (index + 1) * 1000,
-      text: line
-    }));
+    .map((line) => {
+      const marker = EXPLICIT_TIMING_MARKER.exec(line);
+      const explicitStartMs = marker?.groups?.start ? parseTimingMarkerMs(marker.groups.start) : null;
+      if (explicitStartMs !== null) {
+        const explicitEndMs = marker?.groups?.end ? parseTimingMarkerMs(marker.groups.end) : null;
+        return {
+          startMs: explicitStartMs,
+          endMs: explicitEndMs !== null && explicitEndMs > explicitStartMs
+            ? explicitEndMs
+            : explicitStartMs + 1000,
+          text: line,
+          timingSource: "explicit" as const
+        };
+      }
+
+      const startMs = syntheticIndex * 1000;
+      syntheticIndex += 1;
+      return {
+        startMs,
+        endMs: startMs + 1000,
+        text: line,
+        timingSource: "synthetic" as const
+      };
+    });
 }
 
 function getErrorMessage(error: unknown): string {

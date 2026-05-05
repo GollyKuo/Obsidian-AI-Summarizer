@@ -68,7 +68,8 @@ function splitSegmentByCharacterLimit(
     splitSegments.push({
       startMs: segment.startMs,
       endMs: segment.endMs,
-      text: segment.text.slice(cursor, nextCursor)
+      text: segment.text.slice(cursor, nextCursor),
+      timingSource: segment.timingSource
     });
     cursor = nextCursor;
   }
@@ -93,7 +94,8 @@ function chunkTranscript(
     const normalizedSegment: TranscriptSegment = {
       startMs: rawSegment.startMs,
       endMs: rawSegment.endMs,
-      text
+      text,
+      timingSource: rawSegment.timingSource
     };
     const splitSegments = splitSegmentByCharacterLimit(normalizedSegment, maxChunkCharacters);
 

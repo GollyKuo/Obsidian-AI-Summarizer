@@ -28,6 +28,7 @@ export interface TranscriptSegment {
   startMs: number;
   endMs: number;
   text: string;
+  timingSource?: "explicit" | "synthetic";
 }
 
 export interface MediaUrlRequest {

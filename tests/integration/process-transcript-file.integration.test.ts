@@ -98,12 +98,14 @@ describe("processTranscriptFile integration", () => {
       {
         startMs: 0,
         endMs: 1000,
-        text: "{0m0s - 0m1s} First retained transcript line."
+        text: "{0m0s - 0m1s} First retained transcript line.",
+        timingSource: "explicit"
       },
       {
         startMs: 1000,
         endMs: 2000,
-        text: "{0m1s - 0m2s} Second retained transcript line."
+        text: "{0m1s - 0m2s} Second retained transcript line.",
+        timingSource: "explicit"
       }
     ]);
     expect(capturedNoteInputs[0]?.metadata.title).toBe("Retained Session");
@@ -213,6 +215,73 @@ describe("processTranscriptFile integration", () => {
     );
   });
 
+  it("marks transcript file segments with synthetic or explicit timing sources", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const transcriptPath = path.join(tempDirectory, "timing-source.md");
+    await writeFile(
+      transcriptPath,
+      [
+        "<!-- comment should be ignored -->",
+        "Plain transcript line.",
+        "",
+        "{00:01:05} Explicit timestamp line.",
+        "{00:01:06 - 00:01:08} Explicit range line."
+      ].join("\n"),
+      "utf8"
+    );
+
+    const capturedSummaryInputs: MediaSummaryInput[] = [];
+    await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: transcriptPath,
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
+      },
+      {
+        summaryProvider: {
+          async summarizeMedia(input) {
+            capturedSummaryInputs.push(input);
+            return { summaryMarkdown: "Timing source summary", warnings: [] };
+          },
+          async summarizeWebpage() {
+            throw new Error("not used");
+          }
+        },
+        noteWriter: {
+          async writeMediaNote() {
+            return { notePath: "Summaries/timing-source.md", createdAt: "2026-05-05T01:10:00.000Z", warnings: [] };
+          },
+          async writeWebpageNote() {
+            throw new Error("not used");
+          }
+        }
+      },
+      new AbortController().signal
+    );
+
+    expect(capturedSummaryInputs[0]?.transcript).toEqual([
+      {
+        startMs: 0,
+        endMs: 1000,
+        text: "Plain transcript line.",
+        timingSource: "synthetic"
+      },
+      {
+        startMs: 65_000,
+        endMs: 66_000,
+        text: "{00:01:05} Explicit timestamp line.",
+        timingSource: "explicit"
+      },
+      {
+        startMs: 66_000,
+        endMs: 68_000,
+        text: "{00:01:06 - 00:01:08} Explicit range line.",
+        timingSource: "explicit"
+      }
+    ]);
+  });
+
   it("cleans transcript files before summarizing when enabled", async () => {
     const tempDirectory = await makeTempDirectory();
     const transcriptPath = path.join(tempDirectory, "cleanup-transcript.md");
@@ -270,6 +339,53 @@ describe("processTranscriptFile integration", () => {
     expect(result.summary.transcriptMarkdown).toContain("清理後逐字稿");
     expect(result.warnings).toContain("Transcript cleanup applied before summary.");
     expect(stageMessages).toContain("cleaning:Cleaning transcript before summary");
+  });
+
+  it("propagates synthetic timing through transcript cleanup", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const transcriptPath = path.join(tempDirectory, "synthetic-cleanup.md");
+    await writeFile(transcriptPath, "Plain transcript without timing.", "utf8");
+
+    await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: transcriptPath,
+        enableTranscriptCleanup: true,
+        transcriptCleanupFailureMode: "fallback_to_original",
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
+      },
+      {
+        transcriptCleanupProvider: {
+          async cleanupTranscript(input) {
+            expect(input.transcript[0]?.timingSource).toBe("synthetic");
+            return {
+              transcript: [{ startMs: 0, endMs: 1000, text: "Plain transcript without timing.", timingSource: "synthetic" }],
+              transcriptMarkdown: "Plain transcript without timing.",
+              warnings: []
+            };
+          }
+        },
+        summaryProvider: {
+          async summarizeMedia(input) {
+            expect(input.transcript[0]?.timingSource).toBe("synthetic");
+            return { summaryMarkdown: "Synthetic timing summary", warnings: [] };
+          },
+          async summarizeWebpage() {
+            throw new Error("not used");
+          }
+        },
+        noteWriter: {
+          async writeMediaNote() {
+            return { notePath: "Summaries/synthetic-cleanup.md", createdAt: "2026-05-05T01:10:00.000Z", warnings: [] };
+          },
+          async writeWebpageNote() {
+            throw new Error("not used");
+          }
+        }
+      },
+      new AbortController().signal
+    );
   });
 
   it("falls back to the original transcript when cleanup fails", async () => {
