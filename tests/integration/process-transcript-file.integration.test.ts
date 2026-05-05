@@ -161,7 +161,56 @@ describe("processTranscriptFile integration", () => {
       platform: "Transcript File",
       source: transcriptPath
     });
-    expect(result.warnings).toContain("Transcript retry: metadata.json was unavailable; using transcript file metadata fallback.");
+    expect(result.warnings).toContain(
+      "Transcript retry: Artifact manifest metadata.json is missing; using recoverable fallback. Using transcript file metadata fallback."
+    );
+  });
+
+  it("falls back to transcript file metadata when adjacent metadata.json is corrupt", async () => {
+    const tempDirectory = await makeTempDirectory();
+    const transcriptPath = path.join(tempDirectory, "corrupt-manifest.txt");
+    await writeFile(transcriptPath, "A transcript with corrupt adjacent metadata.", "utf8");
+    await writeFile(path.join(tempDirectory, "metadata.json"), "{not-json", "utf8");
+
+    const capturedSummaryInputs: MediaSummaryInput[] = [];
+    const result = await processTranscriptFile(
+      {
+        sourceKind: "transcript_file",
+        sourceValue: transcriptPath,
+        summaryProvider: "gemini",
+        summaryModel: "gemini-2.5-flash"
+      },
+      {
+        summaryProvider: {
+          async summarizeMedia(input) {
+            capturedSummaryInputs.push(input);
+            return { summaryMarkdown: "Fallback summary", warnings: [] };
+          },
+          async summarizeWebpage() {
+            throw new Error("not used");
+          }
+        },
+        noteWriter: {
+          async writeMediaNote() {
+            return { notePath: "Summaries/corrupt-manifest.md", createdAt: "2026-05-02T01:10:00.000Z", warnings: [] };
+          },
+          async writeWebpageNote() {
+            throw new Error("not used");
+          }
+        }
+      },
+      new AbortController().signal
+    );
+
+    expect(capturedSummaryInputs[0]?.metadata).toMatchObject({
+      title: "corrupt-manifest",
+      creatorOrAuthor: "Unknown",
+      platform: "Transcript File",
+      source: transcriptPath
+    });
+    expect(result.warnings).toContain(
+      "Transcript retry: Artifact manifest metadata.json contains invalid JSON; using recoverable fallback. Using transcript file metadata fallback."
+    );
   });
 
   it("cleans transcript files before summarizing when enabled", async () => {

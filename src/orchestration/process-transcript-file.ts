@@ -17,6 +17,7 @@ import {
 import { summarizeMediaWithChunking } from "@services/ai/media-summary-chunking";
 import type { SummaryProvider } from "@services/ai/ai-provider";
 import type { TranscriptCleanupProvider } from "@services/ai/ai-provider";
+import { readArtifactManifest } from "@services/media/artifact-manifest";
 import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeToTraditionalChinese } from "@services/text/traditional-chinese";
 
@@ -97,18 +98,19 @@ function buildFallbackMetadata(transcriptPath: string): SourceMetadata {
 async function readManifestMetadata(
   transcriptPath: string,
   readTextFile: (targetPath: string) => Promise<string>
-): Promise<SourceMetadata | null> {
+): Promise<{ metadata: SourceMetadata | null; warning: string | null }> {
   const metadataPath = path.join(path.dirname(transcriptPath), "metadata.json");
-  let rawManifest: string;
-  try {
-    rawManifest = await readTextFile(metadataPath);
-  } catch {
-    return null;
+  const manifestResult = await readArtifactManifest(metadataPath, readTextFile);
+  if (!manifestResult.ok) {
+    return {
+      metadata: null,
+      warning: `Transcript retry: ${manifestResult.warning} Using transcript file metadata fallback.`
+    };
   }
 
-  try {
-    const manifest = JSON.parse(rawManifest) as ManifestMetadata;
-    return {
+  const manifest = manifestResult.manifest as ManifestMetadata;
+  return {
+    metadata: {
       title: asString(manifest.title) || buildFallbackMetadata(transcriptPath).title,
       creatorOrAuthor: asString(manifest.creatorOrAuthor) || "Unknown",
       platform: asString(manifest.platform) || "Transcript File",
@@ -118,10 +120,9 @@ async function readManifestMetadata(
         asString(manifest.source) ||
         transcriptPath,
       created: asString(manifest.createdAt) || new Date().toISOString()
-    };
-  } catch {
-    return null;
-  }
+    },
+    warning: null
+  };
 }
 
 function transcriptMarkdownToSegments(transcriptMarkdown: string): TranscriptSegment[] {
@@ -183,12 +184,12 @@ async function readTranscriptFile(input: {
   }
 
   const manifestMetadata = await readManifestMetadata(input.transcriptPath, input.readTextFile);
-  const warnings = manifestMetadata ? [] : ["Transcript retry: metadata.json was unavailable; using transcript file metadata fallback."];
+  const warnings = manifestMetadata.warning ? [manifestMetadata.warning] : [];
   if (transcriptLanguageResult.changed) {
     warnings.push("Transcript retry: converted transcript file content to Traditional Chinese.");
   }
   return {
-    metadata: manifestMetadata ?? buildFallbackMetadata(input.transcriptPath),
+    metadata: manifestMetadata.metadata ?? buildFallbackMetadata(input.transcriptPath),
     transcriptMarkdown: trimmedTranscript,
     transcript: transcriptMarkdownToSegments(trimmedTranscript),
     warnings

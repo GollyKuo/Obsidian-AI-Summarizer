@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildInitialArtifactManifest,
+  readArtifactManifest,
+  updateArtifactManifestWithRemoteFile,
   updateArtifactManifestWithTranscriptArtifacts
 } from "@services/media/artifact-manifest";
 
@@ -47,5 +49,59 @@ describe("artifact manifest", () => {
     };
     expect(manifest.transcriptPath).toBe("D:\\cache\\session\\transcript.md");
     expect(manifest.subtitlePath).toBe("D:\\cache\\session\\subtitles.srt");
+  });
+
+  it("classifies missing, invalid, and schema-mismatched manifests as recoverable reads", async () => {
+    await expect(
+      readArtifactManifest("D:\\cache\\session\\metadata.json", async () => {
+        const error = new Error("missing") as Error & { code: string };
+        error.code = "ENOENT";
+        throw error;
+      })
+    ).resolves.toMatchObject({
+      ok: false,
+      reason: "missing",
+      warning: expect.stringContaining("missing")
+    });
+
+    await expect(
+      readArtifactManifest("D:\\cache\\session\\metadata.json", async () => "{not-json")
+    ).resolves.toMatchObject({
+      ok: false,
+      reason: "invalid_json",
+      warning: expect.stringContaining("invalid JSON")
+    });
+
+    await expect(
+      readArtifactManifest("D:\\cache\\session\\metadata.json", async () => "[]")
+    ).resolves.toMatchObject({
+      ok: false,
+      reason: "schema_mismatch",
+      warning: expect.stringContaining("does not contain an object")
+    });
+  });
+
+  it("skips manifest updates with a warning when metadata JSON is corrupt", async () => {
+    const warnings = await updateArtifactManifestWithRemoteFile(
+      "D:\\cache\\session\\metadata.json",
+      {
+        provider: "Gemini",
+        strategy: "files_api",
+        localArtifactPath: "D:\\cache\\session\\audio.mp3",
+        name: "files/demo",
+        uri: "https://example.com/files/demo",
+        mimeType: "audio/mpeg",
+        state: "ACTIVE",
+        createdAt: "2026-05-02T00:00:00.000Z"
+      },
+      async () => {
+        throw new Error("write should not be called");
+      },
+      async () => "{not-json"
+    );
+
+    expect(warnings).toEqual([
+      "Artifact manifest metadata.json contains invalid JSON; using recoverable fallback."
+    ]);
   });
 });

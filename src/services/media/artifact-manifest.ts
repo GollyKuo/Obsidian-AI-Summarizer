@@ -58,6 +58,88 @@ export interface RemoteFileLifecycleRecord {
   warning?: string;
 }
 
+export type ArtifactManifestReadFailureReason = "missing" | "invalid_json" | "schema_mismatch";
+
+export type ArtifactManifestReadResult =
+  | {
+      ok: true;
+      manifest: Partial<MediaArtifactManifest> & Record<string, unknown>;
+      warning: null;
+    }
+  | {
+      ok: false;
+      manifest: null;
+      reason: ArtifactManifestReadFailureReason;
+      warning: string;
+    };
+
+function isEnoent(error: unknown): boolean {
+  return Boolean(error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT");
+}
+
+function formatManifestReadWarning(
+  metadataPath: string,
+  reason: ArtifactManifestReadFailureReason
+): string {
+  const fileName = path.basename(metadataPath);
+  if (reason === "missing") {
+    return `Artifact manifest ${fileName} is missing; using recoverable fallback.`;
+  }
+  if (reason === "invalid_json") {
+    return `Artifact manifest ${fileName} contains invalid JSON; using recoverable fallback.`;
+  }
+  return `Artifact manifest ${fileName} does not contain an object; using recoverable fallback.`;
+}
+
+export async function readArtifactManifest(
+  metadataPath: string,
+  readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
+    return fs.readFile(targetPath, "utf8");
+  }
+): Promise<ArtifactManifestReadResult> {
+  let rawManifest: string;
+  try {
+    rawManifest = await readFile(metadataPath);
+  } catch (error) {
+    if (isEnoent(error)) {
+      return {
+        ok: false,
+        manifest: null,
+        reason: "missing",
+        warning: formatManifestReadWarning(metadataPath, "missing")
+      };
+    }
+    throw error;
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawManifest);
+  } catch {
+    return {
+      ok: false,
+      manifest: null,
+      reason: "invalid_json",
+      warning: formatManifestReadWarning(metadataPath, "invalid_json")
+    };
+  }
+
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return {
+      ok: false,
+      manifest: null,
+      reason: "schema_mismatch",
+      warning: formatManifestReadWarning(metadataPath, "schema_mismatch")
+    };
+  }
+
+  return {
+    ok: true,
+    manifest: parsed as Partial<MediaArtifactManifest> & Record<string, unknown>,
+    warning: null
+  };
+}
+
 export function buildInitialArtifactManifest(
   input: InitialArtifactManifestInput
 ): MediaArtifactManifest {
@@ -97,18 +179,13 @@ export async function updateArtifactManifestWithRemoteFile(
   readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
     return fs.readFile(targetPath, "utf8");
   }
-): Promise<void> {
-  let rawManifest: string;
-  try {
-    rawManifest = await readFile(metadataPath);
-  } catch (error) {
-    if (error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT") {
-      return;
-    }
-    throw error;
+): Promise<string[]> {
+  const manifestResult = await readArtifactManifest(metadataPath, readFile);
+  if (!manifestResult.ok) {
+    return [manifestResult.warning];
   }
 
-  const manifest = JSON.parse(rawManifest) as MediaArtifactManifest;
+  const manifest = manifestResult.manifest as MediaArtifactManifest;
   const remoteFiles = [...(manifest.remoteFiles ?? [])];
   const existingIndex = remoteFiles.findIndex(
     (item) => item.provider === remoteFile.provider && item.name === remoteFile.name
@@ -133,6 +210,7 @@ export async function updateArtifactManifestWithRemoteFile(
     },
     writeFile
   );
+  return [];
 }
 
 export async function updateArtifactManifestWithTranscriptArtifacts(
@@ -148,18 +226,13 @@ export async function updateArtifactManifestWithTranscriptArtifacts(
   readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
     return fs.readFile(targetPath, "utf8");
   }
-): Promise<void> {
-  let rawManifest: string;
-  try {
-    rawManifest = await readFile(metadataPath);
-  } catch (error) {
-    if (error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT") {
-      return;
-    }
-    throw error;
+): Promise<string[]> {
+  const manifestResult = await readArtifactManifest(metadataPath, readFile);
+  if (!manifestResult.ok) {
+    return [manifestResult.warning];
   }
 
-  const manifest = JSON.parse(rawManifest) as MediaArtifactManifest;
+  const manifest = manifestResult.manifest as MediaArtifactManifest;
   await writeArtifactManifest(
     metadataPath,
     {
@@ -170,6 +243,7 @@ export async function updateArtifactManifestWithTranscriptArtifacts(
     },
     writeFile
   );
+  return [];
 }
 
 export async function writeArtifactManifest(
@@ -189,18 +263,13 @@ export async function updateArtifactManifestWithCompression(
   readFile: (targetPath: string) => Promise<string> = async (targetPath) => {
     return fs.readFile(targetPath, "utf8");
   }
-): Promise<void> {
-  let rawManifest: string;
-  try {
-    rawManifest = await readFile(metadataPath);
-  } catch (error) {
-    if (error && typeof error === "object" && (error as { code?: unknown }).code === "ENOENT") {
-      return;
-    }
-    throw error;
+): Promise<string[]> {
+  const manifestResult = await readArtifactManifest(metadataPath, readFile);
+  if (!manifestResult.ok) {
+    return [manifestResult.warning];
   }
 
-  const manifest = JSON.parse(rawManifest) as MediaArtifactManifest;
+  const manifest = manifestResult.manifest as MediaArtifactManifest;
   const nextManifest: MediaArtifactManifest = {
     ...manifest,
     normalizedAudioPath: compressionResult.normalizedAudioPath,
@@ -214,4 +283,5 @@ export async function updateArtifactManifestWithCompression(
   };
 
   await writeArtifactManifest(metadataPath, nextManifest, writeFile);
+  return [];
 }
