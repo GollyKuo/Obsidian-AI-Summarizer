@@ -35,6 +35,26 @@ interface LocalBridgeRuntimeProviderOptions {
   defaultVaultId?: string;
 }
 
+interface PreparedMediaFlowResult {
+  session: {
+    artifacts: {
+      downloadedPath: string;
+      normalizedAudioPath: string;
+      transcriptPath: string;
+      subtitlePath: string;
+      metadataPath: string;
+      aiUploadDirectory: string;
+    };
+  };
+  transcriptReadyPayload: {
+    aiUploadArtifactPaths: string[];
+    chunkCount: number;
+    metadata: MediaProcessResult["metadata"];
+    selectedCodec: string;
+  };
+  warnings: string[];
+}
+
 export class LocalBridgeRuntimeProvider implements RuntimeProvider {
   public readonly strategy = "local_bridge";
   private readonly dependencyChecker: (() => Promise<unknown>) | null;
@@ -82,6 +102,32 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
     );
   }
 
+  private toMediaProcessResult(
+    processResult: PreparedMediaFlowResult,
+    normalizedTextLines: string[]
+  ): MediaProcessResult {
+    return {
+      metadata: processResult.transcriptReadyPayload.metadata,
+      normalizedText: normalizedTextLines.join("\n"),
+      transcript: [],
+      aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
+      artifactMetadataPath: processResult.session.artifacts.metadataPath,
+      artifactCleanup: {
+        downloadedPath: processResult.session.artifacts.downloadedPath,
+        normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
+        transcriptPath: processResult.session.artifacts.transcriptPath,
+        subtitlePath: processResult.session.artifacts.subtitlePath,
+        metadataPath: processResult.session.artifacts.metadataPath,
+        aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
+        aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
+      },
+      warnings: [
+        ...processResult.warnings,
+        "AI-ready media artifacts prepared for transcription handoff."
+      ]
+    };
+  }
+
   public async processMediaUrl(input: MediaUrlRequest, signal: AbortSignal): Promise<MediaProcessResult> {
     const dependencyChecker = this.buildDependencyChecker(input);
     const mediaRuntimeDependencyChecker = this.buildMediaRuntimeDependencyChecker(input);
@@ -118,32 +164,11 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       signal
     );
 
-    const normalizedText = [
+    return this.toMediaProcessResult(processResult, [
       `AI-ready artifacts: ${processResult.transcriptReadyPayload.aiUploadArtifactPaths.join(", ")}`,
       `Selected codec: ${processResult.transcriptReadyPayload.selectedCodec}`,
       `Chunk count: ${processResult.transcriptReadyPayload.chunkCount}`
-    ].join("\n");
-
-    return {
-      metadata: processResult.transcriptReadyPayload.metadata,
-      normalizedText,
-      transcript: [],
-      aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
-      artifactMetadataPath: processResult.session.artifacts.metadataPath,
-      artifactCleanup: {
-        downloadedPath: processResult.session.artifacts.downloadedPath,
-        normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
-        transcriptPath: processResult.session.artifacts.transcriptPath,
-        subtitlePath: processResult.session.artifacts.subtitlePath,
-        metadataPath: processResult.session.artifacts.metadataPath,
-        aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
-        aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
-      },
-      warnings: [
-        ...processResult.warnings,
-        "AI-ready media artifacts prepared for transcription handoff."
-      ]
-    };
+    ]);
   }
 
   public async processLocalMedia(input: LocalMediaRequest, signal: AbortSignal): Promise<MediaProcessResult> {
@@ -178,33 +203,12 @@ export class LocalBridgeRuntimeProvider implements RuntimeProvider {
       signal
     );
 
-    const normalizedText = [
+    return this.toMediaProcessResult(processResult, [
       `Source path: ${processResult.transcriptReadyPayload.sourcePath}`,
       `AI-ready artifacts: ${processResult.transcriptReadyPayload.aiUploadArtifactPaths.join(", ")}`,
       `Selected codec: ${processResult.transcriptReadyPayload.selectedCodec}`,
       `Chunk count: ${processResult.transcriptReadyPayload.chunkCount}`
-    ].join("\n");
-
-    return {
-      metadata: processResult.transcriptReadyPayload.metadata,
-      normalizedText,
-      transcript: [],
-      aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths,
-      artifactMetadataPath: processResult.session.artifacts.metadataPath,
-      artifactCleanup: {
-        downloadedPath: processResult.session.artifacts.downloadedPath,
-        normalizedAudioPath: processResult.session.artifacts.normalizedAudioPath,
-        transcriptPath: processResult.session.artifacts.transcriptPath,
-        subtitlePath: processResult.session.artifacts.subtitlePath,
-        metadataPath: processResult.session.artifacts.metadataPath,
-        aiUploadDirectory: processResult.session.artifacts.aiUploadDirectory,
-        aiUploadArtifactPaths: processResult.transcriptReadyPayload.aiUploadArtifactPaths
-      },
-      warnings: [
-        ...processResult.warnings,
-        "AI-ready media artifacts prepared for transcription handoff."
-      ]
-    };
+    ]);
   }
 
   public async processWebpage(_: WebpageRequest, __: AbortSignal): Promise<WebpageProcessResult> {
