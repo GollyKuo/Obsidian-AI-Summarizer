@@ -4,7 +4,7 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { SummarizerError } from "@domain/errors";
 import type { MediaCompressionProfile } from "@domain/settings";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { isAbortError, throwIfCancelled } from "@orchestration/cancellation";
 import type {
   MediaDownloadResult,
   MediaDownloadSession
@@ -163,15 +163,6 @@ async function defaultCommandExecutor(
     stdout: result.stdout ?? "",
     stderr: result.stderr ?? ""
   };
-}
-
-function isAbortError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const maybeAbortError = error as { name?: unknown; code?: unknown };
-  return maybeAbortError.name === "AbortError" || maybeAbortError.code === "ABORT_ERR";
 }
 
 function isSpawnNotFoundError(error: unknown): boolean {

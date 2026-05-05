@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { SummarizerError } from "@domain/errors";
 import type { SourceMetadata } from "@domain/types";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { isAbortError, throwIfCancelled } from "@orchestration/cancellation";
 import {
   assertMediaDependenciesReady,
   type MediaRuntimeDependencyDiagnostics
@@ -303,15 +303,6 @@ function firstNonEmptyLine(...blocks: string[]): string {
     }
   }
   return "";
-}
-
-function isAbortError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const maybeAbortError = error as { name?: unknown; code?: unknown };
-  return maybeAbortError.name === "AbortError" || maybeAbortError.code === "ABORT_ERR";
 }
 
 function isSpawnNotFoundError(error: unknown): boolean {

@@ -4,7 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { SummarizerError } from "@domain/errors";
 import type { SourceMetadata } from "@domain/types";
-import { throwIfCancelled } from "@orchestration/cancellation";
+import { isAbortError, throwIfCancelled } from "@orchestration/cancellation";
 import {
   assertMediaDependenciesReady,
   type MediaRuntimeDependencyDiagnostics
@@ -103,15 +103,6 @@ function buildSessionId(now: Date, randomHex: (bytes: number) => string): string
   const mm = twoDigits(now.getMinutes());
   const ss = twoDigits(now.getSeconds());
   return `${y}${m}${d}-${hh}${mm}${ss}-${randomHex(4)}`;
-}
-
-function isAbortError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const maybeAbortError = error as { name?: unknown; code?: unknown };
-  return maybeAbortError.name === "AbortError" || maybeAbortError.code === "ABORT_ERR";
 }
 
 function extractErrorCode(error: unknown): string | null {
