@@ -23,6 +23,43 @@ describe("FetchWebpageExtractor", () => {
     });
   });
 
+  it("uses Obsidian requestUrl when no fetch implementation is injected", async () => {
+    const requestUrlImpl = vi.fn().mockResolvedValue({
+      status: 200,
+      headers: {},
+      arrayBuffer: new ArrayBuffer(0),
+      json: null,
+      text: "<main>RequestUrl content</main>"
+    });
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("<main>Fetch content</main>"));
+    const extractor = new FetchWebpageExtractor(fetchImpl, requestUrlImpl);
+
+    const result = await extractor.extractReadableText("https://example.com/request-url", new AbortController().signal);
+
+    expect(result.readableText).toBe("RequestUrl content");
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(requestUrlImpl).toHaveBeenCalledWith({
+      url: "https://example.com/request-url",
+      method: "GET",
+      headers: {
+        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+      },
+      throw: false
+    });
+  });
+
+  it("falls back to fetch when Obsidian requestUrl fails", async () => {
+    const requestUrlImpl = vi.fn().mockRejectedValue(new Error("requestUrl unavailable"));
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("<main>Fetch fallback</main>"));
+    const extractor = new FetchWebpageExtractor(fetchImpl, requestUrlImpl);
+
+    await expect(
+      extractor.extractReadableText("https://example.com/fallback", new AbortController().signal)
+    ).resolves.toMatchObject({ readableText: "Fetch fallback" });
+    expect(requestUrlImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
   it("extracts title, meta description, OpenGraph, author, and canonical URL", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(`
@@ -92,7 +129,7 @@ describe("FetchWebpageExtractor", () => {
     }) as unknown as typeof fetch;
     vi.stubGlobal("fetch", fetchImpl);
 
-    const extractor = new FetchWebpageExtractor();
+    const extractor = new FetchWebpageExtractor(undefined, null);
 
     await expect(
       extractor.extractReadableText("https://example.com/bound", new AbortController().signal)

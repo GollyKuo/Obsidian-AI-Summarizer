@@ -1,3 +1,4 @@
+import { requestUrl } from "obsidian";
 import type { JobStatus } from "@domain/jobs";
 import type {
   LocalMediaRequest,
@@ -81,7 +82,7 @@ async function runWebpageFlow(options: FlowJobRunnerOptions): Promise<{ notePath
       summaryModel: plugin.settings.summaryModel
     } satisfies WebpageRequest,
     {
-      webpageExtractor: new FetchWebpageExtractor(),
+      webpageExtractor: new FetchWebpageExtractor(undefined, requestUrl),
       metadataExtractor: new BasicMetadataExtractor(),
       summaryProvider: createConfiguredSummaryProvider(plugin.settings),
       noteWriter: createNoteWriter(plugin)

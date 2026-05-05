@@ -1,4 +1,5 @@
 import { SummarizerError } from "@domain/errors";
+import { throwIfCancelled } from "@orchestration/cancellation";
 
 export interface WebpageExtractor {
   extractReadableText(url: string, signal: AbortSignal): Promise<string | WebpageExtractionResult>;
@@ -16,6 +17,25 @@ export interface WebpageExtractionResult {
   metadata: WebpageExtractionMetadata;
   warnings: string[];
 }
+
+interface WebpageHttpResponse {
+  status: number;
+  text: string;
+}
+
+interface RequestUrlInput {
+  url: string;
+  method?: string;
+  headers?: Record<string, string>;
+  throw?: boolean;
+}
+
+interface RequestUrlOutput {
+  status: number;
+  text: string;
+}
+
+export type RequestUrlImplementation = (request: RequestUrlInput | string) => Promise<RequestUrlOutput>;
 
 export class PlaceholderWebpageExtractor implements WebpageExtractor {
   public async extractReadableText(_: string, __: AbortSignal): Promise<string> {
@@ -153,22 +173,27 @@ function extractReadableTextFromHtml(html: string): { readableText: string; warn
 
 export class FetchWebpageExtractor implements WebpageExtractor {
   private readonly fetchImpl?: typeof fetch;
+  private readonly requestUrlImpl?: RequestUrlImplementation;
 
-  public constructor(fetchImpl?: typeof fetch) {
+  public constructor(
+    fetchImpl?: typeof fetch,
+    requestUrlImpl: RequestUrlImplementation | null = null
+  ) {
     this.fetchImpl = fetchImpl ?? getDefaultFetchImplementation();
+    this.requestUrlImpl = requestUrlImpl ?? undefined;
   }
 
   public async extractReadableText(url: string, signal: AbortSignal): Promise<WebpageExtractionResult> {
-    if (!this.fetchImpl) {
+    if (!this.fetchImpl && !this.requestUrlImpl) {
       throw new SummarizerError({
         category: "runtime_unavailable",
-        message: "Current runtime does not provide fetch for webpage extraction.",
+        message: "Current runtime does not provide a webpage request implementation.",
         recoverable: false
       });
     }
 
-    const response = await this.fetchImpl(url, { signal });
-    if (!response.ok) {
+    const response = await this.fetchWebpage(url, signal);
+    if (response.status < 200 || response.status >= 300) {
       throw new SummarizerError({
         category: "runtime_unavailable",
         message: `Webpage extraction failed (HTTP ${response.status}).`,
@@ -176,7 +201,7 @@ export class FetchWebpageExtractor implements WebpageExtractor {
       });
     }
 
-    const html = await response.text();
+    const html = response.text;
     const { readableText, warnings } = extractReadableTextFromHtml(html);
     if (readableText.length === 0) {
       throw new SummarizerError({
@@ -191,8 +216,69 @@ export class FetchWebpageExtractor implements WebpageExtractor {
       warnings
     };
   }
+
+  private async fetchWebpage(url: string, signal: AbortSignal): Promise<WebpageHttpResponse> {
+    let requestUrlError: unknown = null;
+
+    if (this.requestUrlImpl) {
+      try {
+        throwIfCancelled(signal);
+        const response = await this.requestUrlImpl({
+          url,
+          method: "GET",
+          headers: {
+            accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+          },
+          throw: false
+        });
+        throwIfCancelled(signal);
+        return {
+          status: response.status,
+          text: response.text
+        };
+      } catch (error) {
+        throwIfCancelled(signal);
+        requestUrlError = error;
+      }
+    }
+
+    if (!this.fetchImpl) {
+      throw buildWebpageFetchError(requestUrlError);
+    }
+
+    try {
+      const response = await this.fetchImpl(url, { signal });
+      return {
+        status: response.status,
+        text: await response.text()
+      };
+    } catch (error) {
+      throwIfCancelled(signal);
+      throw buildWebpageFetchError(error, requestUrlError);
+    }
+  }
 }
 
 function getDefaultFetchImplementation(): typeof fetch | undefined {
   return globalThis.fetch?.bind(globalThis);
+}
+
+function formatUnknownError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function buildWebpageFetchError(fetchError: unknown, requestUrlError?: unknown): SummarizerError {
+  const details = [
+    requestUrlError ? `Obsidian request failed: ${formatUnknownError(requestUrlError)}` : "",
+    fetchError ? `fetch failed: ${formatUnknownError(fetchError)}` : ""
+  ]
+    .filter((item) => item.length > 0)
+    .join("; ");
+
+  return new SummarizerError({
+    category: "runtime_unavailable",
+    message: `Webpage extraction failed before receiving a response.${details ? ` ${details}` : ""}`,
+    recoverable: true,
+    cause: fetchError
+  });
 }
