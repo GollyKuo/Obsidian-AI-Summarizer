@@ -1,10 +1,10 @@
 # 開發日誌
 
-最後更新：2026-05-05 23:52
+最後更新：2026-05-06 00:01
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-05 23:52
+### Unreleased - 2026-05-06 00:01
 
 範圍：
 - 新增設定頁使用說明，並定案 HTML 教學簡報為獨立下載文件。
@@ -14,6 +14,7 @@
 - 清理文件導覽、backlog active/archive 邊界與已被正式規範取代的臨時編碼筆記。
 - 新增 lint / dependency hygiene gate，將 ESLint 與 dependency 檢查納入本地 gate。
 - 完成 `CAP-404` 的 `yt-dlp` managed install/update，降低 Windows 桌面版媒體工具安裝摩擦。
+- 將 model defaults、catalog management 與 provider suggestion discovery 分層，降低設定頁模型管理耦合。
 
 主要變更：
 - 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、plugin 更新步驟，以及 `前往 AI 模型` / `前往診斷` 快速入口。
@@ -41,6 +42,9 @@
 - 新增 `src/services/media/yt-dlp-tool-installer.ts` 與 unit tests，從 GitHub latest release 下載 `yt-dlp.exe` 並以 `SHA2-256SUMS` 驗證。
 - 更新診斷設定頁，`yt-dlp` 同時支援 PATH 自動偵測與 `tools/yt-dlp` managed install；成功後會寫入 `ytDlpPath`。
 - 更新使用者手冊、開發者手冊、distribution guide 與 dependency update strategy，記錄 managed install source/checksum policy。
+- 新增 `src/domain/model-defaults.ts`、`src/domain/model-catalog.ts` 與 `src/domain/provider-model-discovery.ts`，保留 `model-selection.ts` 作 public compatibility export。
+- 更新 model autocomplete，改由 catalog helper 提供 selected fallback option，並將 suggestion search/merge 搬到 provider discovery helper。
+- 新增 `tests/unit/model-catalog.test.ts` 與 `tests/unit/provider-model-discovery.test.ts`，覆蓋 catalog merge、selected fallback、provider purpose compatibility 與 suggestion merge。
 
 驗證：
 - `npm run typecheck`
