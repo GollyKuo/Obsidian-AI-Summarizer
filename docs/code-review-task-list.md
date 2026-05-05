@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 23:20
+最後更新：2026-05-05 23:29
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -105,7 +105,7 @@
   - 建議作法：抽出 `flow-state.ts`、`flow-renderer.ts`、`flow-job-runner.ts`、`folder-picker-modal.ts`，保留 public modal class 薄化。
   - 驗證：補 state transition unit tests，尤其 running/cancelling/completed/failed/close gate。
 
-- [ ] 把 media acquisition 三段流程整理成共用 session pipeline。
+- [x] 把 media acquisition 三段流程整理成共用 session pipeline。
   - 檔案：`src/orchestration/process-media-url.ts`、`src/orchestration/process-local-media.ts`、`src/runtime/local-bridge-runtime.ts`
   - 目前問題：media URL 與 local media 在 session、pre-upload、cleanup、transcript-ready payload 結構上高度相似，但目前各自維護。
   - 建議作法：抽出 common `prepareMediaForTranscription` pipeline，source-specific adapter 只負責 acquisition。
