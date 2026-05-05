@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 19:45
+最後更新：2026-05-05 22:21
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -35,7 +35,7 @@
 
 ## P1：可靠性與安全邊界
 
-- [ ] 拆分 `src/services/ai/configured-ai-provider.ts`。
+- [x] 拆分 `src/services/ai/configured-ai-provider.ts`。
   - 檔案：`src/services/ai/configured-ai-provider.ts`
   - 目前問題：單檔約 1300 行，混合 Gemini/OpenRouter/Mistral/Gladia routing、HTTP timeout、Gemini Files API、remote file lifecycle、diagnostics 與 provider factory。任何 provider 修改都容易牽動整個檔案。
   - 建議作法：拆成 `gemini-client.ts`、`openrouter-client.ts`、`mistral-client.ts`、`gemini-files.ts`、`configured-provider-factory.ts`，保留現有 public factory API。
