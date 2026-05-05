@@ -1,11 +1,14 @@
 import { createHash } from "node:crypto";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { mkdtemp, readFile, rm, writeFile, mkdir } from "node:fs/promises";
+import type { AddressInfo } from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ensureLatestProjectFfmpegTools,
-  getProjectFfmpegToolPaths
+  getProjectFfmpegToolPaths,
+  requestUrl
 } from "@services/media/ffmpeg-tool-installer";
 
 function sha256(value: string): string {
@@ -14,6 +17,31 @@ function sha256(value: string): string {
 
 async function makeTempDirectory(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "ffmpeg-tool-installer-"));
+}
+
+async function withHttpServer(
+  handler: (request: IncomingMessage, response: ServerResponse) => void,
+  run: (baseUrl: string) => Promise<void>
+): Promise<void> {
+  const server = createServer(handler);
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  try {
+    const address = server.address() as AddressInfo;
+    await run(`http://127.0.0.1:${address.port}`);
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+}
+
+async function drainResponse(response: NodeJS.ReadableStream): Promise<void> {
+  for await (const _chunk of response) {
+    // Consume the response so the local test server can close cleanly.
+  }
 }
 
 describe("ffmpeg tool installer", () => {
@@ -188,5 +216,75 @@ describe("ffmpeg tool installer", () => {
         platform: "darwin"
       })
     ).rejects.toThrow(/Windows desktop/);
+  });
+
+  it("removes the abort listener after a successful request", async () => {
+    const abortController = new AbortController();
+    const addListener = vi.spyOn(abortController.signal, "addEventListener");
+    const removeListener = vi.spyOn(abortController.signal, "removeEventListener");
+
+    await withHttpServer(
+      (_request, response) => {
+        response.end("ok");
+      },
+      async (baseUrl) => {
+        const response = await requestUrl(`${baseUrl}/ok`, abortController.signal);
+        await drainResponse(response);
+      }
+    );
+
+    expect(addListener).toHaveBeenCalledTimes(1);
+    expect(removeListener).toHaveBeenCalledTimes(1);
+    expect(removeListener.mock.calls[0][1]).toBe(addListener.mock.calls[0][1]);
+  });
+
+  it("removes the abort listener after a failed request", async () => {
+    const abortController = new AbortController();
+    const addListener = vi.spyOn(abortController.signal, "addEventListener");
+    const removeListener = vi.spyOn(abortController.signal, "removeEventListener");
+
+    await withHttpServer(
+      (_request, response) => {
+        response.statusCode = 500;
+        response.end("failed");
+      },
+      async (baseUrl) => {
+        await expect(requestUrl(`${baseUrl}/failed`, abortController.signal)).rejects.toThrow(
+          /Request failed \(500\)/
+        );
+      }
+    );
+
+    expect(addListener).toHaveBeenCalledTimes(1);
+    expect(removeListener).toHaveBeenCalledTimes(1);
+    expect(removeListener.mock.calls[0][1]).toBe(addListener.mock.calls[0][1]);
+  });
+
+  it("removes abort listeners across redirect handoff", async () => {
+    const abortController = new AbortController();
+    const addListener = vi.spyOn(abortController.signal, "addEventListener");
+    const removeListener = vi.spyOn(abortController.signal, "removeEventListener");
+
+    await withHttpServer(
+      (request, response) => {
+        if (request.url === "/redirect") {
+          response.statusCode = 302;
+          response.setHeader("location", "/ok");
+          response.end();
+          return;
+        }
+        response.end("ok");
+      },
+      async (baseUrl) => {
+        const response = await requestUrl(`${baseUrl}/redirect`, abortController.signal);
+        await drainResponse(response);
+      }
+    );
+
+    expect(addListener).toHaveBeenCalledTimes(2);
+    expect(removeListener).toHaveBeenCalledTimes(2);
+    expect(removeListener.mock.calls.map((call) => call[1])).toEqual(
+      addListener.mock.calls.map((call) => call[1])
+    );
   });
 });

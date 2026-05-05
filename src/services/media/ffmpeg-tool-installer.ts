@@ -130,12 +130,37 @@ function throwIfAborted(signal?: AbortSignal): void {
   }
 }
 
-function requestUrl(url: string, signal?: AbortSignal): Promise<NodeJS.ReadableStream> {
+export function requestUrl(url: string, signal?: AbortSignal): Promise<NodeJS.ReadableStream> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new Error("ffmpeg/ffprobe install cancelled by user."));
       return;
     }
+
+    let abortRequest: (() => void) | null = null;
+    let settled = false;
+    const cleanupAbortListener = () => {
+      if (abortRequest) {
+        signal?.removeEventListener("abort", abortRequest);
+        abortRequest = null;
+      }
+    };
+    const resolveWithCleanup = (response: NodeJS.ReadableStream) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanupAbortListener();
+      resolve(response);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanupAbortListener();
+      reject(error);
+    };
 
     const request = (url.startsWith("https:") ? httpsGet : httpGet)(url, (response) => {
       const statusCode = response.statusCode ?? 0;
@@ -143,27 +168,31 @@ function requestUrl(url: string, signal?: AbortSignal): Promise<NodeJS.ReadableS
 
       if (statusCode >= 300 && statusCode < 400 && redirectUrl) {
         response.resume();
-        requestUrl(new URL(redirectUrl, url).toString(), signal).then(resolve, reject);
+        cleanupAbortListener();
+        requestUrl(new URL(redirectUrl, url).toString(), signal).then(
+          resolveWithCleanup,
+          rejectWithCleanup
+        );
         return;
       }
 
       if (statusCode < 200 || statusCode >= 300) {
         response.resume();
-        reject(new Error(`Request failed (${statusCode}) for ${url}`));
+        rejectWithCleanup(new Error(`Request failed (${statusCode}) for ${url}`));
         return;
       }
 
-      resolve(response);
+      resolveWithCleanup(response);
     });
 
     request.setTimeout(REQUEST_TIMEOUT_MS, () => {
       request.destroy(new Error(`Request timed out after ${REQUEST_TIMEOUT_MS}ms for ${url}`));
     });
-    const abortRequest = () => {
+    abortRequest = () => {
       request.destroy(new Error("ffmpeg/ffprobe install cancelled by user."));
     };
     signal?.addEventListener("abort", abortRequest, { once: true });
-    request.on("error", reject);
+    request.on("error", rejectWithCleanup);
   });
 }
 
