@@ -28,7 +28,7 @@ describe("api-health-check", () => {
     const result = await testAiApiAvailability({
       kind: "summary",
       provider: "gemini",
-      model: "gemini-3.1-flash-lite-preview",
+      model: "gemini-2.5-flash",
       apiKey: "gemini-key",
       fetchImpl
     });
@@ -38,7 +38,7 @@ describe("api-health-check", () => {
 
     const [url, init] = fetchImpl.mock.calls[0];
     expect(String(url)).toContain(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
     );
     expect(String(url)).toContain("key=gemini-key");
     expect(init?.method).toBe("POST");

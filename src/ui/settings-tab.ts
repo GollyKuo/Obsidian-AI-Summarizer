@@ -936,7 +936,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   private getTranscriptionModelPlaceholder(): string {
     return this.plugin.settings.transcriptionProvider === "gladia"
       ? "default"
-      : "gemini-3-flash-preview";
+      : "gemini-2.5-flash";
   }
 
   private getTranscriptionModelDescription(): string {
@@ -988,7 +988,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
     if (this.plugin.settings.summaryProvider === "mistral") {
       return "mistral-small-latest";
     }
-    return "gemini-3.1-flash-lite-preview";
+    return "gemini-2.5-flash";
   }
 
   private getSummaryApiKeyDescription(): string {

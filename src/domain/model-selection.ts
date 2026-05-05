@@ -33,23 +33,32 @@ export interface AiModelCatalogEntry {
 
 export const GEMINI_MODEL_OPTIONS: readonly ModelOption<GeminiModel>[] = [];
 export const OPENROUTER_SUMMARY_MODEL_OPTIONS: readonly ModelOption<OpenRouterSummaryModel>[] = [];
+const GEMINI_2_5_FLASH_MODEL = "gemini-2.5-flash";
 const LEGACY_GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3.0-flash-preview";
 const GEMINI_3_FLASH_PREVIEW_MODEL = "gemini-3-flash-preview";
+const GEMINI_3_1_FLASH_LITE_PREVIEW_MODEL = "gemini-3.1-flash-lite-preview";
 const MISTRAL_SMALL_LATEST_MODEL = "mistral-small-latest";
 
 export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [
   {
     provider: "gemini",
     purpose: "transcription",
-    displayName: GEMINI_3_FLASH_PREVIEW_MODEL,
-    modelId: GEMINI_3_FLASH_PREVIEW_MODEL,
+    displayName: GEMINI_2_5_FLASH_MODEL,
+    modelId: GEMINI_2_5_FLASH_MODEL,
     source: "user"
   },
   {
     provider: "gemini",
     purpose: "transcription",
-    displayName: "gemini-2.5-flash",
-    modelId: "gemini-2.5-flash",
+    displayName: GEMINI_3_FLASH_PREVIEW_MODEL,
+    modelId: GEMINI_3_FLASH_PREVIEW_MODEL,
+    source: "user"
+  },
+  {
+    provider: "gemini",
+    purpose: "summary",
+    displayName: GEMINI_2_5_FLASH_MODEL,
+    modelId: GEMINI_2_5_FLASH_MODEL,
     source: "user"
   },
   {
@@ -62,8 +71,8 @@ export const DEFAULT_MODEL_CATALOG: readonly AiModelCatalogEntry[] = [
   {
     provider: "gemini",
     purpose: "summary",
-    displayName: "gemini-2.5-flash",
-    modelId: "gemini-2.5-flash",
+    displayName: GEMINI_3_1_FLASH_LITE_PREVIEW_MODEL,
+    modelId: GEMINI_3_1_FLASH_LITE_PREVIEW_MODEL,
     source: "user"
   },
   {
@@ -108,9 +117,9 @@ export const SUMMARY_PROVIDER_OPTIONS: readonly ProviderOption<SummaryProvider>[
 
 export const DEFAULT_TRANSCRIPTION_PROVIDER: TranscriptionProvider = "gemini";
 export const DEFAULT_SUMMARY_PROVIDER: SummaryProvider = "gemini";
-export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = GEMINI_3_FLASH_PREVIEW_MODEL;
+export const DEFAULT_TRANSCRIPTION_MODEL: TranscriptionModel = GEMINI_2_5_FLASH_MODEL;
 export const DEFAULT_GLADIA_TRANSCRIPTION_MODEL: TranscriptionModel = "default";
-export const DEFAULT_GEMINI_SUMMARY_MODEL: GeminiModel = "gemini-3.1-flash-lite-preview";
+export const DEFAULT_GEMINI_SUMMARY_MODEL: GeminiModel = GEMINI_2_5_FLASH_MODEL;
 export const DEFAULT_OPENROUTER_SUMMARY_MODEL: OpenRouterSummaryModel = "qwen/qwen3.6-plus";
 export const DEFAULT_MISTRAL_SUMMARY_MODEL: MistralSummaryModel = MISTRAL_SMALL_LATEST_MODEL;
 export const DEFAULT_SUMMARY_MODEL: SummaryModel = DEFAULT_GEMINI_SUMMARY_MODEL;

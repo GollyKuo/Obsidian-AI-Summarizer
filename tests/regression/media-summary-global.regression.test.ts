@@ -95,9 +95,9 @@ describe("long media global summary regression gate", () => {
         sourceKind: "media_url",
         sourceValue: "https://example.com/watch?v=long-media",
         transcriptionProvider: "gemini",
-        transcriptionModel: "gemini-3-flash-preview",
+        transcriptionModel: "gemini-2.5-flash",
         summaryProvider: "gemini",
-        summaryModel: "gemini-3.1-flash-lite-preview",
+        summaryModel: "gemini-2.5-flash",
         retentionMode: "delete_temp"
       },
       {

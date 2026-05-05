@@ -42,35 +42,39 @@ describe("settings", () => {
     expect(DEFAULT_SETTINGS.ytDlpPath).toBe("");
     expect(DEFAULT_SETTINGS.summaryModel).toBe(DEFAULT_GEMINI_MODEL);
     expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.modelId)).toEqual([
-      "gemini-3-flash-preview",
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-3.1-flash-lite-preview",
       "mistral-small-latest"
     ]);
     expect(DEFAULT_SETTINGS.modelCatalog.map((entry) => entry.displayName)).toEqual([
-      "gemini-3-flash-preview",
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-3.1-flash-lite-preview",
       "mistral-small-latest"
     ]);
     expect(DEFAULT_MODEL_CATALOG).toEqual(DEFAULT_SETTINGS.modelCatalog);
     expect(getTranscriptionModelOptions().map((option) => option.value)).toEqual([
-      "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-2.5-flash",
+      "gemini-3-flash-preview"
     ]);
     expect(getTranscriptionModelOptions().map((option) => option.label)).toEqual([
-      "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-2.5-flash",
+      "gemini-3-flash-preview"
     ]);
     expect(getSummaryModelOptions("gemini").map((option) => option.value)).toEqual([
+      "gemini-2.5-flash",
       "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-3.1-flash-lite-preview"
     ]);
     expect(getSummaryModelOptions("gemini").map((option) => option.label)).toEqual([
+      "gemini-2.5-flash",
       "gemini-3-flash-preview",
-      "gemini-2.5-flash"
+      "gemini-3.1-flash-lite-preview"
     ]);
     expect(GEMINI_MODEL_OPTIONS).toEqual([]);
     expect(OPENROUTER_SUMMARY_MODEL_OPTIONS).toEqual([]);
@@ -213,10 +217,11 @@ describe("settings", () => {
         summaryModel: DEFAULT_SUMMARY_MODEL
       }).map((entry) => entry.modelId)
     ).toEqual([
-      "gemini-3-flash-preview",
       "gemini-2.5-flash",
       "gemini-3-flash-preview",
       "gemini-2.5-flash",
+      "gemini-3-flash-preview",
+      "gemini-3.1-flash-lite-preview",
       "mistral-small-latest",
       "gemini-custom-audio"
     ]);
