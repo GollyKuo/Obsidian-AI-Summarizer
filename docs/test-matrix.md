@@ -1,6 +1,6 @@
 # Test Matrix
 
-最後更新：2026-05-02 15:37
+最後更新：2026-05-05 22:25
 
 ## Capability Matrix
 
@@ -15,6 +15,12 @@
 | `flow_modal_minimal_ui` | desktop + mobile-like narrow viewport | unit for source guidance / diagnostics when touched | [features/visual-qa-checklist.md](../features/visual-qa-checklist.md) + `npm run smoke:desktop` | `gate:local:vault` for implementation work |
 
 ## Manual Smoke Evidence
+
+`scripts/smoke-checklist.mjs` can write structured evidence with `--record <path>`, `--operator`, `--result pending|pass|fail` and `--notes`. Use this for release evidence when a smoke checklist is executed manually, for example:
+
+```bash
+node scripts/smoke-checklist.mjs --surface desktop --record smoke-records/desktop.json --operator "Release Tester" --result pass --notes "desktop smoke completed"
+```
 
 ### CAP-304 Flow Modal minimal UI visual QA
 

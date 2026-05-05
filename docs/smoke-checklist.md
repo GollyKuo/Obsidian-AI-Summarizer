@@ -1,6 +1,6 @@
 # Smoke Checklist
 
-最後更新：2026-05-02 14:01
+最後更新：2026-05-05 22:25
 
 ## Scope
 
@@ -25,6 +25,16 @@
 | `flow_modal_minimal_ui` | yes | mobile-like narrow viewport | manual via visual QA |
 | desktop bundle | yes | n/a | `npm run smoke:desktop` |
 | mobile bundle | webpage only | yes | `npm run smoke:mobile` |
+
+## Evidence Records
+
+Smoke commands print the manual checklist by default. Add `--record <path>` to write a JSON evidence artifact with timestamp, operator, selected capability scope, result and notes:
+
+```bash
+node scripts/smoke-checklist.mjs --capability webpage --record smoke-records/webpage.json --operator "Release Tester" --result pass --notes "desktop smoke completed"
+```
+
+Valid `--result` values are `pending`, `pass` and `fail`. When `--record` is omitted, the script remains checklist-only and does not write files.
 
 ## Recent Smoke Records
 

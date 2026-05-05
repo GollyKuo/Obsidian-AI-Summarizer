@@ -71,8 +71,17 @@ const surfacePresets = {
   mobile: ["webpage"]
 };
 
+const smokeResults = new Set(["pending", "pass", "fail"]);
+
 function parseArgs(argv) {
-  const result = { capability: null, surface: null };
+  const result = {
+    capability: null,
+    notes: "",
+    operator: process.env.USERNAME ?? process.env.USER ?? "unknown",
+    recordPath: null,
+    smokeResult: "pending",
+    surface: null
+  };
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--capability") {
@@ -83,9 +92,44 @@ function parseArgs(argv) {
     if (token === "--surface") {
       result.surface = argv[index + 1] ?? null;
       index += 1;
+      continue;
+    }
+    if (token === "--record") {
+      result.recordPath = argv[index + 1] ?? null;
+      index += 1;
+      continue;
+    }
+    if (token === "--operator") {
+      result.operator = argv[index + 1] ?? "";
+      index += 1;
+      continue;
+    }
+    if (token === "--result") {
+      result.smokeResult = argv[index + 1] ?? "";
+      index += 1;
+      continue;
+    }
+    if (token === "--notes") {
+      result.notes = argv[index + 1] ?? "";
+      index += 1;
     }
   }
+  if (result.recordPath === "") {
+    result.recordPath = null;
+  }
   return result;
+}
+
+function validateRecordOptions(options) {
+  if (!options.recordPath) {
+    return;
+  }
+  if (!options.operator.trim()) {
+    throw new Error("--operator must not be empty when --record is used");
+  }
+  if (!smokeResults.has(options.smokeResult)) {
+    throw new Error("--result must be one of: pending, pass, fail");
+  }
 }
 
 function resolveSelectedCapabilities(options) {
@@ -137,12 +181,57 @@ function printHeader(options, selectedCapabilities) {
   console.log("Reference doc: docs/smoke-checklist.md");
 }
 
+function buildRecord(options, selectedCapabilities) {
+  const scope = options.capability
+    ? { type: "capability", value: options.capability }
+    : options.surface
+      ? { type: "surface", value: options.surface }
+      : { type: "surface", value: "desktop" };
+
+  return {
+    schemaVersion: 1,
+    recordedAt: new Date().toISOString(),
+    operator: options.operator.trim(),
+    scope,
+    result: options.smokeResult,
+    notes: options.notes,
+    capabilities: selectedCapabilities.map((capabilityKey) => {
+      const capability = capabilities[capabilityKey];
+      return {
+        capability: capabilityKey,
+        label: capability.label,
+        surfaces: capability.surfaces,
+        result: options.smokeResult,
+        notes: options.notes,
+        prerequisites: capability.prerequisites,
+        steps: capability.steps,
+        expected: capability.expected
+      };
+    })
+  };
+}
+
+async function writeRecord(recordPath, record) {
+  const [{ mkdir, writeFile }, path] = await Promise.all([
+    import("node:fs/promises"),
+    import("node:path")
+  ]);
+  const resolvedPath = path.resolve(recordPath);
+  await mkdir(path.dirname(resolvedPath), { recursive: true });
+  await writeFile(resolvedPath, `${JSON.stringify(record, null, 2)}\n`, "utf8");
+  console.log(`\n[smoke-checklist] wrote record: ${resolvedPath}`);
+}
+
 try {
   const options = parseArgs(process.argv.slice(2));
+  validateRecordOptions(options);
   const selectedCapabilities = resolveSelectedCapabilities(options);
   printHeader(options, selectedCapabilities);
   for (const capabilityKey of selectedCapabilities) {
     printChecklist(capabilityKey);
+  }
+  if (options.recordPath) {
+    await writeRecord(options.recordPath, buildRecord(options, selectedCapabilities));
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
