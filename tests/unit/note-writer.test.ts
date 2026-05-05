@@ -227,6 +227,43 @@ describe("note writer", () => {
     ]));
   });
 
+  it("labels generic text file content as source text instead of transcript", async () => {
+    let writtenContent = "";
+
+    const storage = {
+      async exists(): Promise<boolean> {
+        return false;
+      },
+      async write(_path: string, content: string): Promise<void> {
+        writtenContent = content;
+      },
+      async readTemplate(): Promise<string | null> {
+        return null;
+      }
+    };
+
+    const writer = new ObsidianNoteWriter(storage, {
+      outputFolder: "Summaries",
+      templateReference: ""
+    });
+
+    await writer.writeMediaNote({
+      metadata: {
+        title: "Blocked Article",
+        creatorOrAuthor: "Unknown",
+        platform: "Text File",
+        source: "D:\\Notes\\blocked-article.txt",
+        created: "2026-05-06T00:00:00.000Z"
+      },
+      summaryMarkdown: "## Summary\nArticle summary.",
+      transcriptMarkdown: "Copied article body."
+    });
+
+    expect(writtenContent).toContain('Platform: "Text File"');
+    expect(writtenContent).toContain("## Source Text\n\nCopied article body.");
+    expect(writtenContent).not.toContain("## Transcript");
+  });
+
   it("keeps custom frontmatter and reports unknown placeholders", async () => {
     let writtenContent = "";
 

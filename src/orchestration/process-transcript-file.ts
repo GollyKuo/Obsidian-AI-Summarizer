@@ -48,7 +48,7 @@ function validateInput(input: TranscriptFileRequest): void {
   if (input.sourceKind !== "transcript_file") {
     throw new SummarizerError({
       category: "validation_error",
-      message: `Invalid source kind for transcript file flow: ${input.sourceKind}`,
+      message: `Invalid source kind for text file flow: ${input.sourceKind}`,
       recoverable: true
     });
   }
@@ -57,7 +57,7 @@ function validateInput(input: TranscriptFileRequest): void {
   if (trimmed.length === 0) {
     throw new SummarizerError({
       category: "validation_error",
-      message: "Transcript file path is empty.",
+      message: "Text file path is empty.",
       recoverable: true
     });
   }
@@ -65,7 +65,7 @@ function validateInput(input: TranscriptFileRequest): void {
   if (!path.isAbsolute(trimmed)) {
     throw new SummarizerError({
       category: "validation_error",
-      message: `Transcript file path must be absolute: ${trimmed}`,
+      message: `Text file path must be absolute: ${trimmed}`,
       recoverable: true
     });
   }
@@ -74,7 +74,7 @@ function validateInput(input: TranscriptFileRequest): void {
   if (extension !== ".md" && extension !== ".txt") {
     throw new SummarizerError({
       category: "validation_error",
-      message: `Transcript file must be .md or .txt: ${trimmed}`,
+      message: `Text file must be .md or .txt: ${trimmed}`,
       recoverable: true
     });
   }
@@ -87,9 +87,9 @@ function asString(value: unknown): string {
 function buildFallbackMetadata(transcriptPath: string): SourceMetadata {
   const title = path.basename(transcriptPath, path.extname(transcriptPath));
   return {
-    title: title.trim().length > 0 ? title : "Transcript Summary",
+    title: title.trim().length > 0 ? title : "Text File Summary",
     creatorOrAuthor: "Unknown",
-    platform: "Transcript File",
+    platform: "Text File",
     source: transcriptPath,
     created: new Date().toISOString()
   };
@@ -104,7 +104,7 @@ async function readManifestMetadata(
   if (!manifestResult.ok) {
     return {
       metadata: null,
-      warning: `Transcript retry: ${manifestResult.warning} Using transcript file metadata fallback.`
+      warning: `Text file summary: ${manifestResult.warning} Using text file metadata fallback.`
     };
   }
 
@@ -113,7 +113,7 @@ async function readManifestMetadata(
     metadata: {
       title: asString(manifest.title) || buildFallbackMetadata(transcriptPath).title,
       creatorOrAuthor: asString(manifest.creatorOrAuthor) || "Unknown",
-      platform: asString(manifest.platform) || "Transcript File",
+      platform: asString(manifest.platform) || "Text File",
       source:
         asString(manifest.sourceUrl) ||
         asString(manifest.sourcePath) ||
@@ -211,7 +211,7 @@ async function readTranscriptFile(input: {
   } catch (error) {
     throw new SummarizerError({
       category: "validation_error",
-      message: `Transcript file could not be read: ${error instanceof Error ? error.message : String(error)}`,
+      message: `Text file could not be read: ${error instanceof Error ? error.message : String(error)}`,
       recoverable: true,
       cause: error
     });
@@ -222,7 +222,7 @@ async function readTranscriptFile(input: {
   if (trimmedTranscript.length === 0) {
     throw new SummarizerError({
       category: "validation_error",
-      message: "Transcript file is empty.",
+      message: "Text file is empty.",
       recoverable: true
     });
   }
@@ -230,7 +230,7 @@ async function readTranscriptFile(input: {
   const manifestMetadata = await readManifestMetadata(input.transcriptPath, input.readTextFile);
   const warnings = manifestMetadata.warning ? [manifestMetadata.warning] : [];
   if (transcriptLanguageResult.changed) {
-    warnings.push("Transcript retry: converted transcript file content to Traditional Chinese.");
+    warnings.push("Text file summary: converted text file content to Traditional Chinese.");
   }
   return {
     metadata: manifestMetadata.metadata ?? buildFallbackMetadata(input.transcriptPath),
@@ -320,7 +320,7 @@ export async function processTranscriptFile(
 
   await runJobStep(
     "validating",
-    "Validating transcript file input",
+    "Validating text file input",
     signal,
     async () => {
       validateInput(input);
@@ -330,7 +330,7 @@ export async function processTranscriptFile(
 
   const transcriptFile = await runJobStep(
     "acquiring",
-    "Reading transcript file",
+    "Reading text file",
     signal,
     async () => readTranscriptFile({
       transcriptPath: input.sourceValue.trim(),
@@ -354,13 +354,13 @@ export async function processTranscriptFile(
 
   const summaryRaw = await runJobStep(
     "summarizing",
-    "Regenerating summary from transcript",
+    "Generating summary from text file",
     signal,
     async () =>
       summarizeMediaWithChunking(
         {
           metadata: transcriptFile.metadata,
-          normalizedText: `Transcript file: ${input.sourceValue.trim()}`,
+          normalizedText: `Text file: ${input.sourceValue.trim()}`,
           transcript: cleanupResult.transcript,
           summaryProvider: input.summaryProvider,
           summaryModel: input.summaryModel

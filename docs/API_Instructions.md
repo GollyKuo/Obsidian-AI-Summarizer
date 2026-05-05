@@ -22,11 +22,11 @@ media_url / local_media
 -> writeMediaNote
 ```
 
-### 逐字稿檔案來源
+### 文字檔案來源
 
 ```text
 transcript_file
--> read .md / .txt transcript
+-> read .md / .txt source text or transcript
 -> normalizeToTraditionalChinese
 -> optional cleanupTranscript
 -> normalizeMediaTranscriptionResult
@@ -45,7 +45,7 @@ webpage_url
 -> writeWebpageNote
 ```
 
-媒體與逐字稿檔案可進入逐字稿校對 / 清理階段；網頁來源不產生逐字稿，也不執行逐字稿清理。
+媒體與文字檔案可進入逐字稿 / 來源文字校對清理階段；網頁來源不產生逐字稿，也不執行逐字稿清理。
 
 ---
 

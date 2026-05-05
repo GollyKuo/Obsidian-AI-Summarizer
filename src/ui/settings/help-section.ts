@@ -36,8 +36,8 @@ export function renderHelpSection(containerEl: HTMLElement, options: HelpSection
     "安裝或更新 plugin 後，先確認 Community plugins 已啟用 AI Summarizer。",
     "到 AI 模型分頁填入 Gemini、Mistral 或 Gladia API key，並按測試確認可用。",
     "若要處理 YouTube、podcast 或本機音訊影片，到診斷分頁確認 ffmpeg、ffprobe、yt-dlp 可用。",
-    "開啟 AI 摘要器，選擇網頁 URL、媒體 URL、本機媒體或逐字稿檔案。",
-    "完成後用開啟筆記檢查摘要結果；若摘要失敗但有逐字稿，可改用逐字稿檔案重跑摘要。"
+    "開啟 AI 摘要器，選擇網頁 URL、媒體 URL、本機媒體或文字檔案。",
+    "完成後用開啟筆記檢查摘要結果；若網頁被阻擋或摘要失敗，可把正文或逐字稿存成文字檔案重跑摘要。"
   ]);
 
   renderHelpStepList(sectionsEl, "如何更新 plugin", [

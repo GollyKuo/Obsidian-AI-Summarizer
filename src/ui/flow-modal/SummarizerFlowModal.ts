@@ -126,12 +126,12 @@ export class SummarizerFlowModal extends Modal {
 
     const isTranscriptFile = this.sourceType === "transcript_file";
     const result = await dialog.showOpenDialog({
-      title: isTranscriptFile ? "選擇逐字稿檔案" : "選擇本機媒體檔案",
+      title: isTranscriptFile ? "選擇文字檔案" : "選擇本機媒體檔案",
       properties: ["openFile"],
       filters: [
         isTranscriptFile
           ? {
-              name: "Transcript",
+              name: "Text",
               extensions: ["md", "txt"]
             }
           : {
@@ -331,8 +331,8 @@ export class SummarizerFlowModal extends Modal {
     if (this.sourceType === "transcript_file") {
       return [
         ...commonStart,
-        { id: "acquiring", label: "讀取逐字稿" },
-        { id: "cleaning", label: "校對逐字稿" },
+        { id: "acquiring", label: "讀取文字檔案" },
+        { id: "cleaning", label: "校對文字" },
         ...commonEnd
       ];
     }

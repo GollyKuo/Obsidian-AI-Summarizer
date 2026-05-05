@@ -49,10 +49,10 @@ acquire media
 -> writeMediaNote
 ```
 
-逐字稿檔案來源：
+文字檔案來源：
 
 ```text
-read transcript file
+read .md / .txt source text or transcript
 -> normalizeToTraditionalChinese
 -> optional cleanupTranscript
 -> normalizeMediaTranscriptionResult
@@ -180,7 +180,7 @@ interface TranscriptCleanupInput {
 
 原因：
 
-- 使用者以逐字稿檔案重跑摘要時，應能使用同一套清理能力。
+- 使用者以文字檔案重跑摘要時，應能使用同一套清理能力。
 - 這也能讓 recovery transcript 之後再摘要時補上清理階段。
 
 ## 錯誤策略
@@ -218,7 +218,7 @@ cleanup failure -> stop flow with ai_failure
 ### Integration Tests
 
 - media flow: `transcribe -> cleanup -> summarize -> write note`。
-- transcript file flow: `read file -> cleanup -> summarize -> write note`。
+- text file flow: `read file -> cleanup -> summarize -> write note`。
 - cleanup disabled regression: 既有流程結果不變。
 
 ### Regression Tests

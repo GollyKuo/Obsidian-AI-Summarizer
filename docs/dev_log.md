@@ -1,10 +1,20 @@
 # 開發日誌
 
-最後更新：2026-05-06 00:01
+最後更新：2026-05-06 00:31
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-06 00:01
+### Unreleased - 2026-05-06 00:31
+
+CAP-508 Text File Summary Input:
+- 將 `transcript_file` 使用者入口改為「文字檔案」，保留 `.md` / `.txt` 路徑輸入與選檔能力，作為被 403、登入牆、付費牆或動態網頁阻擋時的手動正文替代流程。
+- 將 Flow Modal、settings copy、diagnostics、stage label、failed/cancelled action 與 source guidance 改成文字檔語意。
+- 沒有 media session `metadata.json` 時，文字檔 fallback metadata 改用 `Text File` platform，筆記原文區塊改為 `## Source Text`；既有 media transcript metadata 仍可沿用。
+- 調整 summary prompt 的輸入標籤，讓一般文字檔以 `Source Text` 進入摘要 prompt，媒體逐字稿仍使用 `Transcript`。
+- 更新 Manual、Manual slides、API instructions、architecture boundary、template spec、media acquisition spec、smoke checklist、test matrix 與 CAP-508 backlog。
+- 驗證：`npm run test -- tests/integration/process-transcript-file.integration.test.ts tests/unit/source-guidance.test.ts tests/unit/settings-copy.test.ts tests/unit/note-writer.test.ts tests/unit/prompt-builder.test.ts tests/unit/runtime-diagnostics.test.ts`
+- 驗證：`npm run gate:local`
+- 驗證：`npm run build:vault:target -- --vault "D:\程式開發\Obsidian Test"`
 
 範圍：
 - 新增設定頁使用說明，並定案 HTML 教學簡報為獨立下載文件。

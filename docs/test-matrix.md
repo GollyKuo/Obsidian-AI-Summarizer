@@ -89,12 +89,12 @@ Additional check: final summaries did not expose `chunk` / `Chunk 1` / `part` pr
 | Artifact manifest transcript lineage | `tests/unit/artifact-manifest.test.ts` | verifies manifest records `transcriptPath` and `subtitlePath` |
 | Retention protection | `tests/unit/artifact-retention.test.ts` | verifies completed and failed cleanup preserve final transcript/subtitle artifacts |
 
-### 2026-05-02 CAP-205 transcript-file summary retry
+### 2026-05-06 CAP-508 text-file summary input
 
 | Case | Test | Coverage |
 | --- | --- | --- |
-| Transcript file summary retry | `tests/integration/process-transcript-file.integration.test.ts` | verifies `.md` / `.txt` transcript input skips transcription, reuses adjacent `metadata.json` when present, falls back with warning when metadata is unavailable, and writes a regenerated media note |
-| UI/source/template wiring | `tests/unit/source-guidance.test.ts`, `tests/unit/runtime-diagnostics.test.ts`, `tests/unit/template-library.test.ts` | verifies `transcript_file` copy, diagnostics readiness, and media-session template support |
+| Text file summary input | `tests/integration/process-transcript-file.integration.test.ts` | verifies `.md` / `.txt` text input skips media acquisition and transcription, reuses adjacent `metadata.json` when present, falls back with text-file metadata when unavailable, and writes a regenerated note |
+| UI/source/template wiring | `tests/unit/source-guidance.test.ts`, `tests/unit/settings-copy.test.ts`, `tests/unit/runtime-diagnostics.test.ts`, `tests/unit/note-writer.test.ts`, `tests/unit/prompt-builder.test.ts` | verifies `transcript_file` displays as `文字檔案`, diagnostics readiness, media-session template support, `Source Text` output, and source-text prompt labeling |
 
 ### 2026-05-02 CAP-401 long-media global summary gate
 

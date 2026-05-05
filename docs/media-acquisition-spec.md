@@ -338,7 +338,7 @@ Gemini file upload 是 Gemini 轉錄 provider 的 vNext 傳輸策略，不是摘
 
 1. `transcript_file` 只接受 `.md` / `.txt` 絕對路徑，讀取後跳過 media acquisition、compression 與 transcription。
 2. 若逐字稿同資料夾存在 `metadata.json`，重跑摘要需沿用其 `title`、`creatorOrAuthor`、`platform`、`sourceUrl/sourcePath/source` 與 `createdAt`。
-3. 若 `metadata.json` 不存在或不可解析，使用逐字稿檔名、檔案路徑與 `Transcript File` metadata fallback，並回報 warning。
+3. 若 `metadata.json` 不存在或不可解析，使用文字檔名、檔案路徑與 `Text File` metadata fallback，並回報 warning；若同資料夾有可解析的 media session metadata，仍沿用原本 media metadata。
 4. `.srt` / `.vtt` 逐字稿解析屬 vNext 格式擴充；目前不可把字幕檔路徑偽裝成 `.txt` 以繞過驗證。
 
 ### vNext 邊界

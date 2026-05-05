@@ -125,7 +125,7 @@ media_url / local_media
 
 ```text
 transcript_file
--> 讀取已保留或手動整理的逐字稿
+-> 讀取已保留逐字稿或手動整理的文字檔案
 -> AI 摘要
 -> 寫入 Obsidian
 ```
@@ -136,7 +136,7 @@ transcript_file
 
 1. `webpage_url`：只走摘要模型，不走轉錄模型。
 2. `media_url` / `local_media`：先走轉錄模型，再走摘要模型。
-3. `transcript_file`：讀取 `.md` / `.txt` 逐字稿後只走摘要模型，不走媒體 acquisition 或轉錄模型。
+3. `transcript_file`：讀取 `.md` / `.txt` 文字檔案後只走摘要模型，不走媒體 acquisition 或轉錄模型。
 
 ```mermaid
 flowchart TD
@@ -145,7 +145,7 @@ flowchart TD
   SourceKind --> Webpage["webpage_url<br/>網頁 URL"]
   SourceKind --> MediaUrl["media_url<br/>YouTube / podcast / direct media URL"]
   SourceKind --> LocalMedia["local_media<br/>本機音訊 / 影片檔"]
-  SourceKind --> TranscriptFile["transcript_file<br/>逐字稿檔案"]
+  SourceKind --> TranscriptFile["transcript_file<br/>文字檔案"]
 
   Webpage --> WebValidate["validate http/https URL"]
   WebValidate --> WebExtract["webpageExtractor.extractReadableText"]
@@ -168,7 +168,7 @@ flowchart TD
   MediaNormalize --> MediaWrite["NoteWriter.writeMediaNote<br/>summary + transcript"]
   MediaWrite --> Vault
 
-  TranscriptFile --> TranscriptRead["read .md / .txt transcript<br/>metadata.json fallback"]
+  TranscriptFile --> TranscriptRead["read .md / .txt source text<br/>metadata.json fallback"]
   TranscriptRead --> TranscriptSummary["summaryProvider / summaryModel<br/>summarizeMediaWithChunking"]
   TranscriptSummary --> TranscriptNormalize["normalizeMediaSummaryResult"]
   TranscriptNormalize --> TranscriptWrite["NoteWriter.writeMediaNote<br/>summary + transcript"]
@@ -179,7 +179,7 @@ flowchart TD
 
 - 網頁來源不使用 `transcriptionProvider` / `transcriptionModel`；即使已設定轉錄 provider / model，網頁也只會交給 `summaryProvider` / `summaryModel`。
 - `media_url` 與 `local_media` 進入 AI 後共用同一條模型路徑：`transcriptionProvider / transcriptionModel -> summaryProvider / summaryModel`。
-- `transcript_file` 不使用 `yt-dlp`、`ffmpeg`、`ffprobe` 或 `transcriptionProvider`；它只讀取逐字稿文字與相鄰 `metadata.json`，再交給 `summaryProvider / summaryModel`。
+- `transcript_file` 不使用 `yt-dlp`、`ffmpeg`、`ffprobe` 或 `transcriptionProvider`；它只讀取文字檔案與相鄰 `metadata.json`，再交給 `summaryProvider / summaryModel`。
 - YouTube、podcast、direct media URL 的差異只在 URL 分類、下載器與 metadata；轉成 AI-ready media artifact 後，後段與本機媒體一致。
 - `summaryProvider = openrouter` 時，OpenRouter 只負責文字摘要；不負責直接讀取音訊或影片。
 - Flow modal 應接 production service wiring：webpage extraction 使用 `FetchWebpageExtractor`，摘要使用 configured Gemini/OpenRouter summary provider，媒體轉錄使用 configured transcription provider（Gemini inline audio 或 Gladia pre-recorded transcription job），筆記輸出使用 `ObsidianNoteWriter`。測試中仍可用 mock dependency 驗證 orchestration contract。
@@ -277,4 +277,3 @@ interface NoteWriter {
 3. `runtime strategy boundary`（`local_bridge` + `placeholder_only` fallback，已完成）
 4. `media URL flow`（進行中：先完成 dependency readiness + cache resolution）
 5. `local media flow`（待開始）
-

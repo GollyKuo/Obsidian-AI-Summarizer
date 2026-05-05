@@ -6,7 +6,9 @@ describe("source guidance", () => {
     expect(getSourceGuidance("webpage_url").label).toBe("網頁 URL");
     expect(getSourceGuidance("media_url").placeholder).toContain("youtube");
     expect(getSourceGuidance("local_media").emptyValueHint).toContain("檔案路徑");
-    expect(getSourceGuidance("transcript_file").placeholder).toContain("transcript.md");
+    expect(getSourceGuidance("transcript_file").label).toBe("文字檔案");
+    expect(getSourceGuidance("transcript_file").placeholder).toContain("article.txt");
+    expect(getSourceGuidance("transcript_file").inputHint).toContain("被網站阻擋");
   });
 
   it("returns category-specific error hints", () => {

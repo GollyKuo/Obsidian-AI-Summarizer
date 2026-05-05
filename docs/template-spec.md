@@ -61,12 +61,20 @@ Created: 2026-05-03
 <AI 摘要正文>
 ```
 
-媒體來源與逐字稿檔案重跑摘要會在摘要正文後追加：
+媒體來源與文字檔案重跑摘要會在摘要正文後追加來源文字區塊：
 
 ```markdown
 ## Transcript
 
 <逐字稿>
+```
+
+一般文字檔案 fallback 會使用：
+
+```markdown
+## Source Text
+
+<來源文字>
 ```
 
 ### 欄位定義
@@ -79,7 +87,7 @@ Created: 2026-05-03
 | `Creator` | podcast / YouTube 頻道名稱，或網頁創作者。若無法判斷，留空或使用既有 metadata 的 creator。 |
 | `Description` | 由摘要來源產生 1~2 句話簡介。 |
 | `tags` | 若未來自動建立閃卡功能啟用且本次勾選製作閃卡，加入 `Flashcard`；未勾選時保留 `tags:` 欄位但值留空。 |
-| `Platform` | 判斷來源平台後填入：YouTube、Podcast、Web、本機檔案。 |
+| `Platform` | 判斷來源平台後填入：YouTube、Podcast、Web、本機檔案、Text File。 |
 | `Source` | 擷取來源網址；本機檔案可填入原始檔名或可回查路徑。 |
 | `Created` | 擷取日期，格式為 `YYYY-MM-DD`。 |
 
@@ -145,7 +153,7 @@ created: "{{createdDate}}"
 <AI 摘要正文>
 ```
 
-媒體來源與逐字稿檔案重跑摘要仍會在最後追加 `## Transcript`。
+媒體來源與文字檔案重跑摘要仍會在最後追加來源文字區塊；媒體逐字稿使用 `## Transcript`，一般文字檔案 fallback 使用 `## Source Text`。
 
 若自訂模板包含 `{{summary}}` 或 `{{transcript}}`，系統應改用明確插入位置：
 
@@ -166,7 +174,7 @@ title: "{{title}}"
 插入規則：
 
 1. 若模板包含 `{{summary}}`，AI 摘要正文插入該位置；若未包含，AI 摘要正文接在模板後方。
-2. 若模板包含 `{{transcript}}` 且本次有逐字稿，逐字稿插入該位置；若模板未包含且本次有逐字稿，仍在最後追加 `## Transcript`。
+2. 若模板包含 `{{transcript}}` 且本次有逐字稿或來源文字，內容插入該位置；若模板未包含且本次有來源文字，仍在最後追加 `## Transcript` 或 `## Source Text`。
 3. 若模板包含 `{{transcript}}` 但本次沒有逐字稿，該 placeholder 置換為空字串。
 
 ### 讀取規則
@@ -192,12 +200,12 @@ title: "{{title}}"
 | `{{creatorOrAuthor}}` | `metadata.creatorOrAuthor` | 相容既有模板的舊 placeholder。 |
 | `{{description}}` | summary model / future metadata enrichment | 1~2 句話簡介。 |
 | `{{tags}}` | settings / flow state | YAML tags 輸出；閃卡勾選時包含 `Flashcard`。 |
-| `{{platform}}` | metadata normalization | YouTube、Podcast、Web、本機檔案。 |
-| `{{source}}` | `metadata.source` | 原始 URL、媒體來源、逐字稿來源或本機檔案來源。 |
+| `{{platform}}` | metadata normalization | YouTube、Podcast、Web、本機檔案、Text File。 |
+| `{{source}}` | `metadata.source` | 原始 URL、媒體來源、文字檔案來源或本機檔案來源。 |
 | `{{createdDate}}` | `metadata.created` | `YYYY-MM-DD` 日期。 |
 | `{{created}}` | `metadata.created` | 相容既有模板的 ISO timestamp。 |
 | `{{summary}}` | AI summary result | 自訂模板專用；指定 AI 摘要正文插入位置。 |
-| `{{transcript}}` | transcript result | 自訂模板專用；指定逐字稿插入位置，僅媒體來源與逐字稿檔案有值。 |
+| `{{transcript}}` | transcript/source text result | 自訂模板專用；指定逐字稿或來源文字插入位置，僅媒體來源與文字檔案有值。 |
 
 目前不支援條件語法、迴圈、include、frontmatter merge 或自訂 helper。
 
@@ -224,7 +232,7 @@ title: "{{title}}"
 | Podcast feed / episode URL | `Podcast` |
 | 一般網頁 | `Web` |
 | 本機音訊或影片 | `本機檔案` |
-| 逐字稿檔案 | `本機檔案` |
+| 文字檔案 fallback | `Text File` |
 
 ## 寫入規則
 
@@ -235,7 +243,7 @@ title: "{{title}}"
 
 <AI 摘要正文>
 
-<Transcript 區塊，僅媒體來源與逐字稿檔案需要>
+<Transcript 或 Source Text 區塊，僅媒體來源與文字檔案需要>
 ```
 
 ### 使用自訂模板
@@ -245,7 +253,7 @@ title: "{{title}}"
 
 <AI 摘要正文>
 
-<Transcript 區塊，僅媒體來源與逐字稿檔案需要>
+<Transcript 或 Source Text 區塊，僅媒體來源與文字檔案需要>
 ```
 
 若自訂模板包含 `{{summary}}` 或 `{{transcript}}`，依自訂模板章節的插入規則處理；若沒有明確插入位置，維持「模板內容在前，AI 摘要接在後面，逐字稿最後追加」的預設規則。

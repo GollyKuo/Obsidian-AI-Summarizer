@@ -54,13 +54,17 @@ function normalizeTemplateOutput(markdown: string): string {
     .trim();
 }
 
-function appendTranscript(summaryMarkdown: string, transcriptMarkdown: string): string {
+function getTranscriptSectionHeading(platform: string): string {
+  return platform === "Text File" ? "Source Text" : "Transcript";
+}
+
+function appendTranscript(summaryMarkdown: string, transcriptMarkdown: string, heading: string): string {
   const trimmedTranscript = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
   if (trimmedTranscript.length === 0) {
     return summaryMarkdown.trim();
   }
 
-  return [summaryMarkdown.trim(), "", "## Transcript", "", trimmedTranscript].join("\n");
+  return [summaryMarkdown.trim(), "", `## ${heading}`, "", trimmedTranscript].join("\n");
 }
 
 function hasFrontmatter(markdown: string): boolean {
@@ -104,6 +108,7 @@ export class ObsidianNoteWriter implements NoteWriter {
       this.options.outputFolder,
       metadataResult.metadata.title
     );
+    const transcriptHeading = getTranscriptSectionHeading(metadataResult.metadata.platform);
     const contentResult = await this.buildContent(
       {
         title: metadataResult.metadata.title,
@@ -120,8 +125,9 @@ export class ObsidianNoteWriter implements NoteWriter {
         summary: input.summaryMarkdown.trim(),
         transcript: normalizeToTraditionalChinese(input.transcriptMarkdown.trim()).value
       },
-      appendTranscript(input.summaryMarkdown, input.transcriptMarkdown),
-      normalizeToTraditionalChinese(input.transcriptMarkdown).value
+      appendTranscript(input.summaryMarkdown, input.transcriptMarkdown, transcriptHeading),
+      normalizeToTraditionalChinese(input.transcriptMarkdown).value,
+      transcriptHeading
     );
     await this.storage.write(pathResult.notePath, contentResult.content);
 
@@ -191,7 +197,8 @@ export class ObsidianNoteWriter implements NoteWriter {
   private renderCustomTemplateNote(
     templateBody: string,
     data: TemplateData,
-    transcriptMarkdown: string
+    transcriptMarkdown: string,
+    transcriptHeading: string
   ): ContentBuildResult {
     const warnings: string[] = [];
     const unknownPlaceholders = findUnknownPlaceholders(templateBody);
@@ -219,8 +226,9 @@ export class ObsidianNoteWriter implements NoteWriter {
     }
     const normalizedTranscriptMarkdown = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
     if (!hasTranscriptPlaceholder && normalizedTranscriptMarkdown.length > 0) {
-      contentParts.push("", "## Transcript", "", normalizedTranscriptMarkdown);
-      warnings.push("Template renderer: custom template did not include {{transcript}}; transcript was appended.");
+      contentParts.push("", `## ${transcriptHeading}`, "", normalizedTranscriptMarkdown);
+      const appendedLabel = transcriptHeading === "Source Text" ? "source text" : "transcript";
+      warnings.push(`Template renderer: custom template did not include {{transcript}}; ${appendedLabel} was appended.`);
     }
 
     return {
@@ -232,7 +240,8 @@ export class ObsidianNoteWriter implements NoteWriter {
   private async buildContent(
     data: TemplateData,
     bodyMarkdown: string,
-    transcriptMarkdown: string
+    transcriptMarkdown: string,
+    transcriptHeading = "Transcript"
   ): Promise<ContentBuildResult> {
     const templateReference = normalizeTemplateReference(this.options.templateReference);
     const builtinTemplateBody = resolveBuiltinTemplate(templateReference);
@@ -244,7 +253,7 @@ export class ObsidianNoteWriter implements NoteWriter {
     const templateBody = await this.storage.readTemplate(templatePath);
 
     if (templateBody) {
-      return this.renderCustomTemplateNote(templateBody, data, transcriptMarkdown);
+      return this.renderCustomTemplateNote(templateBody, data, transcriptMarkdown, transcriptHeading);
     }
 
     return {

@@ -683,7 +683,7 @@
               </div>
               <div class="panel">
                 <h3>使用摘要功能</h3>
-                <p>能分辨 <code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>逐字稿檔案</code> 的適用時機。</p>
+                <p>能分辨 <code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>文字檔案</code> 的適用時機。</p>
               </div>
               <div class="panel">
                 <h3>排查問題</h3>
@@ -767,7 +767,7 @@
           <article class="slide" data-title="媒體額外需求">
             <div class="eyebrow">Media Workflow</div>
             <h2>媒體 URL 與本機媒體需要額外工具</h2>
-            <p>如果只使用 <code>網頁 URL</code> 或 <code>逐字稿檔案</code>，通常不需要額外媒體工具。</p>
+            <p>如果只使用 <code>網頁 URL</code> 或 <code>文字檔案</code>，通常不需要額外媒體工具。</p>
             <div class="grid">
               <div class="panel">
                 <h3>需要的工具</h3>
@@ -1033,7 +1033,7 @@
                 <tr><td><code>網頁 URL</code></td><td>網頁文章、文件頁、部落格文章。</td><td>不需要</td></tr>
                 <tr><td><code>媒體 URL</code></td><td>YouTube、podcast、直接音訊或影片網址。</td><td>需要</td></tr>
                 <tr><td><code>本機媒體</code></td><td>本機音訊或影片檔。</td><td>需要</td></tr>
-                <tr><td><code>逐字稿檔案</code></td><td>已有 <code>transcript.md</code> 或 <code>.txt</code>，只想重跑摘要。</td><td>不需要</td></tr>
+                <tr><td><code>文字檔案</code></td><td>已有文章正文、<code>.txt</code>、<code>.md</code> 或 <code>transcript.md</code>，想直接摘要。</td><td>不需要</td></tr>
               </tbody>
             </table>
           </article>
@@ -1087,13 +1087,13 @@
             </div>
           </article>
 
-          <article class="slide" data-title="逐字稿檔案">
+          <article class="slide" data-title="文字檔案">
             <div class="eyebrow">Workflow</div>
-            <h2>使用流程：逐字稿檔案</h2>
+            <h2>使用流程：文字檔案</h2>
             <ol>
               <li>開啟 <code>AI 摘要器</code>。</li>
-              <li>選 <code>逐字稿檔案</code>。</li>
-              <li>輸入 <code>.md</code> 或 <code>.txt</code> 逐字稿路徑，或按 <code>選擇檔案</code>。</li>
+              <li>選 <code>文字檔案</code>。</li>
+              <li>輸入 <code>.md</code> 或 <code>.txt</code> 文字檔案路徑，或按 <code>選擇檔案</code>。</li>
               <li>摘要建議使用 <code>Gemini</code> / <code>gemini-2.5-flash</code>，<code>Mistral</code> 作為備用。</li>
               <li>按 <code>開始摘要</code>。</li>
             </ol>
@@ -1166,7 +1166,7 @@
               <li>Obsidian 目前環境。</li>
               <li>媒體暫存資料夾是否可用。</li>
               <li><code>yt-dlp</code>、<code>ffmpeg</code>、<code>ffprobe</code> 是否可用。</li>
-              <li><code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>逐字稿檔案</code> 是否可執行。</li>
+              <li><code>網頁 URL</code>、<code>媒體 URL</code>、<code>本機媒體</code>、<code>文字檔案</code> 是否可執行。</li>
             </ul>
             <div class="warning">
               <strong>媒體流程失敗時，先看這一頁</strong>
@@ -1192,9 +1192,9 @@
             <table>
               <thead><tr><th>按鈕</th><th>功能</th></tr></thead>
               <tbody>
-                <tr><td><code>網頁 URL</code> / <code>媒體 URL</code> / <code>本機媒體</code> / <code>逐字稿檔案</code></td><td>切換輸入來源。</td></tr>
+                <tr><td><code>網頁 URL</code> / <code>媒體 URL</code> / <code>本機媒體</code> / <code>文字檔案</code></td><td>切換輸入來源。</td></tr>
                 <tr><td><code>填入範例</code></td><td>填入目前來源類型的範例。</td></tr>
-                <tr><td><code>選擇檔案</code></td><td>選擇本機媒體或逐字稿檔案。</td></tr>
+                <tr><td><code>選擇檔案</code></td><td>選擇本機媒體或文字檔案。</td></tr>
                 <tr><td><code>媒體工具：...</code></td><td>檢查媒體工具狀態。</td></tr>
                 <tr><td><code>診斷</code></td><td>前往設定頁的診斷分頁。</td></tr>
                 <tr><td><code>選擇</code></td><td>選擇本次輸出的 vault 資料夾。</td></tr>
@@ -1215,7 +1215,7 @@
                 <tr><td><code>再摘要一次</code></td><td>用目前設定重新執行。</td></tr>
                 <tr><td><code>重試</code></td><td>失敗後重新執行。</td></tr>
                 <tr><td><code>前往診斷</code></td><td>開啟診斷分頁。</td></tr>
-                <tr><td><code>改用逐字稿檔案</code></td><td>使用已保留的逐字稿重跑摘要。</td></tr>
+                <tr><td><code>改用文字檔案</code></td><td>使用已保留的逐字稿或手動整理的文字檔重跑摘要。</td></tr>
                 <tr><td><code>關閉</code></td><td>關閉視窗。</td></tr>
               </tbody>
             </table>
@@ -1302,7 +1302,7 @@
           <article class="slide" data-title="FAQ：已有逐字稿">
             <div class="eyebrow">FAQ</div>
             <h2>摘要失敗，但已經有逐字稿</h2>
-            <p class="lead">選 <code>逐字稿檔案</code>，指定 <code>transcript.md</code>，再按 <code>開始摘要</code>。</p>
+            <p class="lead">選 <code>文字檔案</code>，指定 <code>transcript.md</code> 或手動整理的文章文字檔，再按 <code>開始摘要</code>。</p>
             <div class="note">
               <strong>這樣會跳過轉錄</strong>
               外掛會只重跑摘要與筆記輸出。這很適合媒體下載或轉錄已經完成，但最後摘要階段失敗的情況。

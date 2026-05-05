@@ -24,13 +24,13 @@ describe("settings copy", () => {
       webpage_url: "網頁 URL",
       media_url: "媒體 URL",
       local_media: "本機媒體",
-      transcript_file: "逐字稿檔案"
+      transcript_file: "文字檔案"
     });
     expect(DIAGNOSTIC_CAPABILITY_LABELS).toEqual({
       webpage_url: "網頁摘要",
       media_url: "YouTube / 媒體網址",
       local_media: "本機音訊 / 影片",
-      transcript_file: "逐字稿重跑摘要"
+      transcript_file: "文字檔案摘要"
     });
   });
 

@@ -18,6 +18,7 @@ function buildMetadataBlock(metadata: {
 }
 
 export function buildMediaSummaryPrompt(input: MediaSummaryInput): string {
+  const contentLabel = input.metadata.platform === "Text File" ? "Source Text" : "Transcript";
   return [
     PROMPT_CONTRACT.mediaSummaryPrompt,
     "",
@@ -26,7 +27,7 @@ export function buildMediaSummaryPrompt(input: MediaSummaryInput): string {
     "## Metadata",
     buildMetadataBlock(input.metadata),
     "",
-    "## Transcript",
+    `## ${contentLabel}`,
     input.transcript.map((segment) => segment.text).join("\n"),
     "",
     "## Normalized Content",

@@ -93,7 +93,7 @@ describe("processTranscriptFile integration", () => {
       source: "https://example.com/watch?v=123",
       created: "2026-05-02T01:00:00.000Z"
     });
-    expect(capturedSummaryInputs[0]?.normalizedText).toBe(`Transcript file: ${transcriptPath}`);
+    expect(capturedSummaryInputs[0]?.normalizedText).toBe(`Text file: ${transcriptPath}`);
     expect(capturedSummaryInputs[0]?.transcript).toEqual([
       {
         startMs: 0,
@@ -115,17 +115,17 @@ describe("processTranscriptFile integration", () => {
     expect(result.warnings).toEqual(expect.arrayContaining(["summary retry warning", "note retry warning"]));
     expect(emittedWarnings).toEqual(result.warnings);
     expect(stageMessages).toEqual([
-      "validating:Validating transcript file input",
-      "acquiring:Reading transcript file",
-      "summarizing:Regenerating summary from transcript",
+      "validating:Validating text file input",
+      "acquiring:Reading text file",
+      "summarizing:Generating summary from text file",
       "writing:Writing regenerated summary note into vault"
     ]);
   });
 
-  it("falls back to transcript file metadata when metadata.json is unavailable", async () => {
+  it("falls back to text file metadata when metadata.json is unavailable", async () => {
     const tempDirectory = await makeTempDirectory();
-    const transcriptPath = path.join(tempDirectory, "manual-transcript.txt");
-    await writeFile(transcriptPath, "A manually edited transcript line.", "utf8");
+    const transcriptPath = path.join(tempDirectory, "blocked-article.txt");
+    await writeFile(transcriptPath, "A manually copied article body from a blocked webpage.", "utf8");
 
     const capturedSummaryInputs: MediaSummaryInput[] = [];
     const result = await processTranscriptFile(
@@ -158,17 +158,17 @@ describe("processTranscriptFile integration", () => {
     );
 
     expect(capturedSummaryInputs[0]?.metadata).toMatchObject({
-      title: "manual-transcript",
+      title: "blocked-article",
       creatorOrAuthor: "Unknown",
-      platform: "Transcript File",
+      platform: "Text File",
       source: transcriptPath
     });
     expect(result.warnings).toContain(
-      "Transcript retry: Artifact manifest metadata.json is missing; using recoverable fallback. Using transcript file metadata fallback."
+      "Text file summary: Artifact manifest metadata.json is missing; using recoverable fallback. Using text file metadata fallback."
     );
   });
 
-  it("falls back to transcript file metadata when adjacent metadata.json is corrupt", async () => {
+  it("falls back to text file metadata when adjacent metadata.json is corrupt", async () => {
     const tempDirectory = await makeTempDirectory();
     const transcriptPath = path.join(tempDirectory, "corrupt-manifest.txt");
     await writeFile(transcriptPath, "A transcript with corrupt adjacent metadata.", "utf8");
@@ -207,11 +207,11 @@ describe("processTranscriptFile integration", () => {
     expect(capturedSummaryInputs[0]?.metadata).toMatchObject({
       title: "corrupt-manifest",
       creatorOrAuthor: "Unknown",
-      platform: "Transcript File",
+      platform: "Text File",
       source: transcriptPath
     });
     expect(result.warnings).toContain(
-      "Transcript retry: Artifact manifest metadata.json contains invalid JSON; using recoverable fallback. Using transcript file metadata fallback."
+      "Text file summary: Artifact manifest metadata.json contains invalid JSON; using recoverable fallback. Using text file metadata fallback."
     );
   });
 

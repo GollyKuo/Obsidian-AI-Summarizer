@@ -212,14 +212,14 @@ function buildTranscriptFileCapabilityReason(
     return {
       available: false,
       state: "warning",
-      reason: "Transcript file summary retry requires desktop filesystem access."
+      reason: "Text file summary requires desktop filesystem access."
     };
   }
 
   return {
     available: true,
     state: "ready",
-    reason: "Transcript file summary retry is available."
+    reason: "Text file summary is available."
   };
 }
 

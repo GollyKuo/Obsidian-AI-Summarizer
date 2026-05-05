@@ -49,8 +49,8 @@ export const PROMPT_CONTRACT: PromptContract = {
     "6. 只輸出純文字與 Markdown，不可包含 emoji 或圖示。"
   ].join("\n"),
   mediaSummaryPrompt: [
-    "你是本專案的媒體摘要整理器。",
-    "請根據提供的 metadata、逐字稿與正規化內容，產出可直接寫入 Obsidian 的繁體中文摘要。",
+    "你是本專案的媒體與文字摘要整理器。",
+    "請根據提供的 metadata、逐字稿或來源文字與正規化內容，產出可直接寫入 Obsidian 的繁體中文摘要。",
     "",
     "核心規則：",
     "1. 絕對不可遺漏任何重要內容。所有關鍵細節、主要議題、論點、數據、案例與可執行建議都必須完整呈現。",

@@ -147,7 +147,7 @@ function renderFailedPanel(containerEl: HTMLElement, options: FlowExecutionPanel
 
   if (options.recoveryTranscriptPath || options.failureCategory === "ai_failure") {
     const transcriptButton = new ButtonComponent(actionsEl);
-    transcriptButton.setButtonText("改用逐字稿檔案").onClick(() => {
+    transcriptButton.setButtonText("改用文字檔案").onClick(() => {
       options.onUseTranscriptFile(options.recoveryTranscriptPath);
     });
   }
@@ -163,14 +163,14 @@ function renderCancelledPanel(containerEl: HTMLElement, options: FlowExecutionPa
   panelEl.createEl("p", {
     cls: "ai-summarizer-result-message",
     text: options.recoveryTranscriptPath
-      ? "已保留可恢復的逐字稿，可改用逐字稿檔案重新摘要。"
-      : "流程已停止；若稍後找到 transcript.md，可改用逐字稿檔案重新摘要。"
+      ? "已保留可恢復的逐字稿，可改用文字檔案重新摘要。"
+      : "流程已停止；若稍後找到 article.txt、article.md 或 transcript.md，可改用文字檔案重新摘要。"
   });
 
   const actionsEl = panelEl.createDiv({ cls: "ai-summarizer-result-actions" });
   if (options.recoveryTranscriptPath) {
     const transcriptButton = new ButtonComponent(actionsEl);
-    transcriptButton.setButtonText("改用逐字稿檔案").setCta().onClick(() => {
+    transcriptButton.setButtonText("改用文字檔案").setCta().onClick(() => {
       options.onUseTranscriptFile(options.recoveryTranscriptPath);
     });
   }

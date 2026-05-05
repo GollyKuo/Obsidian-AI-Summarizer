@@ -51,9 +51,9 @@ function localizeStageMessage(message: string): string {
     "Validating local media input": "驗證本機媒體",
     "Preparing local media ingestion session": "準備本機媒體暫存工作區",
     "Importing local media artifact": "匯入本機媒體",
-    "Validating transcript file input": "驗證逐字稿檔案",
-    "Reading transcript file": "讀取逐字稿",
-    "Regenerating summary from transcript": "依逐字稿重新摘要",
+    "Validating text file input": "驗證文字檔案",
+    "Reading text file": "讀取文字檔案",
+    "Generating summary from text file": "摘要文字檔案",
     "Writing regenerated summary note into vault": "寫入筆記"
   };
 

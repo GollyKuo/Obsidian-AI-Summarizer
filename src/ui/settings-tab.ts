@@ -2110,7 +2110,7 @@ export class AISummarizerSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("摘要前校對逐字稿")
-      .setDesc("啟用後，媒體與逐字稿檔案流程會在摘要前先用目前摘要 provider/model 做最小必要校對；預設關閉。")
+      .setDesc("啟用後，媒體與文字檔案流程會在摘要前先用目前摘要 provider/model 做最小必要校對；預設關閉。")
       .addToggle((toggle) =>
         toggle.setValue(this.plugin.settings.enableTranscriptCleanup).onChange(async (value) => {
           this.plugin.settings.enableTranscriptCleanup = value;

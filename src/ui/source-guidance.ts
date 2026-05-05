@@ -50,12 +50,12 @@ const SOURCE_GUIDANCE: Record<SourceType, SourceGuidance> = {
     }
   },
   transcript_file: {
-    label: "逐字稿檔案",
-    placeholder: "D:\\MediaCache\\session\\transcript.md",
-    description: "選擇已產生的 transcript.md 或純文字逐字稿，跳過轉錄，只重跑摘要與 note 輸出。",
-    inputHint: "適合摘要失敗後重跑、改用不同摘要 provider，或手動修正逐字稿後重新整理。",
-    examples: ["transcript.md", "subtitles 轉成的純文字", "手動整理逐字稿"],
-    emptyValueHint: "請先輸入逐字稿檔案路徑。",
+    label: "文字檔案",
+    placeholder: "D:\\Notes\\article.txt",
+    description: "選擇 `.md` 或 `.txt` 文字檔，直接用檔案內容做摘要與 note 輸出。",
+    inputHint: "適合被網站阻擋的文章、手動整理的網頁正文、逐字稿重跑摘要，或改用不同摘要 provider。",
+    examples: ["article.txt", "article.md", "transcript.md"],
+    emptyValueHint: "請先輸入文字檔案路徑。",
     errorHints: {
       validation_error: "確認使用絕對路徑，檔案存在，且副檔名為 .md 或 .txt。",
       ai_failure: "確認摘要 provider/API key 可用，或換用較穩定的摘要模型後重試。",
@@ -67,10 +67,10 @@ const SOURCE_GUIDANCE: Record<SourceType, SourceGuidance> = {
 const FALLBACK_ERROR_HINTS: Record<ErrorCategory, string> = {
   validation_error: "確認輸入值符合目前來源格式，修正後再重試。",
   runtime_unavailable: "先到設定頁的診斷區確認目前來源需要的本機執行環境是否可用。",
-  download_failure: "確認連結仍可存取；若來源限制下載，可改用本機媒體或逐字稿檔案。",
-  ai_failure: "確認 API key、provider 與模型可用；若已有 transcript.md，可改用逐字稿檔案重跑摘要。",
+  download_failure: "確認連結仍可存取；若來源限制下載，可改用本機媒體或文字檔案。",
+  ai_failure: "確認 API key、provider 與模型可用；若已有文字檔或 transcript.md，可改用文字檔案重跑摘要。",
   note_write_failure: "確認輸出資料夾存在且可寫入，並檢查是否有同名筆記衝突。",
-  cancellation: "流程已停止；可修正輸入或改用已保留的逐字稿後重新執行。"
+  cancellation: "流程已停止；可修正輸入或改用已保留的文字檔後重新執行。"
 };
 
 export function getSourceGuidance(sourceType: SourceType): SourceGuidance {

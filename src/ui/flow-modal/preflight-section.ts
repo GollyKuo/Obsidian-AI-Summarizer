@@ -280,7 +280,9 @@ export function renderPreflightSection(
   cleanupCheckboxEl.type = "checkbox";
   cleanupCheckboxEl.disabled = options.isBusy || options.sourceType === "webpage_url";
   cleanupCheckboxEl.checked = options.settings.enableTranscriptCleanup;
-  cleanupControlEl.createSpan({ text: "摘要前校對逐字稿" });
+  cleanupControlEl.createSpan({
+    text: options.sourceType === "transcript_file" ? "摘要前校對文字" : "摘要前校對逐字稿"
+  });
   cleanupCheckboxEl.addEventListener("change", () => {
     options.settings.enableTranscriptCleanup = cleanupCheckboxEl.checked;
     void options.saveSettings();

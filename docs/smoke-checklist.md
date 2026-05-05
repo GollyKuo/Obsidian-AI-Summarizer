@@ -9,7 +9,7 @@
 - `webpage URL`
 - `media URL`
 - `local media`
-- `transcript file`
+- `text file`
 - Flow Modal minimal UI visual QA
 
 若需確認每個 smoke 項目對應的端到端 AI 路由，請看 [Architecture Boundary: AI 工作流程](architecture-boundary.md#ai-工作流程)。
@@ -146,25 +146,25 @@ Additional check: final summaries did not show chunk processing markers.
 - note 正常寫入
 - 不支援格式或超限時顯示 `validation_error`
 
-## Transcript File
+## Text File
 
 前置：
 
 - 僅桌面版
-- 已有 `transcript.md` 或 `.txt` 絕對路徑
+- 已有 `.md` 或 `.txt` 文字檔絕對路徑；內容可以是手動複製的網頁正文，也可以是既有 `transcript.md`
 - 摘要 provider API key 已設定
 
 步驟：
 
-1. 選擇 `transcript_file`
-2. 輸入逐字稿絕對路徑，或用 `選擇檔案`
+1. 選擇 `transcript_file`，確認 UI 顯示 `文字檔案`
+2. 輸入文字檔案絕對路徑，或用 `選擇檔案`
 3. 執行流程
-4. 確認流程跳過轉錄，直接進入 summary
-5. 確認 Vault 內新增筆記，且筆記包含摘要與逐字稿
+4. 確認流程跳過媒體擷取與轉錄，直接進入 summary
+5. 確認 Vault 內新增筆記；一般文字檔會以 `Source Text` 保留原文，`transcript.md` 仍可重跑摘要
 
 驗收：
 
-- `.md` / `.txt` 逐字稿可重跑摘要
+- `.md` / `.txt` 文字檔可直接摘要
 - 同資料夾 `metadata.json` 存在時沿用原 media metadata
-- 缺少 `metadata.json` 時會用逐字稿檔名 fallback，並顯示 warning
-- 空逐字稿或非支援副檔名顯示 `validation_error`
+- 缺少 `metadata.json` 時會用文字檔名 fallback，並顯示 warning
+- 空文字檔或非支援副檔名顯示 `validation_error`

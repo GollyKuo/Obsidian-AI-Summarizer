@@ -1,6 +1,6 @@
 # Master Backlog
 
-最後更新：2026-05-05
+最後更新：2026-05-06
 
 ## 用途
 
@@ -38,6 +38,7 @@
 4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略、`ytDlpPath`、設定診斷與 Windows desktop managed install/update 已完成；若安裝摩擦仍高，再評估 macOS/Linux installer 或更完整的設定頁診斷 UX。
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 6. `CAP-208` 逐字稿校對 / 清理階段已完成實作：摘要前可選 cleanup、fallback、raw transcript artifact 與測試已落地。
+7. `CAP-508` Text File Summary Input 進入 active：用既有 `transcript_file` pipeline 承接一般 `.md/.txt` 文章文字，作為知乎、登入牆、付費牆或動態網頁阻擋擷取時的替代流程。
 
 ## Capability 總表
 
@@ -257,6 +258,21 @@ Done When：
 
 摘要：
 保留 prompt profile / template library 與 guardrails 邊界。
+
+#### CAP-508 Text File Summary Input 文字檔案摘要輸入
+
+狀態：`active`
+
+摘要：
+將既有 `transcript_file` 流程擴充為使用者可理解的「文字檔案」來源，支援一般 `.md` / `.txt` 文章、手動整理的網頁正文與既有逐字稿。目標是提供被網站阻擋擷取時的低風險替代流程；內部 source key 先維持 `transcript_file`，避免 settings/template/runtime contract migration。
+
+Done When：
+
+- Flow Modal、設定頁與錯誤提示將來源顯示為「文字檔案」，並說明可用於被阻擋網頁的手動正文。
+- 檔案 picker、stage label、empty/error hint 支援一般文字檔語意。
+- fallback metadata 使用 `Text File` 語意；既有 media session `metadata.json` 仍可保留原平台。
+- Manual、smoke checklist、test matrix 補上 blocked webpage workaround。
+- 保留既有 transcript retry tests，新增或調整文字檔案摘要測試。
 
 #### CAP-507 Security, Privacy, And Migration 安全、隱私與遷移
 

@@ -52,6 +52,9 @@ function normalizePlatform(rawPlatform: string): string {
   if (lower.includes("local")) {
     return "Local File";
   }
+  if (lower === "text file" || lower.includes("text file")) {
+    return "Text File";
+  }
   if (lower.includes("transcript")) {
     return "Transcript File";
   }
