@@ -15,7 +15,6 @@ import {
   removeModelCatalogEntry,
   upsertModelCatalogEntry,
   type AiModelCatalogEntry,
-  type MediaCompressionProfile,
   type ModelProvider,
   type ModelPurpose,
   type SummaryModel,
@@ -23,7 +22,7 @@ import {
   type TranscriptionModel,
   type TranscriptionProvider
 } from "@domain/settings";
-import type { RetentionMode, SourceType, TranscriptCleanupFailureMode } from "@domain/types";
+import type { SourceType, TranscriptCleanupFailureMode } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { testAiApiAvailability } from "@services/ai/api-health-check";
 import {
@@ -66,21 +65,17 @@ import {
 } from "@ui/model-autocomplete";
 import {
   DIAGNOSTIC_CAPABILITY_LABELS,
-  MEDIA_COMPRESSION_LABELS,
-  RETENTION_LABELS,
   SETTINGS_SECTIONS,
   SOURCE_TYPE_LABELS,
   TRANSCRIPT_CLEANUP_FAILURE_MODE_LABELS,
   type SettingsSection
 } from "@ui/settings-copy";
 import { renderHelpSection } from "@ui/settings/help-section";
+import { renderOutputMediaSection } from "@ui/settings/output-media-section";
 
 type ApiTestTarget = "transcription" | "summary";
 
-const SOURCE_TYPE_OPTIONS: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
-const RETENTION_OPTIONS: RetentionMode[] = ["delete_temp", "keep_temp"];
 const TRANSCRIPT_CLEANUP_FAILURE_MODE_OPTIONS: TranscriptCleanupFailureMode[] = ["fallback_to_original", "fail"];
-const MEDIA_COMPRESSION_OPTIONS: MediaCompressionProfile[] = ["balanced", "quality"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CUSTOM_TEMPLATE_BODY = [
@@ -2208,82 +2203,22 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderOutputAndMediaSettings(containerEl: HTMLElement): void {
-    new Setting(containerEl)
-      .setName("輸出資料夾")
-      .setDesc("摘要筆記寫入 vault 的相對資料夾；空值表示寫到 vault 根目錄。")
-      .addText((text) =>
-        text.setValue(this.plugin.settings.outputFolder).onChange(async (value) => {
-          this.plugin.settings.outputFolder = value.trim();
-          await this.plugin.saveSettings();
-        })
-      )
-      .addButton((button) =>
-        button.setButtonText("搜尋資料夾").onClick(() => {
-          this.pickOutputFolder();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("媒體暫存檔保留")
-      .setDesc("控制媒體流程完成後，是否保留原始下載、轉檔音訊與逐字稿。")
-      .addDropdown((dropdown) => {
-        for (const mode of RETENTION_OPTIONS) {
-          dropdown.addOption(mode, RETENTION_LABELS[mode]);
-        }
-
-        dropdown.setValue(this.plugin.settings.retentionMode).onChange(async (value) => {
-          this.plugin.settings.retentionMode = value as RetentionMode;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("媒體暫存資料夾")
-      .setDesc("媒體流程的暫存目錄。請填入絕對路徑，避免寫進 vault。")
-      .addText((text) =>
-        text
-          .setPlaceholder("例如 D:\\AI-Summarizer\\media-cache")
-          .setValue(this.plugin.settings.mediaCacheRoot)
-          .onChange(async (value) => {
-            this.plugin.settings.mediaCacheRoot = value.trim();
-            this.runtimeDiagnostics = null;
-            await this.plugin.saveSettings();
-          })
-      )
-      .addButton((button) =>
-        button.setButtonText("選擇資料夾").onClick(() => {
-          void this.pickMediaStorageDirectory();
-        })
-      );
-
-    new Setting(containerEl)
-      .setName("媒體壓縮策略")
-      .setDesc("控制送進轉錄階段前的音訊壓縮品質。")
-      .addDropdown((dropdown) => {
-        for (const profile of MEDIA_COMPRESSION_OPTIONS) {
-          dropdown.addOption(profile, MEDIA_COMPRESSION_LABELS[profile]);
-        }
-
-        dropdown.setValue(this.plugin.settings.mediaCompressionProfile).onChange(async (value) => {
-          this.plugin.settings.mediaCompressionProfile = value as MediaCompressionProfile;
-          await this.plugin.saveSettings();
-        });
-      });
-
-    new Setting(containerEl)
-      .setName("預設輸入類型")
-      .setDesc("開啟 AI 摘要器時預先選中的輸入類型。")
-      .addDropdown((dropdown) => {
-        for (const sourceType of SOURCE_TYPE_OPTIONS) {
-          dropdown.addOption(sourceType, SOURCE_TYPE_LABELS[sourceType]);
-        }
-
-        dropdown.setValue(this.plugin.settings.lastSourceType).onChange(async (value) => {
-          this.plugin.settings.lastSourceType = value as SourceType;
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
+    renderOutputMediaSection(containerEl, {
+      settings: this.plugin.settings,
+      saveSettings: () => this.plugin.saveSettings(),
+      onInvalidateRuntimeDiagnostics: () => {
+        this.runtimeDiagnostics = null;
+      },
+      onPickMediaStorageDirectory: () => {
+        void this.pickMediaStorageDirectory();
+      },
+      onPickOutputFolder: () => {
+        this.pickOutputFolder();
+      },
+      onSourceTypeChanged: () => {
+        this.display();
+      }
+    });
   }
 
   private renderTemplateExperience(containerEl: HTMLElement): void {
