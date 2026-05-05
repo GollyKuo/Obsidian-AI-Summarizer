@@ -27,6 +27,7 @@
 npm ci
 npm run gate:release
 npm run build
+npm run check:release-privacy
 ```
 
 打包以下 release assets：
@@ -198,4 +199,7 @@ versions.json
 ```bash
 npm run gate:release
 npm run build
+npm run check:release-privacy
 ```
+
+`check:release-privacy` 會掃描 `main.js`、`manifest.json`、`styles.css`、`versions.json`、`package.json` 與 `package-lock.json`，阻擋常見 API key、token、private key、本機 vault path、測試 vault artifact path。若要同步到個人測試 vault，請用 `AI_SUMMARIZER_VAULT_PATH` 或 `scripts/vault-sync.mjs --vault` 傳入，不要把本機路徑寫進 package scripts。
