@@ -51,11 +51,8 @@ import {
 import { ensureLatestProjectFfmpegTools } from "@services/media/ffmpeg-tool-installer";
 import {
   createCustomTemplateReference,
-  describeTemplateReference,
   getCustomTemplatePath,
-  isBuiltinTemplateReference,
-  listBuiltinTemplates,
-  UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
+  isBuiltinTemplateReference
 } from "@services/obsidian/template-library";
 import {
   getLocalManagedModelSuggestions,
@@ -66,17 +63,16 @@ import {
 import {
   DIAGNOSTIC_CAPABILITY_LABELS,
   SETTINGS_SECTIONS,
-  SOURCE_TYPE_LABELS,
   TRANSCRIPT_CLEANUP_FAILURE_MODE_LABELS,
   type SettingsSection
 } from "@ui/settings-copy";
 import { renderHelpSection } from "@ui/settings/help-section";
 import { renderOutputMediaSection } from "@ui/settings/output-media-section";
+import { renderTemplatesSection } from "@ui/settings/templates-section";
 
 type ApiTestTarget = "transcription" | "summary";
 
 const TRANSCRIPT_CLEANUP_FAILURE_MODE_OPTIONS: TranscriptCleanupFailureMode[] = ["fallback_to_original", "fail"];
-const CUSTOM_TEMPLATE_OPTION = "__custom__";
 const MODEL_AUTOCOMPLETE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_CUSTOM_TEMPLATE_BODY = [
   "---",
@@ -352,14 +348,6 @@ async function findExecutableInPath(command: string): Promise<string | null> {
       .map((line) => line.trim())
       .find((line) => line.length > 0) ?? null
   );
-}
-
-function getTemplateDropdownValue(templateReference: string): string {
-  if (isBuiltinTemplateReference(templateReference)) {
-    return UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE;
-  }
-
-  return CUSTOM_TEMPLATE_OPTION;
 }
 
 function normalizeVaultRelativePath(filePath: string): string {
@@ -2222,77 +2210,19 @@ export class AISummarizerSettingTab extends PluginSettingTab {
   }
 
   private renderTemplateExperience(containerEl: HTMLElement): void {
-    containerEl.createEl("h3", { text: "筆記模板" });
-
-    const builtinTemplates = listBuiltinTemplates();
-
-    new Setting(containerEl)
-      .setName("模板來源")
-      .setDesc("選擇摘要筆記的輸出格式。可使用預設 frontmatter，或套用 vault 內的自訂模板。")
-      .addDropdown((dropdown) => {
-        dropdown.addOption(UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE, "預設通用 Frontmatter");
-        for (const template of builtinTemplates) {
-          if (template.reference === UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE) {
-            continue;
-          }
-          dropdown.addOption(template.reference, template.label);
-        }
-        dropdown.addOption(CUSTOM_TEMPLATE_OPTION, "自訂模板");
-
-        dropdown.setValue(getTemplateDropdownValue(this.plugin.settings.templateReference)).onChange(async (value) => {
-          if (value === CUSTOM_TEMPLATE_OPTION) {
-            if (
-              this.plugin.settings.templateReference.trim().length === 0 ||
-              isBuiltinTemplateReference(this.plugin.settings.templateReference)
-            ) {
-              this.plugin.settings.templateReference = createCustomTemplateReference("Templates/ai-summary-template.md");
-            }
-          } else {
-            this.plugin.settings.templateReference = value;
-          }
-
-          await this.plugin.saveSettings();
-          this.display();
-        });
-      });
-
-    const templateStatusEl = containerEl.createDiv({ cls: "ai-summarizer-template-status" });
-    templateStatusEl.setText(describeTemplateReference(this.plugin.settings.templateReference));
-
-    if (getTemplateDropdownValue(this.plugin.settings.templateReference) === CUSTOM_TEMPLATE_OPTION) {
-      new Setting(containerEl)
-        .setName("自訂模板路徑")
-        .setDesc("請填入 vault 內的相對路徑，例如 `Templates/ai-summary-template.md`。")
-        .addText((text) =>
-          text
-            .setPlaceholder("Templates/ai-summary-template.md")
-            .setValue(getCustomTemplatePath(this.plugin.settings.templateReference))
-            .onChange(async (value) => {
-              this.plugin.settings.templateReference = createCustomTemplateReference(value);
-              await this.plugin.saveSettings();
-              this.display();
-            })
-        )
-        .addButton((button) =>
-          button.setButtonText("選資料夾與模板").onClick(() => {
-            this.pickCustomTemplateFile();
-          })
-        )
-        .addButton((button) =>
-          button.setButtonText("建立範本").onClick(() => {
-            void this.createCustomTemplateFile();
-          })
-        );
-    }
-
-    const templateListEl = containerEl.createEl("ul");
-    for (const template of builtinTemplates) {
-      templateListEl.createEl("li", {
-        text: `${template.label}: ${template.description} 支援 ${template.supportedSourceTypes
-          .map((sourceType) => SOURCE_TYPE_LABELS[sourceType])
-          .join("、")}`
-      });
-    }
+    renderTemplatesSection(containerEl, {
+      settings: this.plugin.settings,
+      saveSettings: () => this.plugin.saveSettings(),
+      onCreateCustomTemplateFile: () => {
+        void this.createCustomTemplateFile();
+      },
+      onPickCustomTemplateFile: () => {
+        this.pickCustomTemplateFile();
+      },
+      onRefresh: () => {
+        this.display();
+      }
+    });
   }
 
   private renderTemplateAndPromptSettings(containerEl: HTMLElement): void {
