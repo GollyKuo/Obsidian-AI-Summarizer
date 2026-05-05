@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { SummarizerError } from "@domain/errors";
+import type { SummarizerError } from "@domain/errors";
 import { DEFAULT_SETTINGS } from "@domain/settings";
 import {
   createConfiguredSummaryProvider,

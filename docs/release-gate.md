@@ -1,6 +1,6 @@
 # Release Gate
 
-最後更新：2026-05-02 03:12
+最後更新：2026-05-05 23:46
 
 ## 目標
 
@@ -8,13 +8,15 @@
 
 ## 本地放行順序
 
-1. `npm run check:types`
-2. `npm run check:test`
-3. `npm run check:build`
-4. `npm run gate:local`
-5. `npm run check:release-metadata`
-6. `npm run gate:regression:desktop`
-7. `npm run gate:release`
+1. `npm run check:lint`
+2. `npm run check:dependency-hygiene`
+3. `npm run check:types`
+4. `npm run check:test`
+5. `npm run check:build`
+6. `npm run gate:local`
+7. `npm run check:release-metadata`
+8. `npm run gate:regression:desktop`
+9. `npm run gate:release`
 
 ## 放行條件
 
@@ -61,7 +63,7 @@ CI 是 release gate 的固定化，不取代桌面端人工 smoke 檢查。
 
 ### Build 失敗
 
-1. 先定位 `check:types` / `check:test` / `check:build` 哪一步失敗
+1. 先定位 `check:lint` / `check:dependency-hygiene` / `check:types` / `check:test` / `check:build` 哪一步失敗
 2. 修正後至少重跑失敗步驟與 `gate:local`
 3. 發版前重跑 `gate:release`
 

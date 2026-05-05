@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
-import { App, Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
+import { Modal, normalizePath, PluginSettingTab, Setting, TFile, TFolder } from "obsidian";
+import type { App } from "obsidian";
 import {
   SUMMARY_PROVIDER_OPTIONS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
@@ -9,7 +10,6 @@ import {
   getFirstModelIdForProvider,
   getSummaryModelOptions,
   getTranscriptionModelOptions,
-  getGeminiTranscriptionRiskMessage,
   normalizeSummaryModel,
   normalizeTranscriptionModelForProvider,
   removeModelCatalogEntry,
@@ -22,7 +22,7 @@ import {
   type TranscriptionModel,
   type TranscriptionProvider
 } from "@domain/settings";
-import type { SourceType, TranscriptCleanupFailureMode } from "@domain/types";
+import type { TranscriptCleanupFailureMode } from "@domain/types";
 import type AISummarizerPlugin from "@plugin/AISummarizerPlugin";
 import { testAiApiAvailability } from "@services/ai/api-health-check";
 import {
@@ -49,8 +49,7 @@ import {
 import { ensureLatestProjectFfmpegTools } from "@services/media/ffmpeg-tool-installer";
 import {
   createCustomTemplateReference,
-  getCustomTemplatePath,
-  isBuiltinTemplateReference
+  getCustomTemplatePath
 } from "@services/obsidian/template-library";
 import {
   getLocalManagedModelSuggestions,

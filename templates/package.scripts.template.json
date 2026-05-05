@@ -2,15 +2,17 @@
   "scripts": {
     "dev": "node esbuild.config.mjs --watch",
     "build": "node esbuild.config.mjs --production",
+    "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "check:lint": "npm run lint",
+    "check:dependency-hygiene": "node scripts/verify-dependency-hygiene.mjs",
     "check:types": "npm run typecheck",
     "check:test": "npm run test",
     "check:build": "npm run build",
-    "gate:local": "npm run check:types && npm run check:test && npm run check:build",
+    "gate:local": "npm run check:lint && npm run check:dependency-hygiene && npm run check:types && npm run check:test && npm run check:build",
     "smoke:mobile": "node -e \"console.log('Run manual mobile checklist')\"",
     "gate:release": "npm run gate:local && npm run smoke:mobile",
     "validate": "npm run gate:local"
   }
 }
-

@@ -38,6 +38,7 @@
   },
   "include": [
     "main.ts",
+    "vitest.config.ts",
     "src/**/*.ts",
     "tests/**/*.ts"
   ],

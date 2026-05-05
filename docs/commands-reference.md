@@ -6,6 +6,8 @@
 
 ```bash
 npm install
+npm run lint
+npm run check:dependency-hygiene
 npm run typecheck
 npm run test
 npm run build
@@ -15,6 +17,8 @@ npm run build
 
 ```bash
 npm run typecheck
+npm run lint
+npm run check:dependency-hygiene
 npm run test
 npm run build
 npm run gate:local
@@ -79,5 +83,6 @@ GitHub Actions: .github/workflows/release-gate.yml
 - runtime / orchestration 變更：至少跑 `gate:local`
 - 影響 `webpage` 主線、長媒體摘要或共用契約時：加跑 `gate:regression:desktop`
 - UI 變更：跑 `gate:local:vault`，再確認 `smoke:desktop`
+- dependency / import 變更：確認 `lint` 與 `check:dependency-hygiene` 通過；兩者已納入 `gate:local`
 - 發版前：跑 `check:release-metadata` 與 `gate:release`，並同步更新 `docs/dev_log.md`
 - 使用者操作入口：`docs/Manual.md`

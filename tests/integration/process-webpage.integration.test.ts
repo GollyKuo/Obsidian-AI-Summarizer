@@ -15,7 +15,7 @@ describe("processWebpage integration", () => {
     };
 
     const metadataExtractor: MetadataExtractor = {
-      fromWebpage(url) {
+      fromWebpage(_url) {
         return {
           title: "Mock Title",
           creatorOrAuthor: "Mock Author",

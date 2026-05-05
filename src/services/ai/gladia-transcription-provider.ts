@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { basename } from "node:path";
 import { readFile } from "node:fs/promises";
 import { SummarizerError } from "@domain/errors";

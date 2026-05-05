@@ -17,8 +17,11 @@
     "build": "node esbuild.config.mjs --production",
     "build:vault": "node scripts/vault-sync.mjs --mode build",
     "build:vault:target": "node scripts/vault-sync.mjs --mode build",
+    "lint": "eslint .",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit",
+    "check:lint": "npm run lint",
+    "check:dependency-hygiene": "node scripts/verify-dependency-hygiene.mjs",
     "check:types": "npm run typecheck",
     "check:test": "npm run test",
     "check:build": "npm run build",
@@ -27,8 +30,8 @@
     "check:release-privacy": "node scripts/verify-release-privacy.mjs",
     "test:regression:webpage": "vitest run --passWithNoTests tests/regression/webpage-flow.regression.test.ts",
     "test:regression:media-summary": "vitest run --passWithNoTests tests/regression/media-summary-global.regression.test.ts",
-    "gate:local": "npm run check:types && npm run check:test && npm run check:build",
-    "gate:local:vault": "npm run check:types && npm run check:test && npm run check:build:vault",
+    "gate:local": "npm run check:lint && npm run check:dependency-hygiene && npm run check:types && npm run check:test && npm run check:build",
+    "gate:local:vault": "npm run check:lint && npm run check:dependency-hygiene && npm run check:types && npm run check:test && npm run check:build:vault",
     "gate:regression:desktop": "npm run test:regression:webpage && npm run test:regression:media-summary",
     "smoke:webpage": "node scripts/smoke-checklist.mjs --capability webpage",
     "smoke:media-url": "node scripts/smoke-checklist.mjs --capability media_url",
@@ -51,8 +54,10 @@
   "devDependencies": {
     "@types/node": "^22.15.19",
     "esbuild": "^0.25.3",
+    "eslint": "^10.3.0",
     "obsidian": "^1.8.10",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.59.2",
     "vitest": "^3.1.2"
   }
 }

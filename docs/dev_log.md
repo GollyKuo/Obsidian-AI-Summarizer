@@ -1,10 +1,10 @@
 # 開發日誌
 
-最後更新：2026-05-05 18:34
+最後更新：2026-05-05 23:46
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-05 18:34
+### Unreleased - 2026-05-05 23:46
 
 範圍：
 - 新增設定頁使用說明，並定案 HTML 教學簡報為獨立下載文件。
@@ -12,6 +12,7 @@
 - 修正模型回傳 fenced YAML / Markdown 時，摘要正文被 Obsidian 顯示成程式碼區塊的輸出正規化問題。
 - 修正 AI Summarizer 任務執行中誤觸背景或 Esc 關閉視窗會直接取消任務的問題，改為先顯示確認提示。
 - 清理文件導覽、backlog active/archive 邊界與已被正式規範取代的臨時編碼筆記。
+- 新增 lint / dependency hygiene gate，將 ESLint 與 dependency 檢查納入本地 gate。
 
 主要變更：
 - 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、plugin 更新步驟，以及 `前往 AI 模型` / `前往診斷` 快速入口。
@@ -33,6 +34,9 @@
 - 更新 `docs/encoding-safety.md`，移除實際 replacement character 範例，改用文字描述以利自動編碼檢查。
 - 更新 `.gitattributes`，將 `*.html` 與 `.gitattributes` 納入 LF 文件格式規則，避免 HTML 手冊與屬性檔產生 CRLF 噪音。
 - 刪除 `docs/encoding issue.md`，以 `docs/encoding-safety.md` 作為唯一正式編碼安全規範。
+- 新增 `eslint.config.mjs` 與 `scripts/verify-dependency-hygiene.mjs`，啟用 `no-unused-vars`、`no-floating-promises`、`consistent-type-imports`，並掃描未使用 dependencies。
+- 更新 `package.json`、`package-lock.json` 與 package scripts template，新增 `lint`、`check:lint`、`check:dependency-hygiene`，並將它們納入 `gate:local` / `gate:local:vault`。
+- 清理 lint gate 揭露的 type-only import、未使用 import 與未使用測試參數。
 
 驗證：
 - `npm run typecheck`
@@ -40,6 +44,7 @@
 - `npm run build`
 - `npx vitest run tests/unit/ai-output-normalizer.test.ts tests/integration/process-media.integration.test.ts --passWithNoTests`
 - `git diff --check -- README.md Discussion.md src/README.md tests/README.md docs/documentation-maintenance.md docs/backlog-active.md docs/backlog-archive.md docs/dev_log.md docs/encoding-safety.md docs/architecture-boundary.md docs/parity-contract.md docs/smoke-checklist.md docs/encoding\\ issue.md .gitattributes`
+- `npm run gate:local`
 
 ### 0.1.75 - 2026-05-04 00:00
 
