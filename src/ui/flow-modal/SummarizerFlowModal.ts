@@ -52,6 +52,7 @@ import {
   listBuiltinTemplates,
   UNIVERSAL_FRONTMATTER_TEMPLATE_REFERENCE
 } from "@services/obsidian/template-library";
+import { FLOW_MODAL_TITLE } from "@ui/flow-modal/copy";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
 type UiStatus = "idle" | "running" | "cancelling" | "completed" | "failed" | "cancelled";
@@ -221,7 +222,7 @@ export class SummarizerFlowModal extends Modal {
     this.sourceType = plugin.settings.lastSourceType;
     this.modalEl.addClass("ai-summarizer-flow");
     this.contentEl.addClass("ai-summarizer-flow-content");
-    this.setTitle("AI Summerizer");
+    this.setTitle(FLOW_MODAL_TITLE);
   }
 
   public onOpen(): void {
