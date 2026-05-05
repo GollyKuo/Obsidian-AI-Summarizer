@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 22:21
+最後更新：2026-05-05 22:27
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -131,13 +131,13 @@
   - 建議作法：把重要 label/placeholder/help copy 移到集中常數，新增 snapshot-like unit tests。
   - 驗證：跑 UI copy tests，並保留 `npm run smoke:desktop`。
 
-- [ ] 補 release asset privacy test。
+- [x] 補 release asset privacy test。
   - 檔案：`scripts/verify-release-metadata.mjs`、`docs/distribution-guide.md`
   - 目前問題：release metadata 只檢查版本一致，沒有掃 `main.js` / `manifest.json` / `styles.css` 是否含本機 vault path、cache path、API key pattern 或測試資料。
   - 建議作法：新增 `scripts/verify-release-privacy.mjs`，檢查 release assets 與 package metadata。
   - 驗證：把 privacy script 加進 `gate:release`。
 
-- [ ] 補 smoke scripts 的自動化回寫或 evidence 模式。
+- [x] 補 smoke scripts 的自動化回寫或 evidence 模式。
   - 檔案：`scripts/smoke-checklist.mjs`、`docs/smoke-checklist.md`、`docs/test-matrix.md`
   - 目前問題：smoke script 只列 checklist，不能記錄結果或產生 evidence artifact。
   - 建議作法：新增 `--record <path>`，輸出 timestamp、operator、capability、pass/fail、notes。
