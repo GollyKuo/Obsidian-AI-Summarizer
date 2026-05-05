@@ -1,19 +1,15 @@
 import { SummarizerError } from "@domain/errors";
 import type { MediaCompressionProfile } from "@domain/settings";
 import type { MediaUrlRequest, SourceMetadata } from "@domain/types";
-import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
+import type { JobRunHooks } from "@orchestration/job-runner";
+import { runMediaSessionPipeline } from "@orchestration/media-session-pipeline";
 import type {
   DownloaderAdapter,
   MediaDownloadResult,
   MediaDownloadSession
 } from "@services/media/downloader-adapter";
-import {
-  createArtifactRetentionManager,
-  type ArtifactLifecycleStatus,
-  type ArtifactRetentionManager
-} from "@services/media/artifact-retention";
+import type { ArtifactRetentionManager } from "@services/media/artifact-retention";
 import type {
-  PreUploadCompressionRequest,
   PreUploadCompressionResult,
   PreUploadCompressor
 } from "@services/media/pre-upload-compressor";
@@ -86,14 +82,6 @@ function validateInput(input: ProcessMediaUrlInput): void {
   }
 }
 
-function getAiUploadArtifactMode(
-  input: Pick<ProcessMediaUrlInput, "transcriptionProvider" | "geminiTranscriptionStrategy">
-): NonNullable<PreUploadCompressionRequest["artifactMode"]> {
-  return input.transcriptionProvider === "gemini" && input.geminiTranscriptionStrategy !== "inline_chunks"
-    ? "single_artifact"
-    : "auto_chunks";
-}
-
 function toTranscriptReadyPayload(
   session: MediaDownloadSession,
   downloadResult: MediaDownloadResult,
@@ -125,110 +113,43 @@ export async function processMediaUrl(
   signal: AbortSignal,
   hooks?: JobRunHooks
 ): Promise<ProcessMediaUrlResult> {
-  const artifactRetentionManager =
-    dependencies.artifactRetentionManager ?? createArtifactRetentionManager();
-
-  let session: MediaDownloadSession | null = null;
-  let downloadResult: MediaDownloadResult | null = null;
-  let preUploadResult: PreUploadCompressionResult | null = null;
-
-  await runJobStep(
-    "validating",
-    "Validating media URL input",
-    signal,
-    async () => {
-      validateInput(input);
-    },
-    hooks
-  );
-
-  try {
-    session = await runJobStep(
-      "acquiring",
-      "Preparing media acquisition session",
-      signal,
-      async () =>
+  const result = await runMediaSessionPipeline(
+    {
+      acquireArtifact: (session, activeSignal) =>
+        dependencies.downloaderAdapter.downloadMedia(session, activeSignal),
+      acquireStageMessage: "Downloading media artifact",
+      artifactRetentionManager: dependencies.artifactRetentionManager,
+      buildPayload: toTranscriptReadyPayload,
+      deferCompletedCleanup: input.deferCompletedCleanup,
+      geminiTranscriptionStrategy: input.geminiTranscriptionStrategy,
+      mediaCompressionProfile: input.mediaCompressionProfile,
+      prepareSession: (activeSignal) =>
         dependencies.downloaderAdapter.prepareSession(
           {
             sourceUrl: input.sourceValue,
             mediaCacheRoot: input.mediaCacheRoot,
             vaultId: input.vaultId
           },
-          signal
+          activeSignal
         ),
-      hooks
-    );
-    const activeSession = session;
+      prepareStageMessage: "Preparing media acquisition session",
+      preUploadCompressor: dependencies.preUploadCompressor,
+      retentionMode: input.retentionMode,
+      transcriptionProvider: input.transcriptionProvider,
+      validate: () => {
+        validateInput(input);
+      },
+      validateStageMessage: "Validating media URL input"
+    },
+    signal,
+    hooks
+  );
 
-    downloadResult = await runJobStep(
-      "acquiring",
-      "Downloading media artifact",
-      signal,
-      async () => dependencies.downloaderAdapter.downloadMedia(activeSession, signal),
-      hooks
-    );
-    const activeDownloadResult = downloadResult;
-
-    preUploadResult = await runJobStep(
-      "transcribing",
-      "Preparing AI-ready media artifacts",
-      signal,
-      async () =>
-        dependencies.preUploadCompressor.prepareForAiUpload(
-          {
-            session: activeSession,
-            downloadResult: activeDownloadResult,
-            profile: input.mediaCompressionProfile,
-            artifactMode: getAiUploadArtifactMode(input)
-          },
-          signal
-        ),
-      hooks
-    );
-
-    const cleanupWarnings = input.deferCompletedCleanup
-      ? []
-      : await artifactRetentionManager.cleanup({
-          retentionMode: input.retentionMode,
-          lifecycleStatus: "completed",
-          artifacts: activeSession.artifacts,
-          aiUploadArtifactPaths: preUploadResult.aiUploadArtifactPaths
-        });
-
-    const warnings = [...activeDownloadResult.warnings, ...preUploadResult.warnings, ...cleanupWarnings];
-    emitWarnings(activeDownloadResult.warnings, hooks);
-    emitWarnings(preUploadResult.warnings, hooks);
-    emitWarnings(cleanupWarnings, hooks);
-    const transcriptReadyPayload = toTranscriptReadyPayload(
-      activeSession,
-      activeDownloadResult,
-      preUploadResult,
-      warnings
-    );
-
-    return {
-      session: activeSession,
-      downloadResult: activeDownloadResult,
-      preUploadResult,
-      transcriptReadyPayload,
-      warnings
-    };
-  } catch (error) {
-    if (session) {
-      const lifecycleStatus: ArtifactLifecycleStatus =
-        error instanceof SummarizerError && error.category === "cancellation"
-          ? "cancelled"
-          : "failed";
-
-      const cleanupWarnings = await artifactRetentionManager.cleanup({
-        retentionMode: input.retentionMode,
-        lifecycleStatus,
-        artifacts: session.artifacts,
-        aiUploadArtifactPaths: preUploadResult?.aiUploadArtifactPaths ?? []
-      });
-      emitWarnings(cleanupWarnings, hooks);
-    }
-
-    throw error;
-  }
+  return {
+    session: result.session,
+    downloadResult: result.acquireResult,
+    preUploadResult: result.preUploadResult,
+    transcriptReadyPayload: result.transcriptReadyPayload,
+    warnings: result.warnings
+  };
 }
