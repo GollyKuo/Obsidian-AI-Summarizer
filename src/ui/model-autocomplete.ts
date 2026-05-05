@@ -1,9 +1,9 @@
 import {
-  normalizeModelCatalog,
+  getModelCatalogOptions,
   type AiModelCatalogEntry,
   type ModelProvider,
   type ModelPurpose
-} from "@domain/settings";
+} from "@domain/model-selection";
 
 export interface ManagedModelSuggestion {
   id: string;
@@ -20,22 +20,10 @@ export function getLocalManagedModelSuggestions(
   purpose: ModelPurpose,
   selectedModel?: string
 ): ManagedModelSuggestion[] {
-  const suggestions = normalizeModelCatalog(catalog)
-    .filter((entry) => entry.provider === provider && entry.purpose === purpose)
-    .map((entry) => ({
-      id: entry.modelId,
-      name: entry.displayName || entry.modelId
-    }));
-
-  const selected = selectedModel?.trim();
-  if (selected && !suggestions.some((suggestion) => suggestion.id === selected)) {
-    suggestions.push({
-      id: selected,
-      name: `Current: ${selected}`
-    });
-  }
-
-  return suggestions;
+  return getModelCatalogOptions(catalog, provider, purpose, selectedModel).map((option) => ({
+    id: option.value,
+    name: option.label
+  }));
 }
 
 export function searchManagedModelSuggestions(
