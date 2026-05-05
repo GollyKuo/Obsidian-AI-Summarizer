@@ -46,7 +46,6 @@ import { ObsidianNoteWriter } from "@services/obsidian/note-writer";
 import { VaultNoteStorage } from "@services/obsidian/vault-note-storage";
 import {
   createCustomTemplateReference,
-  describeTemplateReference,
   getCustomTemplatePath,
   isBuiltinTemplateReference,
   listBuiltinTemplates,
@@ -64,9 +63,14 @@ import type {
   UiStatus,
   VaultFolderTreeNode
 } from "@ui/flow-modal/types";
+import {
+  type FlowSourceSectionOptions,
+  renderSourceDetails,
+  renderSourceInput,
+  renderSourceSelector
+} from "@ui/flow-modal/source-section";
 import { getSourceErrorHint, getSourceGuidance } from "@ui/source-guidance";
 
-const SOURCE_TYPES: SourceType[] = ["webpage_url", "media_url", "local_media", "transcript_file"];
 const TERMINAL_STAGE_STATUSES: JobStatus[] = ["completed", "failed", "cancelled"];
 const CUSTOM_TEMPLATE_OPTION = "__custom__";
 
@@ -268,14 +272,30 @@ export class SummarizerFlowModal extends Modal {
     });
   }
 
-  private getSourceActionLabel(): string {
-    return this.sourceType === "local_media" || this.sourceType === "transcript_file"
-      ? "選擇檔案"
-      : "填入範例";
-  }
-
   private isBusy(): boolean {
     return this.status === "running" || this.status === "cancelling";
+  }
+
+  private getSourceSectionOptions(): FlowSourceSectionOptions {
+    return {
+      isBusy: this.isBusy(),
+      sourceType: this.sourceType,
+      sourceValue: this.sourceValue,
+      templateReference: this.plugin.settings.templateReference,
+      onPickLocalFile: () => {
+        void this.pickLocalFile();
+      },
+      onSelectSourceType: (sourceType) => {
+        this.selectSourceType(sourceType);
+      },
+      onSourceValueChange: (sourceValue) => {
+        this.sourceValue = sourceValue;
+      },
+      onUseExample: (sourceValue) => {
+        this.sourceValue = sourceValue;
+        this.render();
+      }
+    };
   }
 
   private createPreflightField(containerEl: HTMLElement, label: string): HTMLElement {
@@ -502,88 +522,15 @@ export class SummarizerFlowModal extends Modal {
   }
 
   private renderSourceSelector(containerEl: HTMLElement): void {
-    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section" });
-    const headingEl = sectionEl.createEl("h3", {
-      cls: "ai-summarizer-section-title",
-      text: "輸入來源"
-    });
-    headingEl.id = "ai-summarizer-source-selector-title";
-
-    const tabsEl = sectionEl.createDiv({ cls: "ai-summarizer-source-tabs" });
-    tabsEl.setAttribute("role", "tablist");
-    tabsEl.setAttribute("aria-labelledby", headingEl.id);
-
-    SOURCE_TYPES.forEach((sourceType) => {
-      const guidance = getSourceGuidance(sourceType);
-      const isActive = sourceType === this.sourceType;
-      const buttonEl = tabsEl.createEl("button", {
-        cls: "ai-summarizer-source-tab",
-        text: guidance.label
-      });
-      buttonEl.type = "button";
-      buttonEl.disabled = this.isBusy();
-      buttonEl.setAttribute("role", "tab");
-      buttonEl.setAttribute("aria-selected", String(isActive));
-      buttonEl.setAttribute("data-active", String(isActive));
-      buttonEl.addEventListener("click", () => {
-        this.selectSourceType(sourceType);
-      });
-    });
+    renderSourceSelector(containerEl, this.getSourceSectionOptions());
   }
 
   private renderSourceInput(containerEl: HTMLElement): void {
-    const guidance = getSourceGuidance(this.sourceType);
-    const sectionEl = containerEl.createDiv({ cls: "ai-summarizer-section ai-summarizer-source-input" });
-    sectionEl.createEl("h3", {
-      cls: "ai-summarizer-section-title",
-      text: guidance.label
-    });
-    sectionEl.createEl("p", {
-      cls: "ai-summarizer-source-description",
-      text: guidance.description
-    });
-
-    const rowEl = sectionEl.createDiv({ cls: "ai-summarizer-input-row" });
-    const inputEl = rowEl.createEl("input", {
-      cls: "ai-summarizer-source-value"
-    });
-    inputEl.type = "text";
-    inputEl.disabled = this.isBusy();
-    inputEl.placeholder = guidance.placeholder;
-    inputEl.value = this.sourceValue;
-    inputEl.addEventListener("input", () => {
-      this.sourceValue = inputEl.value.trim();
-    });
-
-    const actionButtonEl = rowEl.createEl("button", {
-      cls: "ai-summarizer-secondary-action",
-      text: this.getSourceActionLabel()
-    });
-    actionButtonEl.type = "button";
-    actionButtonEl.disabled = this.isBusy();
-    actionButtonEl.addEventListener("click", () => {
-      if (this.sourceType === "local_media" || this.sourceType === "transcript_file") {
-        void this.pickLocalFile();
-        return;
-      }
-
-      this.sourceValue = guidance.placeholder;
-      this.render();
-    });
+    renderSourceInput(containerEl, this.getSourceSectionOptions());
   }
 
   private renderSourceDetails(containerEl: HTMLElement): void {
-    const guidance = getSourceGuidance(this.sourceType);
-    const detailsEl = containerEl.createEl("details", {
-      cls: "ai-summarizer-source-details"
-    });
-    detailsEl.createEl("summary", { text: "來源限制" });
-    const listEl = detailsEl.createEl("ul");
-    listEl.createEl("li", { text: guidance.inputHint });
-    listEl.createEl("li", { text: `常見來源：${guidance.examples.join("、")}` });
-    listEl.createEl("li", {
-      text: `目前 note 模板：${describeTemplateReference(this.plugin.settings.templateReference)}`
-    });
+    renderSourceDetails(containerEl, this.getSourceSectionOptions());
   }
 
   private getVaultFolderTree(): VaultFolderTreeNode {
