@@ -63,6 +63,31 @@ function appendTranscript(summaryMarkdown: string, transcriptMarkdown: string): 
   return [summaryMarkdown.trim(), "", "## Transcript", "", trimmedTranscript].join("\n");
 }
 
+function hasFrontmatter(markdown: string): boolean {
+  return /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/.test(markdown.trimStart());
+}
+
+function findUnknownPlaceholders(templateBody: string): string[] {
+  const knownPlaceholders = new Set<keyof TemplateData>([
+    "title",
+    "book",
+    "author",
+    "creator",
+    "creatorOrAuthor",
+    "description",
+    "tags",
+    "platform",
+    "source",
+    "createdDate",
+    "created",
+    "summary",
+    "transcript"
+  ]);
+  return Array.from(templateBody.matchAll(/\{\{([a-zA-Z][a-zA-Z0-9]*)\}\}/g))
+    .map((match) => match[1])
+    .filter((key) => !knownPlaceholders.has(key as keyof TemplateData));
+}
+
 export class ObsidianNoteWriter implements NoteWriter {
   private readonly storage: NoteStorage;
   private readonly options: NoteWriterOptions;
@@ -156,48 +181,75 @@ export class ObsidianNoteWriter implements NoteWriter {
     };
   }
 
+  private renderBuiltinNote(data: TemplateData, bodyMarkdown: string): ContentBuildResult {
+    return {
+      content: normalizeTemplateOutput([buildDefaultFrontmatter(data), bodyMarkdown].join("\n")),
+      warnings: []
+    };
+  }
+
+  private renderCustomTemplateNote(
+    templateBody: string,
+    data: TemplateData,
+    transcriptMarkdown: string
+  ): ContentBuildResult {
+    const warnings: string[] = [];
+    const unknownPlaceholders = findUnknownPlaceholders(templateBody);
+    if (unknownPlaceholders.length > 0) {
+      warnings.push(
+        `Template renderer: unknown placeholder(s) left unchanged: ${Array.from(new Set(unknownPlaceholders)).join(", ")}.`
+      );
+    }
+
+    const templateHasFrontmatter = hasFrontmatter(templateBody);
+    const hasSummaryPlaceholder = templateBody.includes("{{summary}}");
+    const hasTranscriptPlaceholder = templateBody.includes("{{transcript}}");
+    const renderedTemplate = applyTemplate(templateBody, data);
+    const contentParts = templateHasFrontmatter
+      ? [renderedTemplate.trim()]
+      : [buildDefaultFrontmatter(data).trim(), "", renderedTemplate.trim()];
+
+    if (!templateHasFrontmatter) {
+      warnings.push("Template renderer: custom template did not include frontmatter; default frontmatter was added.");
+    }
+
+    if (!hasSummaryPlaceholder) {
+      contentParts.push("", data.summary);
+      warnings.push("Template renderer: custom template did not include {{summary}}; summary was appended.");
+    }
+    const normalizedTranscriptMarkdown = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
+    if (!hasTranscriptPlaceholder && normalizedTranscriptMarkdown.length > 0) {
+      contentParts.push("", "## Transcript", "", normalizedTranscriptMarkdown);
+      warnings.push("Template renderer: custom template did not include {{transcript}}; transcript was appended.");
+    }
+
+    return {
+      content: normalizeTemplateOutput(contentParts.join("\n")),
+      warnings
+    };
+  }
+
   private async buildContent(
     data: TemplateData,
     bodyMarkdown: string,
     transcriptMarkdown: string
   ): Promise<ContentBuildResult> {
-    const warnings: string[] = [];
     const templateReference = normalizeTemplateReference(this.options.templateReference);
     const builtinTemplateBody = resolveBuiltinTemplate(templateReference);
     if (builtinTemplateBody) {
-      return {
-        content: normalizeTemplateOutput([buildDefaultFrontmatter(data), bodyMarkdown].join("\n")),
-        warnings
-      };
+      return this.renderBuiltinNote(data, bodyMarkdown);
     }
 
     const templatePath = getCustomTemplatePath(templateReference);
     const templateBody = await this.storage.readTemplate(templatePath);
 
     if (templateBody) {
-      const hasSummaryPlaceholder = templateBody.includes("{{summary}}");
-      const hasTranscriptPlaceholder = templateBody.includes("{{transcript}}");
-      const renderedTemplate = applyTemplate(templateBody, data);
-      const contentParts = [renderedTemplate.trim()];
-
-      if (!hasSummaryPlaceholder) {
-        contentParts.push("", data.summary);
-      }
-      const normalizedTranscriptMarkdown = normalizeToTraditionalChinese(transcriptMarkdown.trim()).value;
-      if (!hasTranscriptPlaceholder && normalizedTranscriptMarkdown.length > 0) {
-        contentParts.push("", "## Transcript", "", normalizedTranscriptMarkdown);
-      }
-
-      return {
-        content: normalizeTemplateOutput(contentParts.join("\n")),
-        warnings
-      };
+      return this.renderCustomTemplateNote(templateBody, data, transcriptMarkdown);
     }
 
-    warnings.push(`Template resolver: custom template was not found; used ${normalizeTemplateReference("")}.`);
     return {
       content: normalizeTemplateOutput([buildDefaultFrontmatter(data), bodyMarkdown].join("\n")),
-      warnings
+      warnings: [`Template resolver: custom template was not found; used ${normalizeTemplateReference("")}.`]
     };
   }
 }

@@ -123,7 +123,7 @@ describe("note writer", () => {
       generateFlashcards: true
     });
 
-    await writer.writeMediaNote({
+    const result = await writer.writeMediaNote({
       metadata: {
         title: "Media",
         creatorOrAuthor: "Creator",
@@ -146,6 +146,7 @@ describe("note writer", () => {
     expect(writtenContent).toContain("## Raw\n{0m0s - 0m1s} 這是網路軟體 with OpenAI API");
     expect(writtenContent).not.toContain("这是网络软件");
     expect(writtenContent.match(/## Transcript/g)).toBeNull();
+    expect(result.warnings.some((warning) => warning.includes("default frontmatter was added"))).toBe(false);
   });
 
   it("appends summary and transcript when custom template has no insertion placeholders", async () => {
@@ -168,7 +169,7 @@ describe("note writer", () => {
       templateReference: "custom:Templates/custom.md"
     });
 
-    await writer.writeMediaNote({
+    const result = await writer.writeMediaNote({
       metadata: {
         title: "Media",
         creatorOrAuthor: "Creator",
@@ -180,9 +181,61 @@ describe("note writer", () => {
       transcriptMarkdown: "{0m0s - 0m1s} hello"
     });
 
+    expect(writtenContent).toContain("Title: \"Media\"");
     expect(writtenContent).toContain("# Media\n\nSource: https://example.com/episode");
     expect(writtenContent).toContain("## Summary\nMedia summary.");
     expect(writtenContent).toContain("## Transcript\n\n{0m0s - 0m1s} hello");
+    expect(result.warnings).toEqual(expect.arrayContaining([
+      "Template renderer: custom template did not include frontmatter; default frontmatter was added.",
+      "Template renderer: custom template did not include {{summary}}; summary was appended.",
+      "Template renderer: custom template did not include {{transcript}}; transcript was appended."
+    ]));
+  });
+
+  it("keeps custom frontmatter and reports unknown placeholders", async () => {
+    let writtenContent = "";
+
+    const storage = {
+      async exists(): Promise<boolean> {
+        return false;
+      },
+      async write(_path: string, content: string): Promise<void> {
+        writtenContent = content;
+      },
+      async readTemplate(): Promise<string | null> {
+        return [
+          "---",
+          'title: "{{title}}"',
+          "custom: {{unknownPlaceholder}}",
+          "---",
+          "# {{title}}",
+          "{{summary}}"
+        ].join("\n");
+      }
+    };
+
+    const writer = new ObsidianNoteWriter(storage, {
+      outputFolder: "Summaries",
+      templateReference: "custom:Templates/custom.md"
+    });
+
+    const result = await writer.writeWebpageNote({
+      metadata: {
+        title: "Article",
+        creatorOrAuthor: "Author",
+        platform: "Web",
+        source: "https://example.com/article",
+        created: "2026-04-24T08:00:00.000Z"
+      },
+      summaryMarkdown: "## Summary\nArticle summary."
+    });
+
+    expect(writtenContent.match(/^---/g)).toHaveLength(1);
+    expect(writtenContent).toContain("custom: {{unknownPlaceholder}}");
+    expect(writtenContent).not.toContain("Title: \"Article\"");
+    expect(result.warnings).toContain(
+      "Template renderer: unknown placeholder(s) left unchanged: unknownPlaceholder."
+    );
   });
 
   it("falls back to universal frontmatter when a custom template is unavailable", async () => {
