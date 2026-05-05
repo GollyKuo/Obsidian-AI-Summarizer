@@ -1,10 +1,10 @@
 # 開發日誌
 
-最後更新：2026-05-05 23:46
+最後更新：2026-05-05 23:52
 
 ## 版本紀錄
 
-### Unreleased - 2026-05-05 23:46
+### Unreleased - 2026-05-05 23:52
 
 範圍：
 - 新增設定頁使用說明，並定案 HTML 教學簡報為獨立下載文件。
@@ -13,6 +13,7 @@
 - 修正 AI Summarizer 任務執行中誤觸背景或 Esc 關閉視窗會直接取消任務的問題，改為先顯示確認提示。
 - 清理文件導覽、backlog active/archive 邊界與已被正式規範取代的臨時編碼筆記。
 - 新增 lint / dependency hygiene gate，將 ESLint 與 dependency 檢查納入本地 gate。
+- 完成 `CAP-404` 的 `yt-dlp` managed install/update，降低 Windows 桌面版媒體工具安裝摩擦。
 
 主要變更：
 - 更新 `src/ui/settings-tab.ts`，新增 `使用說明` 分頁，提供第一次使用、plugin 更新步驟，以及 `前往 AI 模型` / `前往診斷` 快速入口。
@@ -37,6 +38,9 @@
 - 新增 `eslint.config.mjs` 與 `scripts/verify-dependency-hygiene.mjs`，啟用 `no-unused-vars`、`no-floating-promises`、`consistent-type-imports`，並掃描未使用 dependencies。
 - 更新 `package.json`、`package-lock.json` 與 package scripts template，新增 `lint`、`check:lint`、`check:dependency-hygiene`，並將它們納入 `gate:local` / `gate:local:vault`。
 - 清理 lint gate 揭露的 type-only import、未使用 import 與未使用測試參數。
+- 新增 `src/services/media/yt-dlp-tool-installer.ts` 與 unit tests，從 GitHub latest release 下載 `yt-dlp.exe` 並以 `SHA2-256SUMS` 驗證。
+- 更新診斷設定頁，`yt-dlp` 同時支援 PATH 自動偵測與 `tools/yt-dlp` managed install；成功後會寫入 `ytDlpPath`。
+- 更新使用者手冊、開發者手冊、distribution guide 與 dependency update strategy，記錄 managed install source/checksum policy。
 
 驗證：
 - `npm run typecheck`

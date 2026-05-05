@@ -35,7 +35,7 @@
 1. `CAP-202`、`CAP-203`、`CAP-206`、`CAP-207`、`CAP-306`、`CAP-401` 已完成並移入 archive。
 2. `CAP-205` Gemini transcription strategy vNext 已完成：`auto` 優先 Files API 上傳抽音訊後的 AI-ready artifact，保留逐 chunk inline fallback；Files API adapter、remote file lifecycle、privacy/retention、diagnostics 與 fallback tests 已落地。
 3. `CAP-303` 文件補強不再列為 active 工作；既有完成項保留在 archive。
-4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略已完成，且 `ytDlpPath` 已補入設定與診斷；若安裝摩擦仍高，再補 managed install/update 或更完整的設定頁診斷 UX。
+4. `CAP-404` 保留為 queued enhancement：基線外部依賴策略、`ytDlpPath`、設定診斷與 Windows desktop managed install/update 已完成；若安裝摩擦仍高，再評估 macOS/Linux installer 或更完整的設定頁診斷 UX。
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 6. `CAP-208` 逐字稿校對 / 清理階段已完成實作：摘要前可選 cleanup、fallback、raw transcript artifact 與測試已落地。
 
@@ -212,7 +212,7 @@ Done When：
 狀態：`queued`
 
 摘要：
-基線已完成：`yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate、`ytDlpPath` 設定與診斷、`ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程已落地。queued enhancement：若使用者安裝摩擦仍高，再補 `yt-dlp` managed install/update 或更完整的設定頁診斷 UX。
+基線已完成：`yt-dlp`、`ffmpeg`、`ffprobe` 的版本檢查、相容性、drift gate、`ytDlpPath` 設定與診斷、Windows desktop `yt-dlp` managed install/update，以及 `ffmpeg` / `ffprobe` 多來源下載與 SHA-256 驗證更新流程。queued enhancement：若使用者安裝摩擦仍高，再評估 macOS/Linux installer 或更完整的設定頁診斷 UX。
 
 ### Expansion 擴充能力
 

@@ -301,8 +301,9 @@ Release asset 應只包含程式與 metadata：
 設定頁 `診斷` 分頁提供：
 
 1. `ffmpeg` / `ffprobe` 的 `自動填入`，會在 plugin 資料夾的 `tools/ffmpeg` 中檢查、下載或更新工具。
-2. `yt-dlp` 的 `自動偵測`，只會找 PATH，不會自動下載。
-3. `重新檢查`，用來確認 media cache root 與 capability。
+2. `yt-dlp` 的 `自動填入`，會在 plugin 資料夾的 `tools/yt-dlp` 中檢查、下載或更新 Windows standalone executable，並以 GitHub release checksum 驗證。
+3. `自動偵測` 會找 PATH 中的既有工具並寫入設定。
+4. `重新檢查`，用來確認 media cache root 與 capability。
 
 若修改媒體工具安裝或診斷 UX，請同步更新 [Manual.md](Manual.md) 的一般 Windows 使用者流程。
 

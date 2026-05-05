@@ -1,6 +1,6 @@
 # Dependency Update Strategy
 
-最後更新：2026-05-01 01:40
+最後更新：2026-05-05 23:52
 
 ## 目標
 
@@ -16,6 +16,14 @@
 6. 最新版本查詢優先使用 PyPI，失敗時 fallback GitHub latest release；兩者皆失敗時只略過最新版本提醒，仍保留本機版本年齡判斷。
 7. `ffmpeg` / `ffprobe` 解析 major version，若版本過舊或 major 不一致，視為 compatibility warning。
 8. 缺少依賴視為 drift error，但只影響 media 能力，不影響 plugin 基本載入。
+
+## Managed Install Policy
+
+1. Windows desktop 可從設定頁 `自動填入` project-local `yt-dlp`、`ffmpeg`、`ffprobe`。
+2. `yt-dlp` 來源固定為 GitHub latest release 的 `yt-dlp.exe`，checksum 來源為同 release 的 `SHA2-256SUMS`。
+3. `ffmpeg` / `ffprobe` 來源固定為 Gyan release essentials build，優先 GitHub mirror，fallback gyan.dev，並以 release SHA-256 驗證。
+4. managed install metadata 寫入 plugin 資料夾 `tools/<tool>/install-metadata.json`，包含 source、version、sha256、installedAt。
+5. 使用者手動設定 path 或留空 PATH fallback 仍受 readiness / drift diagnostics 檢查。
 
 ## 判定規則（v1）
 

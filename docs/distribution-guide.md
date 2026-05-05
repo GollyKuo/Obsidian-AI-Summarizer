@@ -124,14 +124,14 @@ git push origin 0.1.75
 
 ## yt-dlp 放置方式
 
-目前 v1 實作不會把 `yt-dlp` 打包進 plugin。使用者可以在設定頁填入 `ytDlpPath`，若留空則程式會直接使用系統 PATH：
+目前 v1 實作不會把 `yt-dlp` 打包進 release zip。使用者可以在設定頁按 `自動填入`，由 plugin 下載 Windows standalone executable 到 plugin 資料夾；也可以手動填入 `ytDlpPath`，若留空則程式會直接使用系統 PATH：
 
 ```text
 yt-dlp --version
 yt-dlp ...
 ```
 
-因此 `yt-dlp` 可以放在使用者系統的 `PATH` 裡，或在 plugin settings 的 `媒體工具路徑 -> yt-dlp` 手動指定完整路徑。建議方式：
+因此 `yt-dlp` 可以放在使用者系統的 `PATH` 裡、由設定頁建立 managed install，或在 plugin settings 的 `媒體工具路徑 -> yt-dlp` 手動指定完整路徑。建議方式：
 
 ### Windows
 
@@ -147,7 +147,7 @@ C:\Tools\yt-dlp\yt-dlp.exe
 C:\Tools\yt-dlp
 ```
 
-啟用後，在新的 terminal 驗證，或在設定頁按 `yt-dlp` 的 `自動偵測`：
+啟用後，在新的 terminal 驗證，或在設定頁按 `yt-dlp` 的 `自動偵測`。若不想自行安裝，可直接按 `自動填入`：
 
 ```bash
 yt-dlp --version
@@ -163,7 +163,7 @@ yt-dlp --version
 
 ### 不建議的方式
 
-不要只把 `yt-dlp.exe` 丟進 plugin release 目錄後期待自動生效。若要放在 plugin 目錄或其他固定資料夾，必須在設定頁指定 `ytDlpPath`，或把該資料夾加入 PATH。自動下載 / 更新 `yt-dlp` 仍是後續功能。
+不要只把 `yt-dlp.exe` 丟進 plugin release 根目錄後期待自動生效。若要使用固定資料夾，必須在設定頁指定 `ytDlpPath`、把該資料夾加入 PATH，或使用設定頁 `自動填入` 建立 `tools/yt-dlp` managed install。
 
 ## ffmpeg / ffprobe 放置方式
 

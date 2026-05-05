@@ -780,8 +780,8 @@
               </div>
               <div class="panel">
                 <h3>安裝方式提醒</h3>
-                <p><code>ffmpeg</code> / <code>ffprobe</code> 可在 plugin 設定頁自動下載或更新。</p>
-                <p><code>yt-dlp</code> 目前不會自動下載，需要自行安裝，或指定已存在的 <code>yt-dlp.exe</code>。</p>
+                <p><code>ffmpeg</code> / <code>ffprobe</code> 與 Windows 桌面版的 <code>yt-dlp</code> 可在 plugin 設定頁自動下載或更新。</p>
+                <p>也可以自行安裝，使用 <code>自動偵測</code> 或 <code>選擇檔案</code> 指定既有執行檔。</p>
               </div>
             </div>
           </article>
@@ -995,10 +995,9 @@
             <ol>
               <li>打開 <code>Settings &gt; AI Summarizer &gt; 診斷</code>。</li>
               <li>找到 <code>媒體工具路徑</code>。</li>
-              <li>在 <code>ffmpeg</code> 或 <code>ffprobe</code> 列按 <code>自動填入</code>。</li>
-              <li>等待外掛下載或更新 <code>ffmpeg</code> / <code>ffprobe</code>。</li>
-              <li>在 <code>yt-dlp</code> 列按 <code>自動偵測</code>。</li>
-              <li>如果找不到 <code>yt-dlp</code>，請先自行安裝，再用 <code>選擇檔案</code> 指到 <code>yt-dlp.exe</code>。</li>
+              <li>在 <code>yt-dlp</code>、<code>ffmpeg</code> 或 <code>ffprobe</code> 列按 <code>自動填入</code>。</li>
+              <li>等待外掛下載或更新媒體工具。</li>
+              <li>若你已自行安裝工具，也可以按 <code>自動偵測</code> 或用 <code>選擇檔案</code> 指到既有執行檔。</li>
               <li>按 <code>媒體功能檢查</code> 的 <code>重新檢查</code>。</li>
               <li>確認 <code>media_url</code> 與 <code>local_media</code> 顯示可用後，再開始媒體摘要。</li>
             </ol>
@@ -1014,7 +1013,7 @@
               </div>
               <div class="panel">
                 <h3><code>yt-dlp</code></h3>
-                <p>目前不會自動下載。需要自行安裝，或指定已存在的執行檔。</p>
+                <p>可留空使用系統 PATH，也可用 <code>自動填入</code> 建立 managed install。</p>
               </div>
               <div class="panel">
                 <h3><code>media cache root</code></h3>

@@ -394,7 +394,7 @@ Gemini file upload 是 Gemini 轉錄 provider 的 vNext 傳輸策略，不是摘
 | Obsidian 輸出 | 直接寫進使用者選擇的 vault path，frontmatter 為 Title/Creator/Platform/Source/Created，支援讀模板後覆寫固定欄位並插入 Summary/Transcript。 | `NoteWriter` 負責 path collision、metadata normalize、內建模板或自訂模板，輸出 summary + `## Transcript`。 | 新版更符合 Obsidian plugin 架構，也較容易測試。 |
 | 保留策略 | 三種 UI 語意：不保留來源檔案、保留來源檔案、保留視訊 + 音訊。media URL 可優先保留含字幕影片；local media 不刪原始檔，只清中間產物。 | `delete_temp` / `keep_temp` 兩種底層模式；成功、失敗、取消由 `artifact-retention` 集中決策。 | 新版 lifecycle 較一致；舊版第三種模式與含字幕影片保留語意仍可作為 vNext UX。 |
 | 取消與清理 | `stop_event` + yt-dlp progress hook；Gemini SDK 呼叫用 polling future 包住，但已送出的 SDK request 不一定能強制中止。清理由 GUI 分支直接處理。 | `AbortSignal` 串接 downloader、ffmpeg/ffprobe、fetch、Gladia polling；yt-dlp 取消會 kill process tree；清理由 orchestration 統一執行。 | 新版取消與清理責任邊界較完整。 |
-| 外部依賴 | PyInstaller 可帶 `ffmpeg.exe`；`yt-dlp` 以 Python package 使用，啟動背景檢查 PyPI/GitHub 最新版本。 | 任務開始前檢查 `yt-dlp`、`ffmpeg`、`ffprobe`；可設定 ffmpeg/ffprobe 路徑，並有 dependency drift / release gate 策略。 | 新版診斷較正式；若要降低使用者安裝成本，可補 `yt-dlp` 路徑或安裝 UX。 |
+| 外部依賴 | PyInstaller 可帶 `ffmpeg.exe`；`yt-dlp` 以 Python package 使用，啟動背景檢查 PyPI/GitHub 最新版本。 | 任務開始前檢查 `yt-dlp`、`ffmpeg`、`ffprobe`；可設定工具路徑，也可在 Windows desktop 建立 project-local managed install；並有 dependency drift / release gate 策略。 | 新版診斷與安裝 UX 較正式；macOS/Linux 仍偏向 PATH 或手動 path。 |
 | 測試性 | 主要靠 GUI 實機流程與 dev log。 | 已有 downloader、compressor、retention、provider routing、media integration 測試。 | 新版工程品質較高。 |
 
 ### 暫存與衍生產物矩陣

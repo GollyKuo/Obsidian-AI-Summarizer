@@ -71,7 +71,7 @@
 3. `yt-dlp`
 4. 一個放在 vault 外面的媒體暫存資料夾
 
-`ffmpeg` / `ffprobe` 可在 plugin 設定頁自動下載或更新。`yt-dlp` 目前不會自動下載，需要你先自行安裝，或指定已存在的 `yt-dlp.exe`。
+`ffmpeg` / `ffprobe` 與 Windows 桌面版的 `yt-dlp` 可在 plugin 設定頁自動下載或更新；也可以自行安裝後指定既有執行檔。
 
 ## 安裝 Plugin
 
@@ -217,17 +217,16 @@ D:\AI-Summarizer\media-cache
 
 1. 打開 `Settings -> AI Summarizer -> 診斷`。
 2. 找到 `媒體工具路徑`。
-3. 在 `ffmpeg` 或 `ffprobe` 列按 `自動填入`。
-4. 等待外掛下載或更新 `ffmpeg` / `ffprobe`。
-5. 在 `yt-dlp` 列按 `自動偵測`。
-6. 如果找不到 `yt-dlp`，請先自行安裝 `yt-dlp`，再用 `選擇檔案` 指到 `yt-dlp.exe`。
-7. 按 `媒體功能檢查` 的 `重新檢查`。
-8. 確認 `media_url` 與 `local_media` 顯示可用後，再開始媒體摘要。
+3. 在 `yt-dlp`、`ffmpeg` 或 `ffprobe` 列按 `自動填入`。
+4. 等待外掛下載或更新媒體工具。
+5. 若你已自行安裝工具，也可以按 `自動偵測` 尋找 PATH 中的執行檔，或用 `選擇檔案` 指到既有 `.exe`。
+6. 按 `媒體功能檢查` 的 `重新檢查`。
+7. 確認 `media_url` 與 `local_media` 顯示可用後，再開始媒體摘要。
 
 注意：
 
-1. `ffmpeg` / `ffprobe` 自動下載主要支援 Windows 桌面版。
-2. `yt-dlp` 目前不會自動下載。
+1. 媒體工具自動下載主要支援 Windows 桌面版。
+2. `yt-dlp` 仍可留空使用系統 PATH，也可由 `自動填入` 寫入 plugin 目錄下的 managed path。
 3. 如果 `media cache root` 顯示不可用，請重新設定媒體暫存資料夾。
 
 ## 支援的輸入類型

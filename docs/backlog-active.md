@@ -32,7 +32,7 @@
 
 當 Final Handoff Gate 收斂後：
 
-- `CAP-404` 的 `ytDlpPath` 已落地；後續只需評估 `yt-dlp` managed install/update 是否進入 active。
+- `CAP-404` 的 `ytDlpPath` 與 Windows desktop `yt-dlp` managed install/update 已落地；後續只需依使用者回饋評估 macOS/Linux installer。
 - 決定下一輪主線要走 `CAP-508` 輸入來源擴充，或先補 `CAP-505` 批次與佇列。
 
 ## Final Handoff Gate 最終交付檢查
