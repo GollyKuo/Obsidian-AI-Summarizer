@@ -1,6 +1,6 @@
 # Code Review Task List
 
-最後更新：2026-05-05 22:29
+最後更新：2026-05-05 22:52
 
 本清單來自一次全 repo 程式碼檢查。檢查範圍包含 `src/`、`tests/`、`scripts/`、建置設定與 package metadata。
 
@@ -93,7 +93,7 @@
 
 ## P2：架構與可維護性
 
-- [ ] 拆分 Settings Tab。
+- [x] 拆分 Settings Tab。
   - 檔案：`src/ui/settings-tab.ts`
   - 目前問題：單檔約 2600 行，混合 section navigation、model catalog、provider API tests、template picker、diagnostics、ffmpeg installer、help content。這會讓任何 settings 小改都很難審。
   - 建議作法：依 section 拆成 `settings/ai-models-section.ts`、`settings/output-media-section.ts`、`settings/templates-section.ts`、`settings/help-section.ts`、`settings/diagnostics-section.ts`，保留同一 PluginSettingTab shell。
