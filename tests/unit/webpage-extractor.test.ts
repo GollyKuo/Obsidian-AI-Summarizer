@@ -8,16 +8,70 @@ describe("FetchWebpageExtractor", () => {
 
   it("fetches and strips webpage HTML into readable text", async () => {
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
-      new Response("<html><head><style>.x{}</style></head><body><h1>Hello</h1><script>x()</script><p>A &amp; B</p></body></html>")
+      new Response("<html><head><style>.x{}</style></head><body><h1>Hello</h1><script>x()</script><p>A &amp; B &#x1F4A1;</p></body></html>")
     );
     const extractor = new FetchWebpageExtractor(fetchImpl);
 
     const result = await extractor.extractReadableText("https://example.com", new AbortController().signal);
 
-    expect(result).toBe("Hello A & B");
+    expect(result).toMatchObject({
+      readableText: "Hello A & B 💡",
+      warnings: []
+    });
     expect(fetchImpl).toHaveBeenCalledWith("https://example.com", {
       signal: expect.any(AbortSignal)
     });
+  });
+
+  it("extracts title, meta description, OpenGraph, author, and canonical URL", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(`
+        <html>
+          <head>
+            <title>Fallback &amp; Title</title>
+            <meta name="description" content="Meta &quot;description&quot;">
+            <meta property="og:title" content="OpenGraph Title">
+            <meta property="article:author" content="Demo Author">
+            <link rel="canonical" href="/canonical-article">
+          </head>
+          <body>
+            <article>${"Article body. ".repeat(20)}</article>
+          </body>
+        </html>
+      `)
+    );
+    const extractor = new FetchWebpageExtractor(fetchImpl);
+
+    const result = await extractor.extractReadableText("https://example.com/articles?id=1", new AbortController().signal);
+
+    expect(result).toMatchObject({
+      metadata: {
+        title: "OpenGraph Title",
+        description: 'Meta "description"',
+        author: "Demo Author",
+        canonicalUrl: "https://example.com/canonical-article"
+      }
+    });
+  });
+
+  it("falls back to body text when article content is too short", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(`
+        <html>
+          <body>
+            <article>Short.</article>
+            <main>Tiny.</main>
+            <p>${"Body fallback content. ".repeat(8)}</p>
+          </body>
+        </html>
+      `)
+    );
+    const extractor = new FetchWebpageExtractor(fetchImpl);
+
+    const result = await extractor.extractReadableText("https://example.com", new AbortController().signal);
+
+    expect(result.readableText).toContain("Body fallback content");
+    expect(result.warnings).toContain("Webpage extraction: primary content was short; used body fallback.");
   });
 
   it("throws when fetch returns an error response", async () => {
@@ -42,7 +96,7 @@ describe("FetchWebpageExtractor", () => {
 
     await expect(
       extractor.extractReadableText("https://example.com/bound", new AbortController().signal)
-    ).resolves.toBe("Bound fetch");
+    ).resolves.toMatchObject({ readableText: "Bound fetch" });
     expect(fetchImpl).toHaveBeenCalledWith("https://example.com/bound", {
       signal: expect.any(AbortSignal)
     });

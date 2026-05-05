@@ -5,7 +5,10 @@ import type { NoteWriter } from "@services/obsidian/note-writer";
 import { normalizeWebpageSummaryResult } from "@services/ai/ai-output-normalizer";
 import { applyWebpageMetadataPolicy } from "@services/web/webpage-metadata-policy";
 import type { MetadataExtractor } from "@services/web/metadata-extractor";
-import type { WebpageExtractor } from "@services/web/webpage-extractor";
+import type {
+  WebpageExtractionResult,
+  WebpageExtractor
+} from "@services/web/webpage-extractor";
 import { emitWarnings, runJobStep, type JobRunHooks } from "@orchestration/job-runner";
 
 export interface ProcessWebpageDependencies {
@@ -36,6 +39,18 @@ function validateWebpageInput(url: string): void {
   }
 }
 
+function normalizeWebpageExtractionResult(
+  result: string | WebpageExtractionResult
+): WebpageExtractionResult {
+  return typeof result === "string"
+    ? {
+        readableText: result,
+        metadata: {},
+        warnings: []
+      }
+    : result;
+}
+
 export async function processWebpage(
   input: WebpageRequest,
   dependencies: ProcessWebpageDependencies,
@@ -54,15 +69,26 @@ export async function processWebpage(
     hooks
   );
 
-  const webpageText = await runJobStep(
+  const webpageExtraction = await runJobStep(
     "acquiring",
     "Extracting webpage content",
     signal,
-    async () => dependencies.webpageExtractor.extractReadableText(input.sourceValue, signal),
+    async () =>
+      normalizeWebpageExtractionResult(
+        await dependencies.webpageExtractor.extractReadableText(input.sourceValue, signal)
+      ),
     hooks
   );
 
-  const extractedMetadata = dependencies.metadataExtractor.fromWebpage(input.sourceValue, webpageText);
+  warnings.push(...webpageExtraction.warnings);
+  emitWarnings(webpageExtraction.warnings, hooks);
+
+  const webpageText = webpageExtraction.readableText;
+  const extractedMetadata = dependencies.metadataExtractor.fromWebpage(
+    input.sourceValue,
+    webpageText,
+    webpageExtraction.metadata
+  );
   const metadataPolicyResult = applyWebpageMetadataPolicy(input.sourceValue, extractedMetadata);
   const metadata = metadataPolicyResult.metadata;
   warnings.push(...metadataPolicyResult.warnings);
