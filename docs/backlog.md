@@ -39,6 +39,7 @@
 5. `CAP-304` Flow Modal minimal UI adoption 已完成並移入 archive；Settings Tab polish 先保留在 `CAP-305` parking，不納入近期執行。窄寬度檢查只處理 Flow Modal 排版、換行與長輸入，不承接 mobile runtime 或平台限制文案。
 6. `CAP-208` 逐字稿校對 / 清理階段已完成實作：摘要前可選 cleanup、fallback、raw transcript artifact 與測試已落地。
 7. `CAP-508` Text File Summary Input 進入 active：用既有 `transcript_file` pipeline 承接一般 `.md/.txt` 文章文字，作為知乎、登入牆、付費牆或動態網頁阻擋擷取時的替代流程。
+8. `CAP-510` MarkItDown Document File Ingestion 列為 queued：未來以 optional local Python sidecar 將 PDF / DOCX / PPTX / XLSX / EPUB 等文件轉成 Markdown，再接現有文字摘要與筆記輸出流程；不取代既有媒體或網頁 pipeline。
 
 ## Capability 總表
 
@@ -292,6 +293,7 @@ Done When：
 
 - `transcript_file`：`.md` / `.txt` 逐字稿已先落地，跳過轉錄直接摘要；`.srt` / `.vtt` 解析保留為後續格式擴充。
 - `text_file` / `markdown_file`：`.txt` / `.md`，抽文字後直接摘要。
+- `document_file`：PDF / DOCX / PPTX / XLSX / EPUB 等文件先轉 Markdown，再接文字摘要 pipeline；MarkItDown 是優先評估的 optional sidecar。
 - `clipboard_text`：貼上文字後直接摘要。
 - `obsidian_note`：目前筆記或指定筆記摘要。
 - `folder_notes`：多篇 Obsidian notes 彙整摘要。
@@ -315,3 +317,31 @@ Done When：
 - 已定義是否與摘要筆記同檔、附檔、或獨立筆記輸出。
 - 已將 Flow Modal `製作閃卡內容` 選項接入實際 AI pipeline。
 - 已補 unit / integration / smoke 驗收。
+
+#### CAP-510 MarkItDown Document File Ingestion 文件檔案轉 Markdown 匯入
+
+狀態：`queued`
+
+摘要：
+以 Microsoft MarkItDown 作為 optional local Python sidecar，支援將本機 PDF、DOCX、PPTX、XLSX、EPUB 與其他常見文件格式轉成 Markdown，再沿用現有文字檔案摘要、chunking、summary provider、template 與 note writer 流程。第一版不取代 `webpage_url`、`media_url`、`local_media`，也不讓 MarkItDown 直接處理任意遠端 URL；定位是文件檔案 ingestion adapter。
+
+參考來源：
+
+- GitHub repo：https://github.com/microsoft/markitdown
+- PyPI package：https://pypi.org/project/markitdown/
+- OCR plugin：https://pypi.org/project/markitdown-ocr/
+
+設計邊界：
+
+- 新增 `document_file` 或等效 source descriptor，不直接塞進既有 `transcript_file` key，避免語意混淆。
+- 第一版只接受本機檔案路徑，限制檔案大小、timeout、可用副檔名與輸出 Markdown 長度。
+- 透過 `local_bridge` 檢查 Python `>=3.10`、`markitdown` 版本與必要 optional extras；未安裝時提供 diagnostics，不阻塞 `.md/.txt` 文字檔案摘要。
+- 預設停用 MarkItDown plugins、Document Intelligence、任意 URI conversion 與 ZIP 遞迴；若未來開放，需先補 security / privacy / retention 規格。
+- 轉換結果應寫入 session artifact 或 memory handoff，保留來源檔案 metadata、conversion warnings 與 troubleshooting 訊息。
+
+Done When：
+
+- 已完成 `document_file -> markdown -> summary note` 的 orchestration contract。
+- 已完成 MarkItDown sidecar dependency diagnostics 與錯誤分類。
+- 已補 PDF / DOCX / PPTX / XLSX 的轉換 adapter tests，並覆蓋缺少 Python / 缺少 markitdown / unsupported file / timeout。
+- Manual、test matrix、smoke checklist 說明 document file 來源與安裝限制。
